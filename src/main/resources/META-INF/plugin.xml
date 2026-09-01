@@ -41,11 +41,20 @@
 
     <notificationGroup id="Mondoo" displayType="BALLOON"
                        bundle="messages.MondooBundle" key="notification.group.mondoo"/>
+
+    <!-- Resolves the scanner in the background on project open. Never downloads
+         unprompted; see XgrepStartupActivity. -->
+    <backgroundPostStartupActivity
+        implementation="com.mondoo.intellij.binary.XgrepStartupActivity"/>
   </extensions>
 
   <actions>
     <group id="Mondoo.CodeSecurity" popup="true"
            text="Mondoo Code Security" description="Mondoo code security actions">
+      <action id="Mondoo.Xgrep.Setup"
+              class="com.mondoo.intellij.actions.SetupScannerAction"
+              text="Set Up Scanner"
+              description="Find or download the xgrep security scanner"/>
       <action id="Mondoo.Xgrep.ShowPath"
               class="com.mondoo.intellij.actions.ShowXgrepPathAction"
               text="Show xgrep Path"

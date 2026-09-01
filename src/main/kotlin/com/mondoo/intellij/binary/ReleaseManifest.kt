@@ -21,7 +21,34 @@ data class ReleaseManifest(
     val name: String,
     val version: String,
     val files: List<ReleaseFile>,
-)
+) {
+    companion object {
+        /**
+         * Parses `latest.json`. Total by design: a truncated response, an HTML
+         * error page from a captive portal, or an added field must degrade to
+         * null (callers fall back to a cached version) rather than throw.
+         */
+        fun parse(json: String): ReleaseManifest? = runCatching {
+            val root = com.google.gson.JsonParser.parseString(json).asJsonObject
+            val version = root["version"]?.asString ?: return null
+            val files = root["files"]?.asJsonArray.orEmpty().mapNotNull { element ->
+                runCatching {
+                    val o = element.asJsonObject
+                    ReleaseFile(
+                        filename = o["filename"].asString,
+                        size = o["size"]?.asLong ?: 0L,
+                        platform = o["platform"]?.asString.orEmpty(),
+                        hash = o["hash"]?.asString.orEmpty(),
+                    )
+                }.getOrNull()
+            }
+            ReleaseManifest(root["name"]?.asString.orEmpty(), version, files)
+        }.getOrNull()
+
+        private fun com.google.gson.JsonArray?.orEmpty(): List<com.google.gson.JsonElement> =
+            this?.toList() ?: emptyList()
+    }
+}
 
 data class ReleaseFile(
     val filename: String,

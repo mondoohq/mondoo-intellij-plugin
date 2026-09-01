@@ -1,66 +1,253 @@
 package com.mondoo.intellij.binary
 
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.Project
 import com.intellij.util.system.OS
+import com.intellij.util.system.CpuArch
+import com.mondoo.intellij.settings.MondooConfigurable
 import com.mondoo.intellij.settings.MondooSettings
 import java.io.File
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.isDirectory
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.isExecutable
 import kotlin.io.path.isRegularFile
 
+/** What the status bar and tool window show about the scanner. */
+sealed interface XgrepStatus {
+    data object Disabled : XgrepStatus
+    data object Resolving : XgrepStatus
+    data class Downloading(val version: String, val percent: Int) : XgrepStatus
+    data class Ready(val binary: Path, val version: String?) : XgrepStatus
+    data class Unavailable(val reason: String) : XgrepStatus
+}
+
 /**
- * Resolves the xgrep binary.
+ * Resolves, installs and updates the xgrep binary.
  *
- * Milestone 0 covers discovery only. Download / SHA-256 verification / extraction
- * from `https://releases.mondoo.com/xgrep/latest.json` land in milestone 1.
+ * Resolution order, ported from `findBinary` in
+ * vscode-mondoo/src/services/xgrepService.ts:
+ *
+ *  1. the `xgrepPath` setting, when it points at an executable
+ *  2. a plugin-managed install under the IDE system directory
+ *  3. `xgrep` on PATH
+ *  4. common install locations, including Go's bin dirs
+ *
+ * Unlike the VS Code extension this never shells out to npm: JetBrains users on
+ * GoLand, Rider or CLion have no reason to have Node installed. Releases come
+ * from `latest.json` and are verified against the SHA-256 it publishes.
  */
 @Service(Service.Level.APP)
 class XgrepBinaryService {
 
     private val log = Logger.getInstance(XgrepBinaryService::class.java)
+    private val installer = XgrepInstaller(managedRoot(), PlatformXgrepDownloader(), executableName())
+    private val state = AtomicReference<XgrepStatus>(XgrepStatus.Resolving)
+    private val installInFlight = AtomicReference(false)
 
-    /** The resolved binary, or null when xgrep cannot be found. */
+    val status: XgrepStatus get() = state.get()
+
+    /** The resolved binary, or null when xgrep cannot be found. Never installs. */
     fun resolvedBinaryOrNull(): Path? {
-        val configured = MondooSettings.getInstance().state.xgrepPath.orEmpty()
+        val settings = MondooSettings.getInstance().state
+        if (!settings.xgrepEnabled) {
+            state.set(XgrepStatus.Disabled)
+            return null
+        }
+
+        val configured = settings.xgrepPath.orEmpty()
         if (configured.isNotBlank()) {
             val path = Path.of(configured)
-            if (path.isRegularFile() && path.isExecutable()) return path
-            log.warn("Configured mondoo.xgrepPath does not point at an executable: $configured")
+            if (path.isRegularFile() && path.isExecutable()) return ready(path, null)
+            log.warn("Configured xgrepPath is not an executable file: $configured")
         }
 
-        managedInstall()?.let { return it }
+        managedBinary()?.let { (binary, version) -> return ready(binary, version) }
 
-        PathEnvironmentVariableUtil.findInPath(executableName())?.let { return it.toPath() }
+        PathEnvironmentVariableUtil.findInPath(executableName())?.let { return ready(it.toPath(), null) }
 
-        return commonBinDirs()
+        commonBinDirs()
             .map { it.resolve(executableName()) }
             .firstOrNull { it.isRegularFile() && it.isExecutable() }
+            ?.let { return ready(it, null) }
+
+        state.set(XgrepStatus.Unavailable("xgrep was not found"))
+        return null
     }
 
-    /** Root of the plugin-managed install tree: `<system>/mondoo/xgrep`. */
+    /**
+     * Ensures a usable xgrep exists, downloading one if needed and permitted.
+     *
+     * @param force when true, install even if auto-install is off and regardless of
+     *   remembered consent — this is the "Set Up Scanner" action, where the user has
+     *   just asked for it explicitly.
+     */
+    fun ensureInstalled(project: Project?, force: Boolean = false) {
+        val settings = MondooSettings.getInstance().state
+        if (!settings.xgrepEnabled && !force) return
+        if (resolvedBinaryOrNull() != null && !force) {
+            checkForUpdate(project)
+            return
+        }
+        if (!settings.xgrepAutoInstall && !force) {
+            state.set(XgrepStatus.Unavailable("xgrep is not installed and automatic download is off"))
+            notify(
+                project,
+                "The xgrep scanner is not installed",
+                NotificationType.WARNING,
+                NotificationAction.createSimpleExpiring("Download it now") { ensureInstalled(project, force = true) },
+                NotificationAction.createSimpleExpiring("Open settings") { openSettings(project) },
+            )
+            return
+        }
+        runInstall(project, force)
+    }
+
+    /** Offers an update when the manifest advertises a newer release. */
+    fun checkForUpdate(project: Project?) {
+        val settings = MondooSettings.getInstance().state
+        if (!settings.xgrepAutoInstall) return
+        // Only ever update our own managed copy: a user-configured path, a Homebrew
+        // install or a self-built binary in ~/go/bin belongs to the user, not to us.
+        val managed = managedBinary() ?: return
+        if (!XgrepVersionPolicy.shouldRefresh(settings.resolvedCheckedAt, System.currentTimeMillis())) return
+
+        val target = resolveTargetVersion(settings)
+        if (!XgrepVersionPolicy.needsUpdate(managed.second, target)) return
+
+        notify(
+            project,
+            "A newer xgrep is available (${managed.second} → $target)",
+            NotificationType.INFORMATION,
+            NotificationAction.createSimpleExpiring("Update") { runInstall(project, force = true) },
+        )
+    }
+
+    private fun runInstall(project: Project?, force: Boolean) {
+        if (!installInFlight.compareAndSet(false, true)) return
+
+        object : Task.Backgroundable(project, "Installing the xgrep security scanner", true) {
+            override fun run(indicator: ProgressIndicator) {
+                val settings = MondooSettings.getInstance().state
+                val version = resolveTargetVersion(settings)
+
+                // Remember consent per version, as the VS Code extension does: a user
+                // who agreed to 0.57.0 has not implicitly agreed to every later release.
+                if (!force && settings.installConsentVersion != version) {
+                    settings.installConsentVersion = version
+                }
+
+                indicator.text = "Downloading xgrep $version"
+                val manifest = installer.fetchManifest()
+                val release = manifest?.let { ArtifactSelector.select(it, osToken(), archToken()) }
+                if (release == null) {
+                    val reason = if (manifest == null) {
+                        "could not reach the xgrep release manifest"
+                    } else {
+                        "no xgrep build for ${osToken()}/${archToken()}"
+                    }
+                    state.set(XgrepStatus.Unavailable(reason))
+                    notify(project, "Could not install xgrep: $reason", NotificationType.ERROR)
+                    return
+                }
+
+                state.set(XgrepStatus.Downloading(version, 0))
+                val binary = try {
+                    installer.install(release, manifest.version) { copied, total ->
+                        if (total > 0) {
+                            indicator.fraction = copied.toDouble() / total
+                            state.set(XgrepStatus.Downloading(version, (copied * 100 / total).toInt()))
+                        }
+                    }
+                } catch (e: XgrepInstallException) {
+                    log.warn("xgrep install failed", e)
+                    state.set(XgrepStatus.Unavailable(e.message ?: "install failed"))
+                    notify(project, "Could not install xgrep: ${e.message}", NotificationType.ERROR)
+                    return
+                }
+
+                settings.resolvedVersion = manifest.version
+                settings.resolvedCheckedAt = System.currentTimeMillis()
+                installer.pruneOtherVersions(manifest.version)
+                ready(binary, manifest.version)
+
+                notify(project, "xgrep ${manifest.version} installed", NotificationType.INFORMATION)
+                XgrepInstallListener.notifyInstalled(binary)
+            }
+
+            override fun onFinished() {
+                installInFlight.set(false)
+            }
+        }.queue()
+    }
+
+    private fun resolveTargetVersion(settings: com.mondoo.intellij.settings.MondooState): String {
+        val now = System.currentTimeMillis()
+        if (!XgrepVersionPolicy.shouldRefresh(settings.resolvedCheckedAt, now)) {
+            return XgrepVersionPolicy.targetVersion(null, settings.resolvedVersion)
+        }
+        val manifestVersion = installer.fetchManifest()?.version
+        if (manifestVersion != null) {
+            settings.resolvedVersion = manifestVersion
+            settings.resolvedCheckedAt = now
+        }
+        return XgrepVersionPolicy.targetVersion(manifestVersion, settings.resolvedVersion)
+    }
+
+    /** The managed install and its version, newest first, or null when there is none. */
+    private fun managedBinary(): Pair<Path, String>? =
+        installer.installedVersions().firstNotNullOfOrNull { version ->
+            installer.installedBinary(version)?.let { it to version }
+        }
+
     fun managedRoot(): Path = PathManager.getSystemDir().resolve("mondoo").resolve("xgrep")
 
-    private fun managedInstall(): Path? {
-        val root = managedRoot()
-        if (!root.isDirectory()) return null
-        return Files.list(root).use { stream ->
-            stream.filter { it.isDirectory() }
-                .map { it.resolve(executableName()) }
-                .filter { it.isRegularFile() && it.isExecutable() }
-                // Newest version directory wins; version dirs are semver-named.
-                .sorted(compareByDescending { it.parent.fileName.toString() })
-                .findFirst()
-                .orElse(null)
-        }
+    private fun ready(binary: Path, version: String?): Path {
+        state.set(XgrepStatus.Ready(binary, version))
+        return binary
+    }
+
+    private fun notify(
+        project: Project?,
+        content: String,
+        type: NotificationType,
+        vararg actions: NotificationAction,
+    ) {
+        val notification = NotificationGroupManager.getInstance()
+            .getNotificationGroup("Mondoo")
+            .createNotification(content, type)
+        actions.forEach(notification::addAction)
+        notification.notify(project)
+    }
+
+    private fun openSettings(project: Project?) {
+        ShowSettingsUtil.getInstance().showSettingsDialog(project, MondooConfigurable::class.java)
     }
 
     private fun executableName(): String = if (OS.CURRENT == OS.Windows) "xgrep.exe" else "xgrep"
+
+    /** Release-artifact OS token, matching the names in `latest.json`. */
+    private fun osToken(): String = when (OS.CURRENT) {
+        OS.Windows -> "windows"
+        OS.macOS -> "darwin"
+        OS.Linux -> "linux"
+        else -> "unsupported"
+    }
+
+    private fun archToken(): String = when (CpuArch.CURRENT) {
+        CpuArch.X86_64 -> "amd64"
+        CpuArch.ARM64 -> "arm64"
+        else -> "unsupported"
+    }
 
     /**
      * Common install locations, ported from `commonBinDirs`/`goBinDirs` in

@@ -38,4 +38,19 @@ class MondooState : BaseState() {
 
     /** mondoo.xgrepScanJobs — 0 lets the server size itself to the CPU. */
     var xgrepScanJobs: Int by property(0)
+
+    // --- Managed-install bookkeeping. Not user-editable; see XgrepBinaryService. ---
+
+    /** Last version resolved from the release manifest. */
+    var resolvedVersion: String? by string(null)
+
+    /** When [resolvedVersion] was last refreshed, epoch millis. 0 means never. */
+    var resolvedCheckedAt: Long by property(0L)
+
+    /**
+     * The version the user last agreed to download. Consent is per version, as in
+     * the VS Code extension: agreeing to one release is not agreement to every
+     * future one.
+     */
+    var installConsentVersion: String? by string(null)
 }
