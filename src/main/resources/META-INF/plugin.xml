@@ -1,0 +1,56 @@
+<idea-plugin>
+  <id>com.mondoo.intellij</id>
+  <name>Mondoo</name>
+  <vendor email="hello@mondoo.com" url="https://mondoo.com">Mondoo, Inc.</vendor>
+
+  <description><![CDATA[
+    <p>Catch security issues while you write code, without leaving your IDE.</p>
+    <p>Powered by <a href="https://mondoo.com/xgrep">xgrep</a>, Mondoo's software
+    development security scanner: findings for vulnerabilities and leaked secrets
+    appear as you type, with one-click fixes and suppressions. No account, no
+    configuration.</p>
+  ]]></description>
+
+  <!-- The ONLY hard dependency. Nothing product-specific (no
+       com.intellij.modules.java / .python / .go), so the Marketplace marks this
+       plugin compatible with all IntelliJ-based products. -->
+  <depends>com.intellij.modules.platform</depends>
+
+  <!-- LSP-backed live scanning is optional: it loads only where
+       com.intellij.modules.lsp is present. Everything else in the plugin works
+       without it.
+
+       This uses the legacy optional-depends form rather than a v2 <content>
+       module on purpose. com.intellij.modules.lsp is a plugin-alias module in
+       the "jetbrains" namespace with internal visibility, and a v2 content
+       module cannot depend on it — both GoLand and Android Studio log
+       "module com.intellij.modules.lsp (namespace=jetbrains) is not resolved"
+       and silently exclude ours. See docs/adr/0001. -->
+  <depends optional="true" config-file="mondoo-lsp.xml">com.intellij.modules.lsp</depends>
+
+  <resource-bundle>messages.MondooBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceImplementation="com.mondoo.intellij.settings.MondooSettings"/>
+
+    <applicationConfigurable
+        id="com.mondoo.intellij.settings"
+        groupId="tools"
+        bundle="messages.MondooBundle" key="settings.display.name"
+        instance="com.mondoo.intellij.settings.MondooConfigurable"/>
+
+    <notificationGroup id="Mondoo" displayType="BALLOON"
+                       bundle="messages.MondooBundle" key="notification.group.mondoo"/>
+  </extensions>
+
+  <actions>
+    <group id="Mondoo.CodeSecurity" popup="true"
+           text="Mondoo Code Security" description="Mondoo code security actions">
+      <action id="Mondoo.Xgrep.ShowPath"
+              class="com.mondoo.intellij.actions.ShowXgrepPathAction"
+              text="Show xgrep Path"
+              description="Show which xgrep binary this plugin resolves"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </group>
+  </actions>
+</idea-plugin>

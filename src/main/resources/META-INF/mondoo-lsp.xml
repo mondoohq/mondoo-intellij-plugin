@@ -1,0 +1,26 @@
+<!--
+  Optional dependency descriptor: LSP-backed live scanning.
+
+  Loaded only when com.intellij.modules.lsp is present (see the <depends
+  optional> in plugin.xml).
+
+  Registered under `platform.lsp.serverSupportProvider`, NOT
+  `platform.lsp.integrationProvider`. Both exist at the 261.26222 floor, but
+  GoLand 2026.2 EAP (GO-262.6228.35) ships only serverSupportProvider — and
+  untilBuild is open, so we must survive builds that lack the newer EP.
+  LspServerSupportProvider extends LspIntegrationProvider, so nothing is lost.
+-->
+<idea-plugin>
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Announces in idea.log that this optional module actually loaded.
+         <depends optional> is otherwise completely silent. Application-level so
+         it fires even with no project open. -->
+    <applicationInitializedListener
+        implementation="com.mondoo.intellij.lsp.XgrepLspModuleProbe"/>
+    <backgroundPostStartupActivity
+        implementation="com.mondoo.intellij.lsp.XgrepLspProjectProbe"/>
+
+    <platform.lsp.serverSupportProvider
+        implementation="com.mondoo.intellij.lsp.XgrepLspServerSupportProvider"/>
+  </extensions>
+</idea-plugin>

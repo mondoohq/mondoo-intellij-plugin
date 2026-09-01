@@ -1,0 +1,8 @@
+gradle-app.setting
+.gradle/
+build/
+.idea/
+*.iml
+out/
+.kotlin/
+.intellijPlatform/

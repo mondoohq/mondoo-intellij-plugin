@@ -1,0 +1,128 @@
+# Developer Guide
+
+## Prerequisites
+
+- **JDK 21.** Platform 261 class files are Java 21 bytecode (major version 65), even
+  though the IDEs themselves bundle a JBR 25. Any JBR 21 works, including the one inside
+  an installed IDE:
+
+  ```bash
+  export JAVA_HOME="/Applications/IntelliJ IDEA CE.app/Contents/jbr/Contents/Home"
+  ```
+
+  Gradle's toolchain resolver will download a JDK 21 if none is installed.
+- **Kotlin 2.3.0 or newer.** Platform 2026.1.4 ships Kotlin 2.3.0 metadata; an older
+  compiler rejects every platform `.kotlin_module` and dies with an opaque "internal
+  compiler error". Pinned in `gradle/libs.versions.toml`.
+- **Gradle** comes from the wrapper (`./gradlew`, pinned to 9.2.1). Do not use a system
+  Gradle: the IntelliJ Platform Gradle Plugin 2.x requires Gradle 9+.
+- **xgrep** on your PATH for manual testing. `~/go/bin/xgrep` is picked up automatically.
+
+## Build and run
+
+```bash
+./gradlew build            # compile + test
+./gradlew runIde           # IntelliJ IDEA 2026.1.4 with the plugin loaded
+./gradlew runGoLand        # GoLand — catches accidental Java-only dependencies
+./gradlew runPyCharm       # PyCharm
+./gradlew buildPlugin      # -> build/distributions/*.zip
+./gradlew verifyPlugin     # Plugin Verifier across the IDE matrix
+```
+
+To test in Android Studio, build the ZIP and install it via
+**Settings | Plugins | ⚙ | Install Plugin from Disk…**.
+
+## Testing policy
+
+Mirrors the VS Code repo: **no test spawns a real binary, hits the network, or starts a
+language server.**
+
+- **Tier 1 — pure JUnit 5, no IDE.** The bulk of the suite. Argument builders, parsers,
+  the language table, glob matching, semver, release-manifest selection. These functions
+  take plain data — never `Project`, `VirtualFile` or `Editor`. Keeping that boundary is
+  what makes the suite fast; enforce it in review.
+- **Tier 2 — `BasePlatformTestCase`.** A handful: settings round-trip, findings store to
+  tree model, the suppression quick fix via `myFixture`.
+
+```bash
+./gradlew test
+```
+
+## Cross-IDE compatibility
+
+The plugin must load in every IntelliJ-based IDE. Two rules:
+
+1. `plugin.xml` declares **only** `com.intellij.modules.platform`. Never add
+   `com.intellij.modules.java`, `.python`, `.go`, or a `bundledPlugin` requirement — any
+   of those silently narrows Marketplace compatibility.
+2. Scope files by **name/extension**, never by IntelliJ `Language`. GoLand has no Python
+   language and Android Studio has no Go language, so those files resolve to
+   `PlainTextLanguage` there. See `XgrepLanguages`.
+
+`./gradlew verifyPlugin` enforces rule 1; `runGoLand` catches violations in seconds.
+
+## Checking whether an IDE exposes the LSP module
+
+**Do not answer this by looking at the jars.** Jar presence says nothing about whether a
+module is exposed to plugins. Check `product-info.json`, or better, run the plugin:
+
+```bash
+python3 -c "
+import json; d=json.load(open('/Applications/Android Studio.app/Contents/Resources/product-info.json'))
+print([l for l in d['layout'] if 'lsp' in l['name']])"
+```
+
+`XgrepLspModuleProbe` is the runtime check. It logs one line when the optional module
+loads, because `<depends optional>` is otherwise completely silent. It is an
+`ApplicationInitializedListener`, **not** a `ProjectActivity` — a project-scoped probe
+cannot distinguish "module absent" from "project never finished opening", and that false
+negative already produced one wrong conclusion.
+
+```bash
+# "<project-dir>,<file>" — the dir so a project opens, the file so an editor opens it
+# and fileOpened() fires. Probe runs set idea.trust.all.projects so no modal dialog
+# can block startup.
+P=/tmp/mondoo-lsp-probe
+./gradlew runAndroidStudio -PmondooProbeProject="$P,$P/vuln.py"
+
+L=.intellijPlatform/sandbox/intellij-mondoo/*/log_runAndroidStudio/idea.log
+grep -E "LSP module loaded|starting xgrep lsp|LSP server initialized" $L
+```
+
+Three lines means live scanning works in that IDE. Re-run on each Android Studio release
+rather than assuming it keeps working.
+
+Give the probe project an obvious name. A trust dialog for a project called `lsproj` gets
+declined, and the run then fails for a reason that never reaches the log.
+
+## Capturing xgrep LSP traffic
+
+Before writing or changing a parser, capture what the current binary actually sends
+rather than trusting the docs. A minimal stdio LSP client that performs
+`initialize` / `didOpen` and dumps the responses is enough; the diagnostic `data`
+payload, the `window/showMessage` scan text, and `executeCommandProvider.commands` are
+the three things worth re-checking on every xgrep bump.
+
+## Architecture decisions
+
+See [docs/adr/](docs/adr/). Start with
+[ADR-0001](docs/adr/0001-lsp-client-and-ide-compatibility.md).
+
+## First build
+
+The first `./gradlew` invocation downloads the IntelliJ IDEA 2026.1.4 distribution
+(~1 GB+). It is cached in `~/.gradle` afterwards, so this cost is paid once per machine.
+
+If you need to compile without that download, point the build at an IDE you already have
+installed — Android Studio Quail 4 is `AI-261.26222.65`, the exact platform build this
+plugin targets:
+
+```kotlin
+// build.gradle.kts, temporarily, for local iteration only
+intellijPlatform {
+    local("/Applications/Android Studio.app")
+}
+```
+
+Do not commit that: CI needs the resolvable artifact, and a local IDE pins you to
+whatever build happens to be installed.
