@@ -119,6 +119,14 @@ intellijPlatformTesting {
             systemProperty("jb.consents.confirmation.enabled", "false")
             systemProperty("jb.privacy.policy.text", "<!--999.999-->")
             systemProperty("ide.show.tips.on.startup.default.value", "false")
+            // -PmondooIsolateBinary=<dir> hides any xgrep already on this machine
+            // (PATH, ~/go/bin, Homebrew) so the download path is genuinely exercised.
+            providers.gradleProperty("mondooIsolateBinary").orNull?.let { fakeHome ->
+                systemProperty("user.home", fakeHome)
+                environment("PATH", "/usr/bin:/bin")
+                environment("GOPATH", "")
+                environment("GOBIN", "")
+            }
         }
     }
     runIde.register("runPyCharm") {
@@ -148,6 +156,14 @@ intellijPlatformTesting {
             systemProperty("jb.consents.confirmation.enabled", "false")
             systemProperty("jb.privacy.policy.text", "<!--999.999-->")
             systemProperty("ide.show.tips.on.startup.default.value", "false")
+            // -PmondooIsolateBinary=<dir> hides any xgrep already on this machine
+            // (PATH, ~/go/bin, Homebrew) so the download path is genuinely exercised.
+            providers.gradleProperty("mondooIsolateBinary").orNull?.let { fakeHome ->
+                systemProperty("user.home", fakeHome)
+                environment("PATH", "/usr/bin:/bin")
+                environment("GOPATH", "")
+                environment("GOBIN", "")
+            }
         }
     }
 

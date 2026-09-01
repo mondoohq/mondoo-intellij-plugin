@@ -95,6 +95,41 @@ rather than assuming it keeps working.
 Give the probe project an obvious name. A trust dialog for a project called `lsproj` gets
 declined, and the run then fails for a reason that never reaches the log.
 
+## Verifying the download path
+
+Discovery finds any xgrep already on the machine, which means the download path is
+never exercised by accident. `-PmondooIsolateBinary=<empty-dir>` hides PATH, `~/go/bin`
+and Homebrew from the sandbox so the plugin has to fetch one:
+
+```bash
+P=/tmp/mondoo-lsp-probe
+./gradlew runGoLand -PmondooProbeProject="$P,$P/vuln.go" -PmondooIsolateBinary=/tmp/fakehome
+
+L=.intellijPlatform/sandbox/intellij-mondoo/*/log_runGoLand/idea.log
+grep -E "no xgrep binary resolved|Installing the xgrep|starting xgrep lsp|LSP server initialized" $L
+```
+
+The expected sequence is: nothing resolved → install task → server started from
+`<sandbox>/system_runGoLand/mondoo/xgrep/<version>/xgrep`. That also exercises the
+install → restart-language-server wiring, which is easy to break and invisible in unit
+tests.
+
+To re-check the production assumption that the manifest hash covers the archive as
+served:
+
+```bash
+python3 - <<'EOF'
+import json, re, urllib.request, hashlib
+m = json.load(urllib.request.urlopen("https://releases.mondoo.com/xgrep/latest.json"))
+f = next(x for x in m["files"]
+         if re.match(r'^xgrep_[0-9.]+_darwin_arm64\.tar\.gz$', x["filename"].rsplit("/", 1)[-1]))
+h = hashlib.sha256()
+with urllib.request.urlopen(f["filename"]) as r:
+    for b in iter(lambda: r.read(1 << 20), b""): h.update(b)
+print("match:", h.hexdigest() == f["hash"])
+EOF
+```
+
 ## Capturing xgrep LSP traffic
 
 Before writing or changing a parser, capture what the current binary actually sends
