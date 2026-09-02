@@ -204,6 +204,10 @@ intellijPlatformTesting {
             systemProperty("jb.consents.confirmation.enabled", "false")
             systemProperty("jb.privacy.policy.text", "<!--999.999-->")
             systemProperty("ide.show.tips.on.startup.default.value", "false")
+            // Makes MondooSelfCheck resolve every declared action and instantiate
+            // every service, and log the verdict. Sandbox runs only; it is inert
+            // in a normal IDE. See MondooSelfCheck.
+            systemProperty("mondoo.selfcheck", "true")
             // -PmondooIsolateBinary=<dir> hides any xgrep already on this machine
             // (PATH, ~/go/bin, Homebrew) so the download path is genuinely exercised.
             providers.gradleProperty("mondooIsolateBinary").orNull?.let { fakeHome ->
@@ -218,6 +222,9 @@ intellijPlatformTesting {
         type = IntelliJPlatformType.PyCharm
         version = "2026.1.4"
         useInstaller = true
+        task {
+            systemProperty("mondoo.selfcheck", "true")
+        }
     }
 
     // Sandboxed Android Studio, using the locally installed app. Android Studio is
@@ -241,6 +248,10 @@ intellijPlatformTesting {
             systemProperty("jb.consents.confirmation.enabled", "false")
             systemProperty("jb.privacy.policy.text", "<!--999.999-->")
             systemProperty("ide.show.tips.on.startup.default.value", "false")
+            // Makes MondooSelfCheck resolve every declared action and instantiate
+            // every service, and log the verdict. Sandbox runs only; it is inert
+            // in a normal IDE. See MondooSelfCheck.
+            systemProperty("mondoo.selfcheck", "true")
             // -PmondooIsolateBinary=<dir> hides any xgrep already on this machine
             // (PATH, ~/go/bin, Homebrew) so the download path is genuinely exercised.
             providers.gradleProperty("mondooIsolateBinary").orNull?.let { fakeHome ->

@@ -129,6 +129,17 @@ check "server starts for a file"     "Mondoo: starting xgrep lsp"
 check "server completes handshake"   "LSP server initialized"
 check "findings reach the store"     "Mondoo: findings now"
 
+# Resolves every action id in DeclaredActions and instantiates every service inside
+# the running IDE. A menu item whose class was renamed, or a service that throws in
+# its constructor, is invisible to the compiler and to the unit suite; this is where
+# it surfaces. See MondooSelfCheck.
+check "declared actions and services resolve" "Mondoo self-check PASS"
+if grep -q "Mondoo self-check FAIL" "$LOG"; then
+  echo "  FAIL self-check reported problems:"
+  grep "Mondoo self-check FAIL" "$LOG" | head -10 | sed 's/^/       /'
+  fail=1
+fi
+
 # The store feeds both the tool window and the status-bar count, so a non-zero total
 # is what makes those meaningful. Zero would mean the scanner ran and found nothing,
 # which for a deliberately vulnerable file means the wiring is broken.
