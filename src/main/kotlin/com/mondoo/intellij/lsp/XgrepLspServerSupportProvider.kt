@@ -87,6 +87,9 @@ internal class XgrepLspServerDescriptor(
     override fun getLanguageId(file: VirtualFile): String =
         XgrepLanguages.languageIdFor(file.name)
 
+    /** See [XgrepLspCustomization]: diagnostics and code actions only. */
+    override val lspCustomization = XgrepLspCustomization()
+
     override fun createInitializationOptions(): Any? {
         val scanJobs = MondooSettings.getInstance().state.xgrepScanJobs
         return if (scanJobs >= 1) XgrepInitializationOptions(scanJobs) else null
