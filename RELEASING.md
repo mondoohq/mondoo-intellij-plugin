@@ -42,6 +42,10 @@ Also needed before the first publish, and both have lead time:
    - `publishPlugin`;
    - the signed ZIP is attached to the GitHub Release.
 
+The attached ZIP is what people install with **Install Plugin from Disk…** until the
+plugin is on the Marketplace, so its name and contents are user-facing. The README
+points at the latest release for exactly this.
+
 A release cannot ship something the normal pipeline would reject: the same tests and
 verifier run again here rather than trusting an earlier green build of a different
 commit.

@@ -105,8 +105,14 @@ LSP server initialized ... name = xgrep
 - **"no xgrep binary resolved"** — run **Set Up Scanner**, or set the path in
   **Settings** → **Tools** → **Mondoo**.
 
-## Building for someone else
+## Handing a build to someone else
 
 `build/distributions/intellij-mondoo-<version>.zip` is self-contained. The recipient
 needs an IDE at 2026.1.4+ and nothing else — the scanner is downloaded on first use,
-with its published checksum verified.
+with its published checksum verified. They install it with **Install Plugin from Disk…**
+exactly as above.
+
+For anything beyond a quick hand-off, cut a release instead: the release workflow tests,
+verifies, signs and attaches the ZIP to the
+[GitHub release](https://github.com/mondoohq/mondoo-intellij-plugin/releases), which
+people can install without cloning anything. See [RELEASING.md](../RELEASING.md).

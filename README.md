@@ -86,16 +86,48 @@ You do **not** need Node, Python, or a JDK. The IDE's own runtime is used.
 
 ## Installation
 
-Not yet on the JetBrains Marketplace. To run a development build in GoLand, IntelliJ
-IDEA, PyCharm, Android Studio or any other JetBrains IDE, see
-**[Installing a development build](docs/install-dev-build.md)**.
+Not on the JetBrains Marketplace yet, so install from a release ZIP.
 
-The short version:
+### From a GitHub release
+
+1. Download `intellij-mondoo-<version>.zip` from the
+   [latest release](https://github.com/mondoohq/mondoo-intellij-plugin/releases/latest).
+   Take the ZIP itself — not "Source code (zip)".
+2. In your IDE: **Settings/Preferences** → **Plugins** → the **⚙** gear icon →
+   **Install Plugin from Disk…**
+3. Select the downloaded ZIP.
+4. **Restart** when prompted.
+
+That is the whole process — no build tools, and nothing else to install. Works the same
+in GoLand, IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, RubyMine, CLion, Rider,
+RustRover, DataGrip and Android Studio.
+
+> No releases published yet. Until the first one, build it yourself as below.
+
+To update later, install the newer ZIP the same way; it replaces the old version. To
+remove it: **Settings** → **Plugins** → **Installed** → **Mondoo** → gear →
+**Uninstall**.
+
+### From source
 
 ```bash
-./gradlew runGoLand    # sandboxed IDE with the plugin loaded, nothing installed
-./gradlew buildPlugin  # -> build/distributions/*.zip, for Install Plugin from Disk
+git clone https://github.com/mondoohq/mondoo-intellij-plugin.git
+cd mondoo-intellij-plugin
+./gradlew buildPlugin
+# -> build/distributions/intellij-mondoo-<version>.zip
 ```
+
+Then follow steps 2–4 above with that ZIP.
+
+To try it without touching the IDE you work in, `./gradlew runGoLand` launches a
+sandboxed GoLand with the plugin already loaded. See
+**[Installing a development build](docs/install-dev-build.md)** for the other IDEs, how
+to confirm it loaded, and what the log lines mean.
+
+### Checking it worked
+
+**Tools** → **Mondoo Code Security** should exist. Open a file in a supported language;
+findings appear in the editor and in the **Mondoo** tool window.
 
 ## Getting started
 
