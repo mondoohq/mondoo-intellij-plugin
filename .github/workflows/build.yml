@@ -131,20 +131,29 @@ jobs:
         ide: [IU, GO, PY, WS, PS, RM, CL, RR]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Before anything writes to the disk, not after. Restoring the verifier cache
+      # is itself a multi-gigabyte write, and jobs were dying inside it with "No
+      # space left on device" — a different IDE each run, which is what a thin
+      # margin looks like rather than a problem with any one target.
+      - name: Free disk space
+        run: |
+          df -h / | tail -1
+          # Not $AGENT_TOOLSDIRECTORY: setup-java installs the JDK there, and
+          # removing it leaves JAVA_HOME pointing at nothing. Freeing before
+          # setup-java runs means it lands on an already-roomy disk.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/.ghcup /usr/local/share/boost \
+                      /usr/local/share/powershell /usr/local/share/chromium \
+                      /usr/local/lib/node_modules || true
+          sudo docker image prune --all --force || true
+          df -h / | tail -1
+
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
-
-      - name: Free disk space
-        run: |
-          # Not $AGENT_TOOLSDIRECTORY: setup-java installs the JDK there, and
-          # removing it leaves JAVA_HOME pointing at nothing.
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-                      /usr/local/share/boost /usr/local/share/powershell \
-                      /usr/local/share/chromium /usr/local/lib/node_modules || true
-          df -h / | tail -1
 
       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
