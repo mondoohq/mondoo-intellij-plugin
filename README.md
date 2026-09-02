@@ -91,7 +91,7 @@ Not on the JetBrains Marketplace yet, so install from a release ZIP.
 
 ### From a GitHub release
 
-1. Download `intellij-mondoo-<version>.zip` from the
+1. Download `mondoo-intellij-plugin-<version>.zip` from the
    [latest release](https://github.com/mondoohq/mondoo-intellij-plugin/releases/latest).
    Take the ZIP itself — not "Source code (zip)".
 2. In your IDE: **Settings/Preferences** → **Plugins** → the **⚙** gear icon →
@@ -115,7 +115,7 @@ remove it: **Settings** → **Plugins** → **Installed** → **Mondoo** → gea
 git clone https://github.com/mondoohq/mondoo-intellij-plugin.git
 cd mondoo-intellij-plugin
 ./gradlew buildPlugin
-# -> build/distributions/intellij-mondoo-<version>.zip
+# -> build/distributions/mondoo-intellij-plugin-<version>.zip
 ```
 
 Then follow steps 2–4 above with that ZIP.

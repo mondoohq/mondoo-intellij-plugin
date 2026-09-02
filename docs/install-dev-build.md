@@ -43,7 +43,7 @@ to hand a build to someone else.
 
 ```bash
 ./gradlew buildPlugin
-# -> build/distributions/intellij-mondoo-0.1.0.zip
+# -> build/distributions/mondoo-intellij-plugin-0.1.0.zip
 ```
 
 **2. Install it.** In the IDE:
@@ -107,7 +107,7 @@ LSP server initialized ... name = xgrep
 
 ## Handing a build to someone else
 
-`build/distributions/intellij-mondoo-<version>.zip` is self-contained. The recipient
+`build/distributions/mondoo-intellij-plugin-<version>.zip` is self-contained. The recipient
 needs an IDE at 2026.1.4+ and nothing else — the scanner is downloaded on first use,
 with its published checksum verified. They install it with **Install Plugin from Disk…**
 exactly as above.
