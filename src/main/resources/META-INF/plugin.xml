@@ -3,13 +3,6 @@
   <name>Mondoo</name>
   <vendor email="hello@mondoo.com" url="https://mondoo.com">Mondoo, Inc.</vendor>
 
-  <description><![CDATA[
-    <p>Catch security issues while you write code, without leaving your IDE.</p>
-    <p>Powered by <a href="https://mondoo.com/xgrep">xgrep</a>, Mondoo's software
-    development security scanner: findings for vulnerabilities and leaked secrets
-    appear as you type, with one-click fixes and suppressions. No account, no
-    configuration.</p>
-  ]]></description>
 
   <!-- The ONLY hard dependency. Nothing product-specific (no
        com.intellij.modules.java / .python / .go), so the Marketplace marks this

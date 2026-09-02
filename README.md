@@ -1,5 +1,6 @@
 # Mondoo for JetBrains IDEs
 
+<!-- Plugin description -->
 Catch security issues while you write code, without leaving your IDE.
 
 Powered by [xgrep](https://mondoo.com/xgrep), Mondoo's software development security
@@ -34,6 +35,7 @@ its bundled skills for agents that support them.
 
 Supported languages: Python, Go, Java, JavaScript, TypeScript (including React), Ruby,
 Rust, C, C++, C#, Kotlin, Scala, PHP, Lua, shell scripts, HTML, JSON and YAML.
+<!-- Plugin description end -->
 
 ## Requirements
 

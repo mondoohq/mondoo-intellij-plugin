@@ -79,6 +79,22 @@ intellijPlatform {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
 
+        // The Marketplace description is the README's own words, extracted between
+        // the plugin-description markers, so the store listing and the repository
+        // cannot describe the plugin differently.
+        description = providers.fileContents(layout.projectDirectory.file("README.md"))
+            .asText
+            .map { readme ->
+                val start = "<!-- Plugin description -->"
+                val end = "<!-- Plugin description end -->"
+                require(readme.contains(start) && readme.contains(end)) {
+                    "README.md is missing the plugin description markers"
+                }
+                org.jetbrains.changelog.markdownToHTML(
+                    readme.substringAfter(start).substringBefore(end).trim(),
+                )
+            }
+
         // Marketplace change notes come from CHANGELOG.md, so what a user reads on
         // the Marketplace and what is in the repository cannot drift apart.
         changeNotes = renderedChangeNotes
