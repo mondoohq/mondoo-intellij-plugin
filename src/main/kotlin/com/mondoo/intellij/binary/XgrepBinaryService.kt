@@ -56,11 +56,48 @@ class XgrepBinaryService {
     private val installer = XgrepInstaller(managedRoot(), PlatformXgrepDownloader(), executableName())
     private val state = AtomicReference<XgrepStatus>(XgrepStatus.Resolving)
     private val installInFlight = AtomicReference(false)
+    private val cached = AtomicReference<Resolution?>(null)
 
     val status: XgrepStatus get() = state.get()
 
-    /** The resolved binary, or null when xgrep cannot be found. Never installs. */
+    /**
+     * The resolved binary, or null when xgrep cannot be found. Never installs.
+     *
+     * Cached, because this is called from action `update()`, from the status-bar
+     * widget and from the editor banner provider — all of which run whenever a menu
+     * opens, a toolbar refreshes or a file is shown. Resolving means scanning `PATH`,
+     * stat-ing a list of common directories and listing the managed install root, and
+     * doing that on every UI refresh is real, repeated I/O for an answer that changes
+     * only when a setting changes or an install completes.
+     *
+     * [invalidate] is called from both of those points.
+     */
     fun resolvedBinaryOrNull(): Path? {
+        cached.get()?.let { hit ->
+            if (hit.stillValid()) return hit.binary
+        }
+        return resolveUncached().also { cached.set(Resolution(it)) }
+    }
+
+    /** Drops the cached resolution. */
+    fun invalidate() {
+        cached.set(null)
+    }
+
+    private class Resolution(val binary: Path?) {
+        private val at = System.nanoTime()
+
+        /**
+         * A present binary is re-checked only occasionally; an absent one is
+         * re-checked promptly, so "install it now" takes effect without a restart.
+         */
+        fun stillValid(): Boolean {
+            val age = System.nanoTime() - at
+            return if (binary == null) age < ABSENT_TTL_NANOS else age < PRESENT_TTL_NANOS
+        }
+    }
+
+    private fun resolveUncached(): Path? {
         val settings = MondooSettings.getInstance().state
         if (!settings.xgrepEnabled) {
             state.set(XgrepStatus.Disabled)
@@ -180,6 +217,7 @@ class XgrepBinaryService {
 
                 settings.resolvedVersion = manifest.version
                 settings.resolvedCheckedAt = System.currentTimeMillis()
+                invalidate()
                 installer.pruneOtherVersions(manifest.version)
                 ready(binary, manifest.version)
 
@@ -277,6 +315,9 @@ class XgrepBinaryService {
     }
 
     companion object {
+        private val PRESENT_TTL_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(30)
+        private val ABSENT_TTL_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(2)
+
         @JvmStatic
         fun getInstance(): XgrepBinaryService = service()
     }

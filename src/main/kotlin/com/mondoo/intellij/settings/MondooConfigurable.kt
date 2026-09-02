@@ -35,6 +35,8 @@ class MondooConfigurable : BoundSearchableConfigurable(
     override fun apply() {
         val before = serverAffectingSettings()
         super.apply()
+        // The xgrep path may have changed, so the cached resolution is now suspect.
+        com.mondoo.intellij.binary.XgrepBinaryService.getInstance().invalidate()
         val after = serverAffectingSettings()
         if (before == after) return
 

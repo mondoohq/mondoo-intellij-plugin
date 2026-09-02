@@ -23,9 +23,26 @@ they relate to first-party code:
 | **Transitive, orphaned** | Pulled in by something nothing reaches | Usually removable |
 | **Declared but unused** | Declared, never imported | Usually removable |
 | **Development only** | Not shipped | Out of scope for production risk |
-| **Unknown** | Imports could not be resolved for that ecosystem | Triage by hand |
+| **Undetermined** | Imports could not be resolved | Triage by hand — see below |
 
 Expand a package to see the files that import it, and double-click a file to open it.
+
+## When most packages come back "Undetermined"
+
+On a Gradle or Maven project this is common, and it does not mean the analysis failed.
+Resolving a Java package name to an artifact needs the dependency jars present, so a
+tree whose dependencies have not been restored — or which has no `gradle.lockfile` for
+the transitive closure — cannot be decided. Restoring dependencies first gives a much
+sharper answer.
+
+The scanner explains the cause per ecosystem on its command line:
+
+```
+xgrep deps reachability .
+```
+
+Those notes are not yet part of the machine-readable output this view reads, so the
+command line is currently the place to see them.
 
 ## What this does not do
 

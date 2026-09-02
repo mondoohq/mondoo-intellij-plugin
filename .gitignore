@@ -6,3 +6,6 @@ build/
 out/
 .kotlin/
 .intellijPlatform/
+
+# Written by the Open Demo File action when testing in this repository.
+mondoo-welcome-demo.js

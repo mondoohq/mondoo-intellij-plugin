@@ -80,13 +80,38 @@ object ArtifactSelector {
 
     private val RELEASE_VERSION = Regex("""^\d+\.\d+\.\d+$""")
 
+    /**
+     * The only host an artifact may be downloaded from.
+     *
+     * The manifest is fetched over HTTPS, but its `filename` fields are still data
+     * from the network, and this plugin downloads what they name and then *executes
+     * it*. Checksum verification does not help against a tampered manifest: the same
+     * document supplies both the URL and the hash, so anything able to alter one
+     * alters the other. Pinning the scheme and host is what makes the download
+     * trustworthy.
+     */
+    private const val ALLOWED_HOST = "releases.mondoo.com"
+
     /** Returns the matching artifact, or null when this OS/arch has no build. */
     fun select(manifest: ReleaseManifest, os: String, arch: String): ReleaseFile? =
         manifest.files.firstOrNull { file ->
+            if (!isTrustedDownloadUrl(file.filename)) return@firstOrNull false
             val name = file.filename.substringAfterLast('/')
             val match = ARTIFACT.matchEntire(name) ?: return@firstOrNull false
             match.groups["os"]!!.value == os && match.groups["arch"]!!.value == arch
         }
+
+    /**
+     * HTTPS, on the release host, and nowhere else.
+     *
+     * Rejects plain HTTP, a different host, and a look-alike that merely ends with
+     * the expected name.
+     */
+    fun isTrustedDownloadUrl(url: String): Boolean {
+        val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+        if (!uri.scheme.equals("https", ignoreCase = true)) return false
+        return uri.host?.lowercase() == ALLOWED_HOST
+    }
 
     /**
      * Version strings become directory names, so they are validated even though

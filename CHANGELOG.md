@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Scanner downloads are pinned to HTTPS on the release host. The release manifest is
+  data from the network and names an artifact the plugin then executes; the checksum
+  alone cannot protect against a tampered manifest, since the same document supplies
+  the hash.
+
 - The scanner no longer runs in a project that has not been trusted. It is a process
   spawned over project contents, so an untrusted project is not scanned and no scanner
   is downloaded for one.

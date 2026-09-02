@@ -34,6 +34,8 @@ jobs:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+        with:
+          cache-disabled: true # see the note on caching below
 
       # Nothing below is worth doing if the tag and the version disagree: publishing
       # 0.1.0 from a tag that says v0.2.0 is silent and very hard to undo.
@@ -61,11 +63,10 @@ jobs:
       - name: Test
         run: ./gradlew check --stacktrace
 
-      - name: Verify plugin
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ~/.pluginVerifier
-          key: plugin-verifier-${{ hashFiles('build.gradle.kts', 'gradle.properties') }}
+      # Deliberately uncached. The Actions cache is shared across refs, so restoring
+      # one in the job that signs and publishes would let anyone able to poison it
+      # from a lower-privileged run influence what ships. Releases are rare; paying
+      # the download each time is the right trade. build.yml keeps its cache.
       - run: ./gradlew verifyPlugin --stacktrace
 
       - name: Build and sign

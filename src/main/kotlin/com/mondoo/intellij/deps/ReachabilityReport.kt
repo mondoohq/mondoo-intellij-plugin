@@ -35,7 +35,12 @@ enum class Reachability(val id: String, val title: String, val explanation: Stri
     ),
     DIRECT_UNUSED("direct_unused", "Declared but unused", "Declared as a direct dependency, but never imported"),
     DEV_DEPENDENCY("dev_dependency", "Development only", "Declared for development, not shipped"),
-    UNKNOWN("unknown", "Unknown", "Imports could not be resolved for this ecosystem"),
+    UNKNOWN(
+        "unknown",
+        "Undetermined",
+        "Imports could not be resolved — often because dependencies are not restored, " +
+            "or the ecosystem has no import resolution",
+    ),
     ;
 
     companion object {

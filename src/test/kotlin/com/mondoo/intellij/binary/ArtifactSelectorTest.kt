@@ -107,6 +107,34 @@ class ArtifactSelectorTest {
     }
 
     @Test
+    fun `rejects an artifact hosted anywhere but the release host`() {
+        // The manifest is data from the network, and what it names gets downloaded and
+        // executed. The checksum cannot protect against a tampered manifest, since the
+        // same document supplies the hash — so the URL itself must be pinned.
+        listOf(
+            "http://releases.mondoo.com/xgrep/0.57.0/xgrep_0.57.0_darwin_arm64.tar.gz",
+            "https://evil.test/xgrep_0.57.0_darwin_arm64.tar.gz",
+            "https://releases.mondoo.com.evil.test/xgrep_0.57.0_darwin_arm64.tar.gz",
+            "https://evil-releases.mondoo.com/xgrep_0.57.0_darwin_arm64.tar.gz",
+            "file:///tmp/xgrep_0.57.0_darwin_arm64.tar.gz",
+            "not a url",
+        ).forEach { url ->
+            assertFalse(ArtifactSelector.isTrustedDownloadUrl(url), url)
+            val hostile = ReleaseManifest("xgrep", "0.57.0", listOf(ReleaseFile(url, 1, "darwin", "abc")))
+            assertNull(ArtifactSelector.select(hostile, "darwin", "arm64"), url)
+        }
+    }
+
+    @Test
+    fun `accepts the real release host over https`() {
+        assertTrue(
+            ArtifactSelector.isTrustedDownloadUrl(
+                "https://releases.mondoo.com/xgrep/0.57.0/xgrep_0.57.0_darwin_arm64.tar.gz",
+            ),
+        )
+    }
+
+    @Test
     fun `select returns a usable download url and hash`() {
         val picked = ArtifactSelector.select(manifest, "darwin", "arm64")
         assertNotNull(picked)

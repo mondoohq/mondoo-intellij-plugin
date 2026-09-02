@@ -49,6 +49,39 @@ jobs:
           name: tests-report
           path: build/reports/tests
 
+  # Runs alongside build and verify rather than after them: a security finding is
+  # not a reason to hold up compile feedback, and vice versa.
+  scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # required to upload SARIF
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # required for diff-aware scanning on pull requests
+
+      - name: Scan with xgrep
+        uses: mondoohq/actions/xgrep@c38cfdf99da709760f58ff35aa5608688657f2f7 # v13.3.0
+        with:
+          path: .
+          output-file: results.sarif
+          # The demo asset is deliberately vulnerable — it exists so findings appear
+          # on first run. Reporting it would train people to ignore this scan.
+          args: "--exclude 'src/main/resources/demo/**'"
+          # Report only for now. Turn this to 'error' once the findings on this
+          # repository are triaged, so the gate starts from a clean baseline rather
+          # than blocking the first pull request that touches an existing finding.
+          fail-on: "off"
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@5ba2889ada762081db2c4f32a729827dce632c7b # v3
+        with:
+          sarif_file: results.sarif
+          category: xgrep
+
   verify:
     name: Plugin Verifier
     needs: build

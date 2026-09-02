@@ -41,23 +41,42 @@ def run(cmd):
 EOF
 
 LOG_DIR="$ROOT/.intellijPlatform/sandbox/mondoo-intellij-plugin/IU-2026.1.4/log_${TASK}"
-rm -rf "$LOG_DIR"
 LOG="$LOG_DIR/idea.log"
 
-echo "Launching $TASK with a scratch project at $PROBE"
-./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py" --console=plain >/tmp/mondoo-smoke.out 2>&1 &
-GRADLE_PID=$!
-
+GRADLE_PID=""
 cleanup() {
   pkill -f "plugins_${TASK}" 2>/dev/null || true
-  kill "$GRADLE_PID" 2>/dev/null || true
+  [ -n "$GRADLE_PID" ] && kill "$GRADLE_PID" 2>/dev/null || true
 }
 trap cleanup EXIT
 
-DEADLINE=$((SECONDS + 300))
-until [ -f "$LOG" ] && grep -q "LSP server initialized" "$LOG" 2>/dev/null; do
-  if [ $SECONDS -ge $DEADLINE ]; then
-    echo "FAIL: language server did not initialize within 300s"
+# One retry. An IDE that was killed moments earlier can still be releasing its sandbox
+# when the next one starts; the newcomer then fails to open a project and writes
+# nothing useful. That is an artefact of the harness, not of the plugin, and a run that
+# reports it as a plugin failure is worse than no run at all.
+attempt() {
+  rm -rf "$LOG_DIR"
+  ./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py" --console=plain >/tmp/mondoo-smoke.out 2>&1 &
+  GRADLE_PID=$!
+
+  local deadline=$((SECONDS + 300))
+  until [ -f "$LOG" ] && grep -q "LSP server initialized" "$LOG" 2>/dev/null; do
+    [ $SECONDS -ge $deadline ] && return 1
+    sleep 5
+  done
+  sleep 5
+  return 0
+}
+
+echo "Launching $TASK with a scratch project at $PROBE"
+if ! attempt; then
+  echo "  first attempt did not start; retrying once after full teardown"
+  cleanup
+  # Wait for the IDE to actually exit, not merely to leave the process table.
+  for _ in $(seq 1 20); do pgrep -f "plugins_${TASK}" >/dev/null 2>&1 || break; sleep 1; done
+  sleep 5
+  if ! attempt; then
+    echo "FAIL: language server did not initialize within 300s (twice)"
     if [ ! -f "$LOG" ]; then
       echo "      No idea.log was written — the IDE did not start."
       echo "      Check /tmp/mondoo-smoke.out for the Gradle output."
@@ -66,9 +85,7 @@ until [ -f "$LOG" ] && grep -q "LSP server initialized" "$LOG" 2>/dev/null; do
     fi
     exit 1
   fi
-  sleep 5
-done
-sleep 5
+fi
 
 fail=0
 check() {

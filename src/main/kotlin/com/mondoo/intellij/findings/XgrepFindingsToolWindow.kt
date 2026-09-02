@@ -76,6 +76,8 @@ internal class XgrepFindingsPanel(private val project: Project) :
     private val root = DefaultMutableTreeNode()
     private val model = DefaultTreeModel(root)
     private val tree = SimpleTree(model)
+    private val refreshPending = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val refreshAlarm = com.intellij.util.Alarm(com.intellij.util.Alarm.ThreadToUse.SWING_THREAD, this)
 
     private var groupMode: GroupMode
         get() = if (PropertiesComponent.getInstance().getValue(GROUP_MODE_KEY) == "file") {
@@ -106,7 +108,7 @@ internal class XgrepFindingsPanel(private val project: Project) :
 
         project.messageBus.connect(this).subscribe(
             XgrepFindingsStore.TOPIC,
-            XgrepFindingsStore.Listener { refresh() },
+            XgrepFindingsStore.Listener { scheduleRefresh() },
         )
         refresh()
     }
@@ -127,6 +129,22 @@ internal class XgrepFindingsPanel(private val project: Project) :
             .createActionToolbar(ActionPlaces.TOOLWINDOW_CONTENT, group, true)
         toolbar.targetComponent = tree
         return toolbar
+    }
+
+    /**
+     * Coalesces refreshes.
+     *
+     * A workspace scan publishes diagnostics per file, so a few hundred files means a
+     * few hundred notifications, each of which would otherwise rebuild the whole tree
+     * on the EDT. Redrawing at most every [REFRESH_COALESCE_MS] keeps the view live
+     * without making the UI pay for every publish.
+     */
+    private fun scheduleRefresh() {
+        if (!refreshPending.compareAndSet(false, true)) return
+        refreshAlarm.addRequest({
+            refreshPending.set(false)
+            refresh()
+        }, REFRESH_COALESCE_MS)
     }
 
     private fun refresh() {
@@ -165,6 +183,11 @@ internal class XgrepFindingsPanel(private val project: Project) :
     }
 
     override fun dispose() = Unit
+
+    private companion object {
+        /** Long enough to absorb a scan's burst, short enough to feel immediate. */
+        const val REFRESH_COALESCE_MS = 200
+    }
 
     private class FindingsCellRenderer : ColoredTreeCellRenderer() {
         override fun customizeCellRenderer(
