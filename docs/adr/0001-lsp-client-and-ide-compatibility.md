@@ -379,3 +379,17 @@ Remaining verifier notes are advisory, not problems: 31 deprecated-API usages, d
 by the deliberate `LspServerSupportProvider` choice above, plus `startServersIfNeeded`.
 Those are the cost of supporting builds that lack the renamed API, and are revisited
 when the floor rises.
+
+## Appendix: didSave, checked 2026-09-02
+
+Some IntelliJ LSP clients hand-send `textDocument/didSave` from a VFS listener, because
+on older platforms `clientCapabilities.textDocument.synchronization.didSave` could be
+false and the platform would not send it. xgrep advertises
+`textDocumentSync.save.includeText = true` and rescans on save, so it is worth knowing
+whether we need that workaround.
+
+We do not. On platform 261/262 the capability is **true**, verified by logging it from
+`serverInitialized` in a sandbox GoLand run. The platform sends `didSave` itself, so the
+save-triggered rescan works unaided.
+
+Re-check only if the supported floor ever moves backwards, which it should not.
