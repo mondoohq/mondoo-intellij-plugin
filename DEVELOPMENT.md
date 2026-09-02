@@ -51,6 +51,23 @@ language server.**
 ./gradlew test
 ```
 
+## Smoke test
+
+The unit suite is deliberately IDE-free, so nothing in it can catch a plugin that fails
+to load, an extension point that does not resolve, or a language server that never
+starts — the regressions that actually reach users. Those are all visible in `idea.log`,
+so there is a script that launches a real IDE and asserts on it:
+
+```bash
+scripts/smoke-test.sh              # GoLand
+scripts/smoke-test.sh runIde       # IntelliJ IDEA
+scripts/smoke-test.sh runAndroidStudio
+```
+
+It checks the plugin loads, the optional LSP module resolves, the server starts for a
+file and completes its handshake, and that the log has no `ERROR` lines. Run it before
+opening a pull request that touches plugin.xml, an extension point, or startup.
+
 ## Cross-IDE compatibility
 
 The plugin must load in every IntelliJ-based IDE. Two rules:

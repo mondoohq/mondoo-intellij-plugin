@@ -25,7 +25,8 @@ abstract class XgrepScanActionBase : AnAction() {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent) {
-        if (e.project == null) {
+        val project = e.project
+        if (project == null || !com.mondoo.intellij.util.ProjectTrust.isTrusted(project)) {
             e.presentation.isEnabled = false
             return
         }

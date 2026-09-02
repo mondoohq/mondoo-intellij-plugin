@@ -18,6 +18,8 @@ import com.mondoo.intellij.settings.MondooSettings
  */
 internal class XgrepStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {
+        if (!com.mondoo.intellij.util.ProjectTrust.isTrusted(project)) return
+
         val settings = MondooSettings.getInstance().state
         if (!settings.xgrepEnabled) return
 

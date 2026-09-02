@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   data context carries no project, so every action that consults it appeared greyed
   out.
 
+### Security
+
+- The scanner no longer runs in a project that has not been trusted. It is a process
+  spawned over project contents, so an untrusted project is not scanned and no scanner
+  is downloaded for one.
+
 ### Changed
 
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops

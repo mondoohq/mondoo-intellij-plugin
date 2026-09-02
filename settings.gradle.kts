@@ -1,4 +1,4 @@
-rootProject.name = "intellij-mondoo"
+rootProject.name = "mondoo-intellij-plugin"
 
 pluginManagement {
     repositories {

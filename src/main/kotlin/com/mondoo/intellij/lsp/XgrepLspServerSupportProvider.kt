@@ -15,6 +15,7 @@ import com.intellij.platform.lsp.api.LspServerSupportProvider
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
 import com.mondoo.intellij.binary.XgrepBinaryService
 import com.mondoo.intellij.settings.MondooSettings
+import com.mondoo.intellij.util.ProjectTrust
 import com.mondoo.intellij.util.XgrepLanguages
 
 /**
@@ -39,6 +40,11 @@ internal class XgrepLspServerSupportProvider : LspServerSupportProvider {
         file: VirtualFile,
         serverStarter: LspServerSupportProvider.LspServerStarter,
     ) {
+        // Never spawn the scanner over a project the user has not trusted.
+        if (!ProjectTrust.isTrusted(project)) {
+            LOG.info("project is not trusted; not starting the scanner")
+            return
+        }
         if (!MondooSettings.getInstance().state.xgrepEnabled) {
             LOG.debug("xgrep disabled by setting; not starting for ${file.name}")
             return

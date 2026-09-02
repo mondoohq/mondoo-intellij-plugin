@@ -43,6 +43,10 @@ it: put the decision in a pure function and the platform wiring around it.
 
 No test may spawn a real scanner binary, reach the network, or start a language server.
 
+For anything touching `plugin.xml`, an extension point, or startup, also run
+`scripts/smoke-test.sh` — it launches a real IDE and asserts the plugin loads and the
+scanner starts. The unit suite structurally cannot catch those failures.
+
 ## Changes worth documenting
 
 - Add a `CHANGELOG.md` entry under `Unreleased` for anything a user would notice. The

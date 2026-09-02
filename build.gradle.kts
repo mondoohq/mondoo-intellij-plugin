@@ -35,6 +35,10 @@ dependencies {
         // bundledModule() rather than a bundledPlugin().
         bundledModule("intellij.platform.lsp")
 
+        // For TrustedProjects. The scanner is a process spawned over project
+        // contents, so it must not run in a project the user has not trusted.
+        bundledModule("intellij.platform.ide.impl")
+
         pluginVerifier()
         zipSigner()
 
