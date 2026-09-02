@@ -43,6 +43,7 @@
                        bundle="messages.MondooBundle" key="notification.group.mondoo"/>
 
     <projectService serviceImplementation="com.mondoo.intellij.findings.XgrepFindingsStore"/>
+    <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanCoordinator"/>
 
     <toolWindow id="Mondoo"
                 anchor="bottom"
@@ -63,6 +64,19 @@
   <actions>
     <group id="Mondoo.CodeSecurity" popup="true"
            text="Mondoo Code Security" description="Mondoo code security actions">
+      <action id="Mondoo.Xgrep.ScanWorkspace"
+              class="com.mondoo.intellij.actions.ScanWorkspaceAction"
+              text="Scan Workspace"
+              description="Check every file in the workspace"/>
+      <action id="Mondoo.Xgrep.ScanChanged"
+              class="com.mondoo.intellij.actions.ScanChangedFilesAction"
+              text="Scan Changed Files (Fast)"
+              description="Check only files that are new or modified according to git"/>
+      <action id="Mondoo.Xgrep.ScanSince"
+              class="com.mondoo.intellij.actions.ScanChangesSinceAction"
+              text="Scan Changes Since..."
+              description="Check only what changed since a git ref you pick"/>
+      <separator/>
       <action id="Mondoo.Xgrep.Setup"
               class="com.mondoo.intellij.actions.SetupScannerAction"
               text="Set Up Scanner"

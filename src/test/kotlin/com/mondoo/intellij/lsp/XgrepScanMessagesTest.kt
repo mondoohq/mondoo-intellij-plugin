@@ -6,17 +6,27 @@ import org.junit.jupiter.api.Test
 
 class XgrepScanMessagesTest {
 
+    /**
+     * Captured verbatim from xgrep 0.57 on 2026-09-02. These are the exact strings
+     * the regex has to keep matching; re-capture them when xgrep is bumped.
+     */
+    private val capturedSuccess = "xgrep: workspace scan found 2 finding(s) in 1 file(s)"
+    private val capturedFailure =
+        "xgrep: changed-files scan failed: listing changed files " +
+            "(is /tmp/probe a git repository?): exit status 128"
+
     @Test
-    fun `recognises workspace and changed-files results`() {
-        assertTrue(XgrepScanMessages.isScanResult("xgrep: workspace scan found 12 findings in 4 files"))
-        assertTrue(XgrepScanMessages.isScanResult("xgrep: changed-files scan found 0 findings"))
+    fun `recognises the messages xgrep actually sends`() {
+        assertTrue(XgrepScanMessages.isScanResult(capturedSuccess))
+        assertTrue(XgrepScanMessages.isScanResult(capturedFailure))
+        assertFalse(XgrepScanMessages.isFailure(capturedSuccess))
+        assertTrue(XgrepScanMessages.isFailure(capturedFailure))
     }
 
     @Test
-    fun `recognises failures and reports them as such`() {
-        val failed = "xgrep: workspace scan failed: rule parse error"
-        assertTrue(XgrepScanMessages.isScanResult(failed))
-        assertTrue(XgrepScanMessages.isFailure(failed))
+    fun `recognises both scan kinds`() {
+        assertTrue(XgrepScanMessages.isScanResult("xgrep: workspace scan found 12 finding(s) in 4 file(s)"))
+        assertTrue(XgrepScanMessages.isScanResult("xgrep: changed-files scan found 0 finding(s)"))
     }
 
     @Test
