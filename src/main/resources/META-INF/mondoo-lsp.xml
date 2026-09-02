@@ -20,6 +20,21 @@
     <backgroundPostStartupActivity
         implementation="com.mondoo.intellij.lsp.XgrepLspProjectProbe"/>
 
+    <!-- Suppression is ours, not the server's: xgrep publishes fixes for rules
+         that have one, but nogrep comments are built client-side. No `language`
+         attribute — naming a language here would fail to resolve in IDEs that
+         lack that language plugin, which is most of them. -->
+    <intentionAction>
+      <language/>
+      <className>com.mondoo.intellij.fix.SuppressFindingIntention</className>
+      <category>Mondoo Code Security</category>
+    </intentionAction>
+    <intentionAction>
+      <language/>
+      <className>com.mondoo.intellij.fix.SuppressFindingWithReasonIntention</className>
+      <category>Mondoo Code Security</category>
+    </intentionAction>
+
     <platform.lsp.serverSupportProvider
         implementation="com.mondoo.intellij.lsp.XgrepLspServerSupportProvider"/>
   </extensions>

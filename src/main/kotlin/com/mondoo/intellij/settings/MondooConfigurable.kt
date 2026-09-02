@@ -45,6 +45,45 @@ class MondooConfigurable : BoundSearchableConfigurable(
                     intTextField(range = 0..32).bindIntText(state::xgrepScanJobs)
                 }.rowComment("0 lets the scanner size itself to your CPU.")
             }
+            group("Scan scope") {
+                row("Exclude:") {
+                    expandableTextField(
+                        { it.split("\n").map(String::trim).filter(String::isNotEmpty).toMutableList() },
+                        { it.joinToString("\n") },
+                    )
+                        .bindText(
+                            { state.xgrepExcludePatterns.joinToString("\n") },
+                            { text ->
+                                state.xgrepExcludePatterns.clear()
+                                state.xgrepExcludePatterns.addAll(
+                                    text.split("\n").map(String::trim).filter(String::isNotEmpty),
+                                )
+                            },
+                        )
+                        .align(AlignX.FILL)
+                }.rowComment(
+                    "One glob per line. <code>*</code> matches within a path segment, " +
+                        "<code>**</code> spans segments. A pattern without <code>/</code> " +
+                        "matches any segment at any depth, so <code>vendor</code> excludes " +
+                        "every vendor directory.",
+                )
+                row("Include only:") {
+                    expandableTextField(
+                        { it.split("\n").map(String::trim).filter(String::isNotEmpty).toMutableList() },
+                        { it.joinToString("\n") },
+                    )
+                        .bindText(
+                            { state.xgrepIncludePatterns.joinToString("\n") },
+                            { text ->
+                                state.xgrepIncludePatterns.clear()
+                                state.xgrepIncludePatterns.addAll(
+                                    text.split("\n").map(String::trim).filter(String::isNotEmpty),
+                                )
+                            },
+                        )
+                        .align(AlignX.FILL)
+                }.rowComment("When non-empty, only matching files are scanned. An exclude still wins.")
+            }
         }
     }
 }

@@ -31,6 +31,13 @@ internal class XgrepNotificationsHandler(
     override fun publishDiagnostics(params: PublishDiagnosticsParams) {
         runCatching {
             val path = pathOf(params.uri)
+            // Second scope enforcement point. A file already synced before the user
+            // added an exclude would otherwise keep its findings; dropping them here
+            // is the analogue of VS Code's `handleDiagnostics: next(uri, [])`.
+            if (!scope().isScanned(path)) {
+                XgrepFindingsStore.getInstance(project).update(params.uri, emptyList())
+                return
+            }
             XgrepFindingsStore.getInstance(project).update(
                 params.uri,
                 params.diagnostics.orEmpty().map { diagnostic ->
@@ -57,6 +64,8 @@ internal class XgrepNotificationsHandler(
         }
         delegate.showMessage(params)
     }
+
+    private fun scope() = com.mondoo.intellij.settings.MondooSettings.getInstance().scanScope()
 
     /** Workspace-relative where possible, so the tree shows short paths. */
     private fun pathOf(uri: String): String {

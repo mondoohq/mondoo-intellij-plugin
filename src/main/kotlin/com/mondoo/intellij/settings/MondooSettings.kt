@@ -17,6 +17,18 @@ import com.intellij.openapi.components.service
     category = SettingsCategory.TOOLS,
 )
 class MondooSettings : SimplePersistentStateComponent<MondooState>(MondooState()) {
+    /**
+     * The effective scan scope.
+     *
+     * Read through here from day one so that moving the patterns to project level
+     * later — they are `resource`-scoped in VS Code — is a change in one place
+     * rather than a refactor.
+     */
+    fun scanScope(): com.mondoo.intellij.util.XgrepScanScope = com.mondoo.intellij.util.XgrepScanScope(
+        includePatterns = state.xgrepIncludePatterns.toList(),
+        excludePatterns = state.xgrepExcludePatterns.toList(),
+    )
+
     companion object {
         @JvmStatic
         fun getInstance(): MondooSettings = service()
@@ -38,6 +50,12 @@ class MondooState : BaseState() {
 
     /** mondoo.xgrepScanJobs — 0 lets the server size itself to the CPU. */
     var xgrepScanJobs: Int by property(0)
+
+    /** mondoo.xgrepExcludePatterns — globs never scanned. */
+    val xgrepExcludePatterns: MutableList<String> by list()
+
+    /** mondoo.xgrepIncludePatterns — when non-empty, only these are scanned. */
+    val xgrepIncludePatterns: MutableList<String> by list()
 
     // --- Managed-install bookkeeping. Not user-editable; see XgrepBinaryService. ---
 

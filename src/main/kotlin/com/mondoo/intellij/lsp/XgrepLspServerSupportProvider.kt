@@ -41,6 +41,10 @@ internal class XgrepLspServerSupportProvider : LspServerSupportProvider {
             return
         }
         if (!XgrepLanguages.isSupported(file.name)) return
+        if (!inScope(project, file)) {
+            LOG.debug("out of scan scope, not starting for ${file.name}")
+            return
+        }
 
         // Must not block: binary download/resolution happens off this call, and
         // startServersIfNeeded() re-enters once a binary is available.
@@ -57,6 +61,28 @@ internal class XgrepLspServerSupportProvider : LspServerSupportProvider {
     private companion object {
         val LOG = Logger.getInstance(XgrepLspServerSupportProvider::class.java)
     }
+}
+
+/**
+ * Applies the include/exclude globs.
+ *
+ * IntelliJ's LSP client has no middleware hook, so unlike the VS Code extension
+ * this cannot be enforced in one place. It is applied twice instead: here, so an
+ * out-of-scope file is never synced to the server, and again when diagnostics are
+ * published, so findings for a newly-excluded file disappear.
+ *
+ * Not in `isSupportedFile`: that is annotated `@RequiresReadLock`, its result is
+ * cached, and it is documented to depend only on the file — a settings lookup
+ * there would be wrong.
+ */
+internal fun inScope(project: Project, file: VirtualFile): Boolean {
+    val scope = MondooSettings.getInstance().scanScope()
+    if (scope.includePatterns.isEmpty() && scope.excludePatterns.isEmpty()) return true
+    val base = project.basePath ?: return true
+    val relative = runCatching {
+        java.nio.file.Path.of(base).relativize(file.toNioPath()).toString()
+    }.getOrNull() ?: return true
+    return scope.isScanned(relative)
 }
 
 internal class XgrepLspServerDescriptor(
