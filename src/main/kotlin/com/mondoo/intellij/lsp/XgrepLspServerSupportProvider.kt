@@ -90,6 +90,20 @@ internal class XgrepLspServerDescriptor(
     /** See [XgrepLspCustomization]: diagnostics and code actions only. */
     override val lspCustomization = XgrepLspCustomization()
 
+    /**
+     * Decorates the platform's notifications handler so published diagnostics are
+     * mirrored into the plugin's own findings store. See [XgrepNotificationsHandler]
+     * for why this is the only available seam.
+     */
+    override fun createLsp4jClient(handler: com.intellij.platform.lsp.api.LspServerNotificationsHandler) =
+        XgrepLsp4jClient(
+            XgrepNotificationsHandler(
+                handler,
+                project,
+                project.basePath?.let { java.nio.file.Path.of(it) },
+            ),
+        )
+
     override fun createInitializationOptions(): Any? {
         val scanJobs = MondooSettings.getInstance().state.xgrepScanJobs
         return if (scanJobs >= 1) XgrepInitializationOptions(scanJobs) else null

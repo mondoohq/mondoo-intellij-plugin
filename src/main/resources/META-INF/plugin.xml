@@ -42,6 +42,18 @@
     <notificationGroup id="Mondoo" displayType="BALLOON"
                        bundle="messages.MondooBundle" key="notification.group.mondoo"/>
 
+    <projectService serviceImplementation="com.mondoo.intellij.findings.XgrepFindingsStore"/>
+
+    <toolWindow id="Mondoo"
+                anchor="bottom"
+                canCloseContents="false"
+                icon="AllIcons.General.InspectionsEye"
+                factoryClass="com.mondoo.intellij.findings.XgrepFindingsToolWindowFactory"/>
+
+    <statusBarWidgetFactory id="mondoo.xgrep"
+                            order="before positionWidget"
+                            implementation="com.mondoo.intellij.findings.XgrepStatusBarWidgetFactory"/>
+
     <!-- Resolves the scanner in the background on project open. Never downloads
          unprompted; see XgrepStartupActivity. -->
     <backgroundPostStartupActivity
