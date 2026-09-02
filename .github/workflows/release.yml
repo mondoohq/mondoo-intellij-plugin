@@ -67,6 +67,17 @@ jobs:
       # one in the job that signs and publishes would let anyone able to poison it
       # from a lower-privileged run influence what ships. Releases are rare; paying
       # the download each time is the right trade. build.yml keeps its cache.
+      # The Plugin Verifier downloads a full IDE per target — 1-2 GB each — which
+      # overruns a runner's free disk long before the matrix finishes. Reclaiming the
+      # preinstalled toolchains we do not use buys roughly 25 GB.
+      - name: Free disk space
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune --all --force || true
+          df -h / | tail -1
+
       - name: Verify plugin
         run: ./gradlew verifyPlugin --stacktrace
 
