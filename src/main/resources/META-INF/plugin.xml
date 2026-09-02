@@ -66,6 +66,11 @@
         implementation="com.mondoo.intellij.binary.XgrepStartupActivity"/>
     <backgroundPostStartupActivity
         implementation="com.mondoo.intellij.actions.MondooOnboardingActivity"/>
+
+    <!-- Verifies that declared actions and services actually resolve. Inert unless
+         -Dmondoo.selfcheck=true; see MondooSelfCheck. -->
+    <backgroundPostStartupActivity
+        implementation="com.mondoo.intellij.MondooSelfCheck"/>
   </extensions>
 
   <actions>
@@ -106,6 +111,34 @@
               class="com.mondoo.intellij.actions.ExportSearchRuleAction"
               text="Export Search as Rule"
               description="Turn a structural pattern into a reusable xgrep rule"/>
+      <separator/>
+      <!-- Policy authoring. These stay hidden unless the focused file is a policy
+           bundle, so they cost nothing in a project that has none. -->
+      <action id="Mondoo.Policy.Lint"
+              class="com.mondoo.intellij.policy.LintPolicyAction"
+              text="Lint Policy Bundle"
+              description="Check policy hygiene: tags, asset filters, unused queries"/>
+      <action id="Mondoo.Policy.Format"
+              class="com.mondoo.intellij.policy.FormatPolicyAction"
+              text="Format Policy Bundle"
+              description="Apply cnspec's own formatting to this bundle"/>
+      <action id="Mondoo.Policy.FormatSorted"
+              class="com.mondoo.intellij.policy.FormatPolicySortedAction"
+              text="Format and Sort Policy Bundle"
+              description="Format this bundle and sort its queries"/>
+      <separator/>
+      <action id="Mondoo.Target.Scan"
+              class="com.mondoo.intellij.target.ScanTargetAction"
+              text="Scan Target..."
+              description="Run policies against this machine or a configured target"/>
+      <action id="Mondoo.Target.RunQuery"
+              class="com.mondoo.intellij.target.RunQueryAction"
+              text="Run MQL Query..."
+              description="Run a single MQL query against a target"/>
+      <action id="Mondoo.Target.Manage"
+              class="com.mondoo.intellij.target.ManageTargetsAction"
+              text="Manage Targets..."
+              description="Add or remove the targets cnspec can scan"/>
       <separator/>
       <action id="Mondoo.Xgrep.Setup"
               class="com.mondoo.intellij.actions.SetupScannerAction"
