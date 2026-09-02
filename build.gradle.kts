@@ -85,9 +85,10 @@ intellijPlatform {
             VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
         )
         ides {
+            // IntelliJ IDEA moved to a unified distribution in 2025.3, so there is
+            // no separate Community product at 261 — IntellijIdeaCommunity has no
+            // 2026.1.4 download. The unified IDEA below covers it.
             create(IntelliJPlatformType.IntellijIdea, "2026.1.4")
-            // Settles whether Community carries com.intellij.modules.lsp.
-            create(IntelliJPlatformType.IntellijIdeaCommunity, "2026.1.4")
             create(IntelliJPlatformType.GoLand, "2026.1.4")
             create(IntelliJPlatformType.PyCharm, "2026.1.4")
             create(IntelliJPlatformType.WebStorm, "2026.1.4")
@@ -96,6 +97,10 @@ intellijPlatform {
             create(IntelliJPlatformType.CLion, "2026.1.4")
             create(IntelliJPlatformType.Rider, "2026.1.4")
             create(IntelliJPlatformType.RustRover, "2026.1.4")
+
+            // Android Studio is not published as a resolvable artifact, so it is
+            // verified from the local install. Skipped automatically when absent.
+            file("/Applications/Android Studio.app").takeIf { it.exists() }?.let { local(it) }
         }
     }
 }

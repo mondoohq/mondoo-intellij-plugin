@@ -339,3 +339,20 @@ pins `javaVersion = 21`.
 The Kotlin version must be **2.3.0 or newer**. Anything older fails `compileKotlin`
 outright — every platform `.kotlin_module` is rejected, ending in an internal compiler
 error rather than a clear message, which makes the root cause easy to misread.
+
+## Appendix: milestone 7 verification gate, 2026-09-02
+
+Phase 1 acceptance, run against the real scanner and a real IDE rather than mocks.
+
+| # | Check | Result |
+| --- | --- | --- |
+| 5 | Findings appear; no errors | GoLand 2026.2, `vuln.py`: plugin loaded, LSP module loaded, `xgrep lsp` started and initialized in 0.7 s, **0 ERROR lines**. Note the file is Python in a Go IDE — the cross-IDE case the extension-keyed language table exists for. |
+| 6 | Suppression holds in the CLI | The exact comment the intention inserts (`# validated upstream nogrep: python-command-injection`) removes that rule from `xgrep scan` active findings while leaving the other. |
+| 7 | Workspace and changed-files scans | `xgrep: workspace scan found 3 finding(s) in 1 file(s)` and `xgrep: changed-files scan found 4 finding(s) in 2 file(s)`; both match the completion regex, both publish diagnostics. |
+| 8 | Structural search round trip | Exported rule fed back via `-f` fires as `search-rule`. |
+| 9 | Binary bootstrap | Covered at milestone 1: with PATH and `~/go/bin` hidden, the plugin downloaded, hash-verified and installed 0.57.0, then restarted the server against it. |
+| 10 | `verifyPlugin` across the IDE matrix | See below. |
+
+The suppression check is the one worth keeping in any future regression suite: it is
+the only one that proves the plugin and the CLI agree on a format, and a silent
+disagreement there means dismissals stop working with no error anywhere.
