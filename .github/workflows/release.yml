@@ -67,14 +67,43 @@ jobs:
       # one in the job that signs and publishes would let anyone able to poison it
       # from a lower-privileged run influence what ships. Releases are rare; paying
       # the download each time is the right trade. build.yml keeps its cache.
-      - run: ./gradlew verifyPlugin --stacktrace
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin --stacktrace
 
-      - name: Build and sign
+      # Signing needs credentials a dry run may not have. A dry run exists to prove
+      # the pipeline before a real release depends on those secrets, so it must not
+      # require them — it builds, and signs only when it can.
+      - name: Check for signing credentials
+        id: signing
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+        run: |
+          if [ -n "$CERTIFICATE_CHAIN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No signing credentials; building unsigned. A real release must be signed."
+          fi
+
+      - name: Build
+        run: ./gradlew buildPlugin --stacktrace
+
+      - name: Sign
+        if: steps.signing.outputs.available == 'true'
         env:
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew buildPlugin signPlugin verifyPluginSignature --stacktrace
+        run: ./gradlew signPlugin verifyPluginSignature --stacktrace
+
+      # A published release must be signed. A dry run may legitimately be unsigned;
+      # a real one may not, and failing here is far better than shipping unsigned.
+      - name: Require signing for a real release
+        if: github.event_name == 'release' && steps.signing.outputs.available != 'true'
+        run: |
+          echo "::error::Cannot publish: signing credentials are not configured."
+          echo "Set CERTIFICATE_CHAIN, PRIVATE_KEY and PRIVATE_KEY_PASSWORD. See RELEASING.md."
+          exit 1
 
       - name: Publish
         if: github.event_name == 'release' || inputs.dryRun == false
