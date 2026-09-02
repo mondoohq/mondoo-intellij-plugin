@@ -36,6 +36,7 @@ import java.nio.file.Path
 class SearchCodeAction : XgrepScanActionBase() {
 
     override fun actionPerformed(e: AnActionEvent) {
+        if (!requireServer(e)) return
         val project = e.project ?: return
         val pattern = Messages.showInputDialog(
             project,
@@ -116,6 +117,7 @@ class SearchCodeAction : XgrepScanActionBase() {
 /** Turns the current pattern into a reusable xgrep rule, opened as YAML. */
 class ExportSearchRuleAction : XgrepScanActionBase() {
     override fun actionPerformed(e: AnActionEvent) {
+        if (!requireServer(e)) return
         val project = e.project ?: return
         val pattern = Messages.showInputDialog(
             project, "Structural pattern to export as a rule", "Export Search as Rule", null, "eval(\$X)", null,

@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   https://github.com/mondoohq/skills.
 - **Clear Findings**, to empty the findings view after changing rules or scan scope.
 
+### Fixed
+
+- The status-bar menu no longer renders most actions as disabled. The status bar's
+  data context carries no project, so every action that consults it appeared greyed
+  out.
+
 ### Changed
 
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops

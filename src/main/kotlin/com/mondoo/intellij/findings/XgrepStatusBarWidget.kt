@@ -7,6 +7,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.ListPopup
@@ -85,10 +86,20 @@ internal class XgrepStatusBarWidget(project: Project) : EditorBasedStatusBarPopu
         // one place instead of being duplicated as menu literals.
         val group = ActionManager.getInstance().getAction("Mondoo.CodeSecurity") as? DefaultActionGroup
             ?: DefaultActionGroup()
+
+        // The status bar's own DataContext carries no project, so every action whose
+        // update() consults e.project renders disabled — which is all of them except
+        // the few needing no project at all.
+        //
+        // Built without a parent on purpose: chaining onto the status bar's context
+        // left PROJECT unresolved. These actions need nothing but the project, so a
+        // context containing exactly that is both sufficient and predictable.
+        val withProject = SimpleDataContext.getProjectContext(project)
+
         return JBPopupFactory.getInstance().createActionGroupPopup(
             "Mondoo Code Security",
             group,
-            context,
+            withProject,
             JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
             true,
         )
