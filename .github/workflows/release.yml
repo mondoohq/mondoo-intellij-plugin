@@ -81,8 +81,11 @@ jobs:
           sudo docker image prune --all --force || true
           df -h / | tail -1
 
+      # A single IDE here. The full matrix runs on every push in build.yml, and the
+      # release job cannot hold eight IDEs on one runner — it exhausted the disk and
+      # took the runner down with it.
       - name: Verify plugin
-        run: ./gradlew verifyPlugin --stacktrace
+        run: ./gradlew verifyPlugin -PverifyIde=IU --stacktrace
 
       # Signing needs credentials a dry run may not have. A dry run exists to prove
       # the pipeline before a real release depends on those secrets, so it must not

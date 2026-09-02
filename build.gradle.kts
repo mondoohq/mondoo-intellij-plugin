@@ -142,7 +142,13 @@ intellijPlatform {
             // -PverifyLocal=true verifies only against IDEs already on this machine.
             // The full matrix downloads ~1 GB per IDE, which is a CI job, not
             // something to run on a laptop before every commit.
-            if (providers.gradleProperty("verifyLocal").isPresent) {
+            val single = providers.gradleProperty("verifyIde").orNull
+            if (single != null) {
+                // One IDE per invocation. The verifier downloads a full IDE per
+                // target — 1-2 GB each — and a runner cannot hold the whole matrix,
+                // so CI fans these out one per job instead of looping here.
+                create(IntelliJPlatformType.fromCode(single), "2026.1.4")
+            } else if (providers.gradleProperty("verifyLocal").isPresent) {
                 // Only IDEs at or above the declared floor. An older install
                 // (e.g. a 2025.2 left on disk) has no LSP module and would report a
                 // compatibility problem for an IDE this plugin does not claim to

@@ -1,0 +1,917 @@
+{
+  "schema_version": "1.1",
+  "report": {
+    "schema_version": "1.8",
+    "results": [
+      {
+        "check_id": "js-express-missing-security-headers",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 11,
+          "col": 7,
+          "offset": 360
+        },
+        "end": {
+          "line": 11,
+          "col": 22,
+          "offset": 375
+        },
+        "extra": {
+          "title": "Express missing security headers",
+          "message": "Express application does not set security headers. Use helmet() middleware or manually set X-Frame-Options, X-Content-Type-Options, and other security headers on all responses.\n",
+          "severity": "WARNING",
+          "metavars": {
+            "APP": "app"
+          },
+          "lines": "app = express()",
+          "metadata": {
+            "category": "security",
+            "cwe": [
+              "CWE-693: Protection Mechanism Failure"
+            ],
+            "owasp": [
+              "A05:2021",
+              "A02:2025"
+            ],
+            "subcategory": [
+              "audit"
+            ]
+          },
+          "fingerprint": "fce25e68ff023526",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Add helmet() middleware, or set X-Frame-Options and X-Content-Type- Options, on all responses.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 360,
+                "end_byte": 375,
+                "start_line": 11,
+                "end_line": 11
+              },
+              "strategy": "Add helmet() middleware, or set X-Frame-Options and X-Content-Type- Options, on all responses.",
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-express-missing-security-headers no longer fires in the changed region",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "const { exec } = require('child_process');\nconst fs = require('fs');",
+          "after": "\n// Hardcoded credential.\nconst DB_PASSWORD = 'hunter2-super-secret';"
+        },
+        "remediation": {
+          "description": "Add helmet() middleware, or set X-Frame-Options and X-Content-Type- Options, on all responses.",
+          "has_autofix": false
+        }
+      },
+      {
+        "check_id": "js-express-command-injection",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 18,
+          "col": 23,
+          "offset": 535
+        },
+        "end": {
+          "line": 18,
+          "col": 73,
+          "offset": 605
+        },
+        "extra": {
+          "title": "Express command injection",
+          "message": "User input from an Express request flows into a command execution function. This could allow an attacker to execute arbitrary operating system commands. Avoid passing user input to child_process functions. If necessary, use execFile() with a fixed command and validate arguments against an allowlist.",
+          "confidence": "HIGH",
+          "severity": "CRITICAL",
+          "lines": "exec('ping -c 1 ' + req.query.host, (err, stdout) =\u003e res.send(stdout))",
+          "metadata": {
+            "category": "security",
+            "class-export-reach": true,
+            "cli-arg-sources": true,
+            "confidence": "HIGH",
+            "cwe": [
+              "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+            ],
+            "exclude-argument-injection": true,
+            "framework-callback-sources": true,
+            "impact": "HIGH",
+            "likelihood": "HIGH",
+            "owasp": [
+              "A03:2021",
+              "A05:2025"
+            ],
+            "promisified-sinks": true,
+            "proto-field-taint-filter": true,
+            "references": [
+              "https://cheatsheetseries.owasp.org/cheatsheets/OS_Command_Injection_Defense_Cheat_Sheet.html"
+            ],
+            "scoped-taint": true,
+            "sink-wrapper-expansion": true,
+            "subcategory": [
+              "vuln"
+            ],
+            "tagged-template-sinks": true,
+            "technology": [
+              "javascript",
+              "express"
+            ],
+            "weak-param-severity": "INFO"
+          },
+          "fingerprint": "581e4d8f9cd03355",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Avoid passing request input to child_process; use execFile() with a fixed command and validate arguments against an allowlist.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 535,
+                "end_byte": 605,
+                "start_line": 18,
+                "end_line": 18
+              },
+              "strategy": "Avoid passing request input to child_process; use execFile() with a fixed command and validate arguments against an allowlist.",
+              "recognized_sanitizers": [
+                "Boolean(...)",
+                "JSON.stringify(...)",
+                "Number(...)",
+                "parseInt(...)",
+                "path.basename(...)",
+                "shell.escape(...)",
+                "shellEscape(...)",
+                "shellescape(...)"
+              ],
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-express-command-injection no longer fires in the changed region (e.g. by routing the value through one of the recognized sanitizers: Boolean(...), JSON.stringify(...), Number(...), parseInt(...), path.basename(...), shell.escape(...), shellEscape(...), shellescape(...))",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.get('/ping', (req, res) =\u003e {\n  // Command injection: user input reaches a shell.",
+          "after": "});\n\napp.get('/file', (req, res) =\u003e {"
+        },
+        "remediation": {
+          "description": "Avoid passing request input to child_process; use execFile() with a fixed command and validate arguments against an allowlist.",
+          "has_autofix": false
+        },
+        "dataflow_trace": {
+          "taint_source": {
+            "location": {
+              "line": 18,
+              "col": 23,
+              "offset": 555
+            },
+            "content": "req.query"
+          },
+          "sink": {
+            "location": {
+              "line": 18,
+              "col": 23,
+              "offset": 535
+            },
+            "content": "exec('ping -c 1 ' + req.query.host, (err, stdout) =\u003e res.send(stdout))"
+          }
+        }
+      },
+      {
+        "check_id": "js-sql-injection",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 18,
+          "col": 23,
+          "offset": 540
+        },
+        "end": {
+          "line": 18,
+          "col": 37,
+          "offset": 569
+        },
+        "extra": {
+          "title": "SQL injection",
+          "message": "User-controlled input is concatenated into a SQL query string. This allows SQL injection where an attacker can modify the query structure. Use parameterized queries with placeholders ($1, ?) instead of string concatenation.",
+          "confidence": "MEDIUM",
+          "severity": "CRITICAL",
+          "lines": "'ping -c 1 ' + req.query.host",
+          "metadata": {
+            "category": "security",
+            "confidence": "MEDIUM",
+            "cwe": [
+              "CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"
+            ],
+            "exclude-builtin-collection-receiver": true,
+            "impact": "HIGH",
+            "intra-proc-taint": true,
+            "likelihood": "HIGH",
+            "owasp": [
+              "A03:2021",
+              "A05:2025"
+            ],
+            "subcategory": [
+              "vuln"
+            ],
+            "technology": [
+              "javascript"
+            ],
+            "weak-param-severity": "INFO"
+          },
+          "fingerprint": "6734831454da4a50",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Use parameterized queries with placeholders ($1, ?) instead of string concatenation.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 540,
+                "end_byte": 569,
+                "start_line": 18,
+                "end_line": 18
+              },
+              "strategy": "Use parameterized queries with placeholders ($1, ?) instead of string concatenation.",
+              "recognized_sanitizers": [
+                "Boolean(...)",
+                "Number(...)",
+                "SqlString.escape(...)",
+                "mysql.escape(...)",
+                "parseFloat(...)",
+                "parseInt(...)",
+                "sqlstring.escape(...)"
+              ],
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-sql-injection no longer fires in the changed region (e.g. by routing the value through one of the recognized sanitizers: Boolean(...), Number(...), SqlString.escape(...), mysql.escape(...), parseFloat(...), parseInt(...), sqlstring.escape(...))",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.get('/ping', (req, res) =\u003e {\n  // Command injection: user input reaches a shell.",
+          "after": "});\n\napp.get('/file', (req, res) =\u003e {"
+        },
+        "remediation": {
+          "description": "Use parameterized queries with placeholders ($1, ?) instead of string concatenation.",
+          "has_autofix": false
+        },
+        "dataflow_trace": {
+          "taint_source": {
+            "location": {
+              "line": 18,
+              "col": 23,
+              "offset": 555
+            },
+            "content": "req.query.host"
+          },
+          "sink": {
+            "location": {
+              "line": 18,
+              "col": 23,
+              "offset": 540
+            },
+            "content": "'ping -c 1 ' + req.query.host"
+          }
+        }
+      },
+      {
+        "check_id": "js-express-path-traversal",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 23,
+          "col": 43,
+          "offset": 712
+        },
+        "end": {
+          "line": 23,
+          "col": 58,
+          "offset": 758
+        },
+        "extra": {
+          "title": "Express path traversal",
+          "message": "User input from an Express request is used to construct a file path. This could allow an attacker to read or write arbitrary files using path traversal sequences like '../'. Use path.resolve() with a base directory and validate the result stays within the intended directory, or use path.basename() to strip directory components.",
+          "confidence": "HIGH",
+          "severity": "ERROR",
+          "lines": "fs.readFileSync('/var/data/' + req.query.name)",
+          "metadata": {
+            "category": "security",
+            "confidence": "HIGH",
+            "cwe": [
+              "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+            ],
+            "framework-callback-sources": true,
+            "impact": "HIGH",
+            "likelihood": "HIGH",
+            "owasp": [
+              "A01:2021",
+              "A01:2025"
+            ],
+            "promisified-sinks": true,
+            "references": [
+              "https://owasp.org/www-community/attacks/Path_Traversal"
+            ],
+            "scoped-taint": true,
+            "subcategory": [
+              "vuln"
+            ],
+            "tagged-template-sinks": true,
+            "technology": [
+              "javascript",
+              "express"
+            ]
+          },
+          "fingerprint": "047d94f92c2dfecf",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Resolve the path against a fixed base directory with path.resolve() and verify it stays inside, or use path.basename() to strip '../' components.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 712,
+                "end_byte": 758,
+                "start_line": 23,
+                "end_line": 23
+              },
+              "strategy": "Resolve the path against a fixed base directory with path.resolve() and verify it stays inside, or use path.basename() to strip '../' components.",
+              "recognized_sanitizers": [
+                "Number(...)",
+                "encodeURIComponent(...)",
+                "parseInt(...)",
+                "path.basename(...)",
+                "path.normalize(...)",
+                "sanitize(...)",
+                "sanitizeFilename(...)",
+                "slug(...)"
+              ],
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-express-path-traversal no longer fires in the changed region (e.g. by routing the value through one of the recognized sanitizers: Number(...), encodeURIComponent(...), parseInt(...), path.basename(...), path.normalize(...), sanitize(...), sanitizeFilename(...), slug(...))",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.get('/file', (req, res) =\u003e {\n  // Path traversal: user input reaches the filesystem.",
+          "after": "});\n\napp.post('/calc', (req, res) =\u003e {"
+        },
+        "remediation": {
+          "description": "Resolve the path against a fixed base directory with path.resolve() and verify it stays inside, or use path.basename() to strip '../' components.",
+          "has_autofix": false
+        },
+        "dataflow_trace": {
+          "taint_source": {
+            "location": {
+              "line": 23,
+              "col": 43,
+              "offset": 743
+            },
+            "content": "req.query"
+          },
+          "sink": {
+            "location": {
+              "line": 23,
+              "col": 43,
+              "offset": 712
+            },
+            "content": "fs.readFileSync('/var/data/' + req.query.name)"
+          }
+        }
+      },
+      {
+        "check_id": "js-express-xss",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 23,
+          "col": 3,
+          "offset": 703
+        },
+        "end": {
+          "line": 23,
+          "col": 59,
+          "offset": 759
+        },
+        "extra": {
+          "title": "Express XSS",
+          "message": "User input from an Express request is sent in the HTTP response without proper encoding. This could allow an attacker to inject malicious scripts (Cross-Site Scripting). Use a template engine with auto-escaping or explicitly escape user input before sending it in the response.",
+          "confidence": "HIGH",
+          "severity": "ERROR",
+          "lines": "res.send(fs.readFileSync('/var/data/' + req.query.name))",
+          "metadata": {
+            "angular-component-handler-scope": true,
+            "arg-injection-sinks": true,
+            "aws-sdk-sources": true,
+            "category": "security",
+            "confidence": "HIGH",
+            "cwe": [
+              "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+            ],
+            "destructured-request-sources": true,
+            "dom-xss-sources": true,
+            "entry-point-exported-only": true,
+            "entry-point-params": true,
+            "flow": {
+              "filter": "flow.completeGuards.contains(\"equality\") == false",
+              "guards": [
+                "equality"
+              ]
+            },
+            "form-callback-sources": true,
+            "framework-callback-sources": true,
+            "html-char-reject-guards": true,
+            "impact": "MEDIUM",
+            "intra-proc-sanitizers": true,
+            "likelihood": "HIGH",
+            "match-anchor": "sink",
+            "owasp": [
+              "A03:2021",
+              "A05:2025"
+            ],
+            "react-props-sources": true,
+            "references": [
+              "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+            ],
+            "subcategory": [
+              "vuln"
+            ],
+            "technology": [
+              "javascript",
+              "express"
+            ],
+            "weak-param-severity": "INFO"
+          },
+          "fingerprint": "2676b3e8090e88ac",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Send user input through an auto-escaping template engine, or explicitly escape it before writing it into the response.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 703,
+                "end_byte": 759,
+                "start_line": 23,
+                "end_line": 23
+              },
+              "strategy": "Send user input through an auto-escaping template engine, or explicitly escape it before writing it into the response.",
+              "recognized_sanitizers": [
+                "DOMPurify.sanitize(...)",
+                "encodeURIComponent(...)",
+                "escape(...)",
+                "escapeHtml(...)",
+                "jQuery($A + $X)",
+                "sanitizeHtml(...)",
+                "validator.escape(...)",
+                "xss(...)"
+              ],
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-express-xss no longer fires in the changed region (e.g. by routing the value through one of the recognized sanitizers: DOMPurify.sanitize(...), encodeURIComponent(...), escape(...), escapeHtml(...), jQuery($A + $X), sanitizeHtml(...), validator.escape(...), xss(...))",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.get('/file', (req, res) =\u003e {\n  // Path traversal: user input reaches the filesystem.",
+          "after": "});\n\napp.post('/calc', (req, res) =\u003e {"
+        },
+        "remediation": {
+          "description": "Send user input through an auto-escaping template engine, or explicitly escape it before writing it into the response.",
+          "has_autofix": false
+        },
+        "dataflow_trace": {
+          "taint_source": {
+            "location": {
+              "line": 21,
+              "col": 1,
+              "offset": 612
+            },
+            "content": "app.get('/file', (req, res) =\u003e {\n  // Path traversal: user input reaches the filesystem.\n  res.send(fs.readFileSync('/var/data/' + req.query.name));\n})"
+          },
+          "sink": {
+            "location": {
+              "line": 23,
+              "col": 3,
+              "offset": 703
+            },
+            "content": "res.send(fs.readFileSync('/var/data/' + req.query.name))"
+          }
+        }
+      },
+      {
+        "check_id": "js-express-xss",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 28,
+          "col": 3,
+          "offset": 823
+        },
+        "end": {
+          "line": 28,
+          "col": 46,
+          "offset": 866
+        },
+        "extra": {
+          "title": "Express XSS",
+          "message": "User input from an Express request is sent in the HTTP response without proper encoding. This could allow an attacker to inject malicious scripts (Cross-Site Scripting). Use a template engine with auto-escaping or explicitly escape user input before sending it in the response.",
+          "confidence": "HIGH",
+          "severity": "ERROR",
+          "lines": "res.send(String(eval(req.body.expression)))",
+          "metadata": {
+            "angular-component-handler-scope": true,
+            "arg-injection-sinks": true,
+            "aws-sdk-sources": true,
+            "category": "security",
+            "confidence": "HIGH",
+            "cwe": [
+              "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+            ],
+            "destructured-request-sources": true,
+            "dom-xss-sources": true,
+            "entry-point-exported-only": true,
+            "entry-point-params": true,
+            "flow": {
+              "filter": "flow.completeGuards.contains(\"equality\") == false",
+              "guards": [
+                "equality"
+              ]
+            },
+            "form-callback-sources": true,
+            "framework-callback-sources": true,
+            "html-char-reject-guards": true,
+            "impact": "MEDIUM",
+            "intra-proc-sanitizers": true,
+            "likelihood": "HIGH",
+            "match-anchor": "sink",
+            "owasp": [
+              "A03:2021",
+              "A05:2025"
+            ],
+            "react-props-sources": true,
+            "references": [
+              "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+            ],
+            "subcategory": [
+              "vuln"
+            ],
+            "technology": [
+              "javascript",
+              "express"
+            ],
+            "weak-param-severity": "INFO"
+          },
+          "fingerprint": "4c4483e4223ac9bd",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Send user input through an auto-escaping template engine, or explicitly escape it before writing it into the response.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 823,
+                "end_byte": 866,
+                "start_line": 28,
+                "end_line": 28
+              },
+              "strategy": "Send user input through an auto-escaping template engine, or explicitly escape it before writing it into the response.",
+              "recognized_sanitizers": [
+                "DOMPurify.sanitize(...)",
+                "encodeURIComponent(...)",
+                "escape(...)",
+                "escapeHtml(...)",
+                "jQuery($A + $X)",
+                "sanitizeHtml(...)",
+                "validator.escape(...)",
+                "xss(...)"
+              ],
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-express-xss no longer fires in the changed region (e.g. by routing the value through one of the recognized sanitizers: DOMPurify.sanitize(...), encodeURIComponent(...), escape(...), escapeHtml(...), jQuery($A + $X), sanitizeHtml(...), validator.escape(...), xss(...))",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.post('/calc', (req, res) =\u003e {\n  // Code injection.",
+          "after": "});\n\nmodule.exports = { app, DB_PASSWORD };"
+        },
+        "remediation": {
+          "description": "Send user input through an auto-escaping template engine, or explicitly escape it before writing it into the response.",
+          "has_autofix": false
+        },
+        "dataflow_trace": {
+          "taint_source": {
+            "location": {
+              "line": 26,
+              "col": 1,
+              "offset": 766
+            },
+            "content": "app.post('/calc', (req, res) =\u003e {\n  // Code injection.\n  res.send(String(eval(req.body.expression)));\n})"
+          },
+          "sink": {
+            "location": {
+              "line": 28,
+              "col": 3,
+              "offset": 823
+            },
+            "content": "res.send(String(eval(req.body.expression)))"
+          }
+        }
+      },
+      {
+        "check_id": "js-eval-injection",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 28,
+          "col": 19,
+          "offset": 839
+        },
+        "end": {
+          "line": 28,
+          "col": 44,
+          "offset": 864
+        },
+        "extra": {
+          "title": "Eval injection",
+          "message": "Detected use of eval() or Function() constructor with dynamic input. This can lead to code injection if the input is user-controlled. Avoid eval() entirely. Use JSON.parse() for data deserialization or a safe expression evaluator for computed values.",
+          "confidence": "MEDIUM",
+          "severity": "CRITICAL",
+          "metavars": {
+            "INPUT": "req.body.expression"
+          },
+          "lines": "eval(req.body.expression)",
+          "metadata": {
+            "category": "security",
+            "confidence": "MEDIUM",
+            "cwe": [
+              "CWE-94: Improper Control of Generation of Code ('Code Injection')"
+            ],
+            "impact": "HIGH",
+            "likelihood": "MEDIUM",
+            "owasp": [
+              "A03:2021",
+              "A05:2025"
+            ],
+            "references": [
+              "https://owasp.org/www-community/attacks/Code_Injection"
+            ],
+            "subcategory": [
+              "vuln"
+            ],
+            "technology": [
+              "javascript"
+            ]
+          },
+          "fingerprint": "7ffcadf6c726bb5f",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Avoid eval and the Function constructor on dynamic input; use JSON.parse for data or a safe expression evaluator.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 839,
+                "end_byte": 864,
+                "start_line": 28,
+                "end_line": 28
+              },
+              "strategy": "Avoid eval and the Function constructor on dynamic input; use JSON.parse for data or a safe expression evaluator.",
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-eval-injection no longer fires in the changed region",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.post('/calc', (req, res) =\u003e {\n  // Code injection.",
+          "after": "});\n\nmodule.exports = { app, DB_PASSWORD };"
+        },
+        "remediation": {
+          "description": "Avoid eval and the Function constructor on dynamic input; use JSON.parse for data or a safe expression evaluator.",
+          "has_autofix": false
+        }
+      },
+      {
+        "check_id": "js-unsafe-shell-construction",
+        "path": "src/main/resources/demo/welcome.js",
+        "start": {
+          "line": 28,
+          "col": 24,
+          "offset": 839
+        },
+        "end": {
+          "line": 28,
+          "col": 44,
+          "offset": 864
+        },
+        "extra": {
+          "title": "Unsafe shell construction",
+          "message": "An exported function constructs a shell command by concatenating a parameter value and passes it to a command execution function. Callers passing user-controlled data will produce a command injection vulnerability. Use parameterized APIs or validate input.",
+          "confidence": "MEDIUM",
+          "severity": "CRITICAL",
+          "lines": "eval(req.body.expression)",
+          "metadata": {
+            "category": "security",
+            "cli-arg-sources": true,
+            "confidence": "MEDIUM",
+            "cwe": [
+              "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+            ],
+            "entry-point-exported-only": true,
+            "entry-point-params": true,
+            "flow": {
+              "filter": "flow.completeGuards.contains(\"equality\") == false",
+              "guards": [
+                "equality"
+              ]
+            },
+            "framework-callback-sources": true,
+            "impact": "HIGH",
+            "likelihood": "MEDIUM",
+            "owasp": [
+              "A03:2021",
+              "A05:2025"
+            ],
+            "promisified-sinks": true,
+            "sink-wrapper-expansion": true,
+            "subcategory": [
+              "vuln"
+            ],
+            "tagged-template-sinks": true,
+            "technology": [
+              "javascript"
+            ]
+          },
+          "fingerprint": "43424036cca35a90",
+          "is_ignored": false,
+          "fix_info": {
+            "kind": "assisted",
+            "hint": "Use parameterized command APIs (execFile/spawn with args) instead of concatenating the parameter into a shell string.",
+            "contract": {
+              "unsafe_region": {
+                "start_byte": 839,
+                "end_byte": 864,
+                "start_line": 28,
+                "end_line": 28
+              },
+              "strategy": "Use parameterized command APIs (execFile/spawn with args) instead of concatenating the parameter into a shell string.",
+              "acceptance_criteria": [
+                "the patched file parses without introducing new syntax errors",
+                "finding js-unsafe-shell-construction no longer fires in the changed region",
+                "no new finding of equal-or-higher severity appears in the changed region"
+              ]
+            }
+          }
+        },
+        "context": {
+          "language": "javascript",
+          "before": "\napp.post('/calc', (req, res) =\u003e {\n  // Code injection.",
+          "after": "});\n\nmodule.exports = { app, DB_PASSWORD };"
+        },
+        "remediation": {
+          "description": "Use parameterized command APIs (execFile/spawn with args) instead of concatenating the parameter into a shell string.",
+          "has_autofix": false
+        },
+        "dataflow_trace": {
+          "taint_source": {
+            "location": {
+              "line": 28,
+              "col": 24,
+              "offset": 844
+            },
+            "content": "req.body"
+          },
+          "sink": {
+            "location": {
+              "line": 28,
+              "col": 24,
+              "offset": 839
+            },
+            "content": "eval(req.body.expression)"
+          }
+        }
+      }
+    ],
+    "errors": null,
+    "paths": {
+      "scanned": [
+        ".copywrite.hcl",
+        ".github/workflows/build.yml",
+        ".github/workflows/prepare-release.yml",
+        ".github/workflows/release.yml",
+        ".gitignore",
+        "CHANGELOG.md",
+        "CONTRIBUTING.md",
+        "DEVELOPMENT.md",
+        "LICENSE",
+        "README.md",
+        "RELEASING.md",
+        "SECURITY.md",
+        "build.gradle.kts",
+        "docs/adr/0001-lsp-client-and-ide-compatibility.md",
+        "docs/adr/README.md",
+        "docs/bill-of-materials.md",
+        "docs/code-security.md",
+        "docs/dependencies.md",
+        "docs/images/README.md",
+        "docs/install-dev-build.md",
+        "docs/manual-verification.md",
+        "gradle.properties",
+        "gradle/libs.versions.toml",
+        "gradle/wrapper/gradle-wrapper.jar",
+        "gradle/wrapper/gradle-wrapper.properties",
+        "gradlew",
+        "gradlew.bat",
+        "scripts/smoke-test.sh",
+        "settings.gradle.kts",
+        "src/main/kotlin/com/mondoo/intellij/MondooIcons.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/AnalyzeDependenciesAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/ClearFindingsAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/GenerateBomAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/McpAndSkillsActions.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/OnboardingActions.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/ScanActions.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/SearchCodeAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/SetupScannerAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/actions/ShowXgrepPathAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/CnspecBinaryService.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/ReleaseManifest.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/XgrepBinaryService.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/XgrepDownloader.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/XgrepInstallListener.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/XgrepInstaller.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/XgrepStartupActivity.kt",
+        "src/main/kotlin/com/mondoo/intellij/binary/XgrepVersionPolicy.kt",
+        "src/main/kotlin/com/mondoo/intellij/bom/BomRequest.kt",
+        "src/main/kotlin/com/mondoo/intellij/bom/BomService.kt",
+        "src/main/kotlin/com/mondoo/intellij/findings/FindingsTree.kt",
+        "src/main/kotlin/com/mondoo/intellij/findings/XgrepFindingsStore.kt",
+        "src/main/kotlin/com/mondoo/intellij/findings/XgrepFindingsToolWindow.kt",
+        "src/main/kotlin/com/mondoo/intellij/findings/XgrepStatusBarWidget.kt",
+        "src/main/kotlin/com/mondoo/intellij/fix/SuppressFindingIntention.kt",
+        "src/main/kotlin/com/mondoo/intellij/fix/SuppressionComment.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/ReloadRulesAction.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepDiagnosticData.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepDiagnosticDataFromLsp.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepLspCustomization.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepLspModuleProbe.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepLspServerSupportProvider.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepNotificationsHandler.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepScanCoordinator.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepScanMessages.kt",
+        "src/main/kotlin/com/mondoo/intellij/lsp/XgrepScanNotifier.kt",
+        "src/main/kotlin/com/mondoo/intellij/mcp/McpConfig.kt",
+        "src/main/kotlin/com/mondoo/intellij/mql/CnspecLspCustomization.kt",
+        "src/main/kotlin/com/mondoo/intellij/mql/CnspecLspServerSupportProvider.kt",
+        "src/main/kotlin/com/mondoo/intellij/mql/MqlFiles.kt",
+        "src/main/kotlin/com/mondoo/intellij/search/XgrepSearchMatch.kt",
+        "src/main/kotlin/com/mondoo/intellij/search/XgrepSearchService.kt",
+        "src/main/kotlin/com/mondoo/intellij/settings/MondooConfigurable.kt",
+        "src/main/kotlin/com/mondoo/intellij/settings/MondooSettings.kt",
+        "src/main/kotlin/com/mondoo/intellij/skills/MondooSkills.kt",
+        "src/main/kotlin/com/mondoo/intellij/ui/XgrepSetupBanner.kt",
+        "src/main/kotlin/com/mondoo/intellij/util/ProjectTrust.kt",
+        "src/main/kotlin/com/mondoo/intellij/util/XgrepLanguages.kt",
+        "src/main/kotlin/com/mondoo/intellij/util/XgrepScanScope.kt",
+        "src/main/resources/META-INF/mondoo-lsp.xml",
+        "src/main/resources/META-INF/plugin.xml",
+        "src/main/resources/META-INF/pluginIcon.svg",
+        "src/main/resources/demo/welcome.js",
+        "src/main/resources/icons/mondoo.svg",
+        "src/main/resources/icons/mondoo_dark.svg",
+        "src/main/resources/intentionDescriptions/SuppressFindingIntention/description.html",
+        "src/main/resources/intentionDescriptions/SuppressFindingWithReasonIntention/description.html",
+        "src/main/resources/messages/MondooBundle.properties",
+        "src/test/kotlin/com/mondoo/intellij/binary/ArtifactSelectorTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/binary/XgrepInstallerTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/binary/XgrepVersionPolicyTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/bom/BomRequestTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/findings/FindingsTreeTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/fix/SuppressionCommentTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/lsp/XgrepDiagnosticDataTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/lsp/XgrepScanMessagesTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/mcp/McpConfigTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/mql/MqlFilesTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/search/XgrepSearchMatchTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/skills/MondooSkillsTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/ui/XgrepSetupBannerPolicyTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/util/XgrepLanguagesTest.kt",
+        "src/test/kotlin/com/mondoo/intellij/util/XgrepScanScopeTest.kt"
+      ]
+    },
+    "version": "v0.54.0-3-gffb6d1eab"
+  },
+  "file_hashes": {
+    "src/main/resources/demo/welcome.js": "9c2e807c71419036e465f8b9702631edfa6029d45c561a077d1b4b1599abb307"
+  },
+  "root": "/Users/chris/go/src/go.mondoo.com/intellij-mondoo"
+}

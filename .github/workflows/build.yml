@@ -75,17 +75,60 @@ jobs:
           # than blocking the first pull request that touches an existing finding.
           fail-on: "off"
 
-      - name: Upload SARIF
+      # Code scanning needs GitHub Advanced Security, which a private repository
+      # without it cannot use — the upload fails with "Resource not accessible by
+      # integration". That is an entitlement, not a security problem, so it must not
+      # fail the job. It starts working on its own if Advanced Security is enabled.
+      - name: Upload SARIF to code scanning
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@5ba2889ada762081db2c4f32a729827dce632c7b # v3
         with:
           sarif_file: results.sarif
           category: xgrep
 
+      # So the findings are readable regardless of where they can be uploaded.
+      - name: Summarise findings
+        if: always()
+        run: |
+          if [ ! -f results.sarif ]; then
+            echo "No SARIF produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          count=$(jq '[.runs[].results[]] | length' results.sarif)
+          {
+            echo "## Security scan"
+            echo
+            if [ "$count" -eq 0 ]; then
+              echo "No findings."
+            else
+              echo "$count finding(s):"
+              echo
+              echo "| Rule | File | Line |"
+              echo "| --- | --- | --- |"
+              jq -r '[.runs[].results[]][:50][] |
+                "| `\(.ruleId // "?")` | \(.locations[0].physicalLocation.artifactLocation.uri // "?") | \(.locations[0].physicalLocation.region.startLine // "?") |"' \
+                results.sarif
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: security-scan-sarif
+          path: results.sarif
+
   verify:
-    name: Plugin Verifier
-    needs: build
+    name: Verify (${{ matrix.ide }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One IDE per job. The verifier downloads a full IDE per target — 1-2 GB
+        # each — and eight of them exhaust a single runner's disk part-way through,
+        # taking the runner down with them. A job each keeps every one in budget and
+        # runs them in parallel.
+        ide: [IU, GO, PY, WS, PS, RM, CL, RR]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
@@ -94,31 +137,25 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
 
-      # ~1 GB per IDE. This cache is the difference between an 8- and a 40-minute job.
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-        with:
-          path: ~/.pluginVerifier
-          key: plugin-verifier-${{ hashFiles('build.gradle.kts', 'gradle.properties') }}
-
-      # The Plugin Verifier downloads a full IDE per target — 1-2 GB each — which
-      # overruns a runner's free disk long before the matrix finishes. Reclaiming the
-      # preinstalled toolchains we do not use buys roughly 25 GB.
       - name: Free disk space
         run: |
-          df -h / | tail -1
           # Not $AGENT_TOOLSDIRECTORY: setup-java installs the JDK there, and
           # removing it leaves JAVA_HOME pointing at nothing.
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
                       /usr/local/share/boost /usr/local/share/powershell \
                       /usr/local/share/chromium /usr/local/lib/node_modules || true
-          sudo docker image prune --all --force || true
           df -h / | tail -1
 
-      - name: Verify against the IDE matrix
-        run: ./gradlew verifyPlugin --stacktrace
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.pluginVerifier
+          key: plugin-verifier-${{ matrix.ide }}-${{ hashFiles('build.gradle.kts', 'gradle.properties') }}
+
+      - name: Verify
+        run: ./gradlew verifyPlugin -PverifyIde=${{ matrix.ide }} --stacktrace
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: verifier-report
+          name: verifier-report-${{ matrix.ide }}
           path: build/reports/pluginVerifier
