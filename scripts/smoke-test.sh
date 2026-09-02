@@ -39,6 +39,23 @@ import os
 def run(cmd):
     os.system(cmd)
 EOF
+# A policy bundle, so the second language server starts too. Both must coexist:
+# they are separate providers with separate lifecycles, and a regression that
+# breaks one while leaving the other working is easy to miss by hand.
+cat > "$PROBE/example.mql.yaml" <<'EOF'
+policies:
+  - uid: smoke-policy
+    name: Smoke policy
+    version: "1.0.0"
+    groups:
+      - filters: asset.family.contains("unix")
+        checks:
+          - uid: smoke-check
+queries:
+  - uid: smoke-check
+    title: A check
+    mql: sshd.config.params["PermitRootLogin"] == "no"
+EOF
 
 LOG_DIR="$ROOT/.intellijPlatform/sandbox/mondoo-intellij-plugin/IU-2026.1.4/log_${TASK}"
 LOG="$LOG_DIR/idea.log"
@@ -56,15 +73,23 @@ trap cleanup EXIT
 # reports it as a plugin failure is worse than no run at all.
 attempt() {
   rm -rf "$LOG_DIR"
-  ./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py" --console=plain >/tmp/mondoo-smoke.out 2>&1 &
+  ./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py,$PROBE/example.mql.yaml" \
+    --console=plain >/tmp/mondoo-smoke.out 2>&1 &
   GRADLE_PID=$!
 
   local deadline=$((SECONDS + 300))
-  until [ -f "$LOG" ] && grep -q "LSP server initialized" "$LOG" 2>/dev/null; do
+  until [ -f "$LOG" ] && grep -q "XgrepLspServerDescriptor.*LSP server initialized" "$LOG" 2>/dev/null; do
     [ $SECONDS -ge $deadline ] && return 1
     sleep 5
   done
-  sleep 5
+  # The MQL server loads a resource schema first, so it lands later than the code
+  # scanner. Give it its own window rather than assuming one implies the other.
+  local mql_deadline=$((SECONDS + 60))
+  until grep -q "CnspecLspServerDescriptor.*LSP server initialized" "$LOG" 2>/dev/null; do
+    [ $SECONDS -ge $mql_deadline ] && break
+    sleep 2
+  done
+  sleep 3
   return 0
 }
 
@@ -113,6 +138,20 @@ if [ "${found:-0}" -gt 0 ]; then
 else
   echo "  FAIL store holds no findings for a deliberately vulnerable file"
   fail=1
+fi
+
+# The MQL server is optional here: cnspec is never auto-installed, so a machine
+# without it is a supported state rather than a failure. Report either way.
+if grep -q "starting cnspec lsp" "$LOG"; then
+  # cnspec reports itself as "mql-language-server", not by binary name.
+  if grep -qE "CnspecLspServerDescriptor.*LSP server initialized" "$LOG"; then
+    echo "  ok   MQL server runs alongside the code scanner"
+  else
+    echo "  FAIL MQL server started but did not initialize"
+    fail=1
+  fi
+else
+  echo "  --   MQL server not started (cnspec not installed; not a failure)"
 fi
 
 errors=$(grep -c " ERROR " "$LOG" || true)

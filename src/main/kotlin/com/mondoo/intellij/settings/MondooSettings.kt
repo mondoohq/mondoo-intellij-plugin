@@ -67,6 +67,14 @@ class MondooState : BaseState() {
     /** mondoo.xgrepIncludePatterns — when non-empty, only these are scanned. */
     val xgrepIncludePatterns: MutableList<String> by list()
 
+    // --- Infrastructure security (cnspec) ---
+
+    /** mondoo.cnspecEnabled — MQL language support. */
+    var cnspecEnabled: Boolean by property(true)
+
+    /** mondoo.cnspecPath — empty means auto-discover. Never auto-installed. */
+    var cnspecPath: String? by string("")
+
     // --- Managed-install bookkeeping. Not user-editable; see XgrepBinaryService. ---
 
     /** Last version resolved from the release manifest. */

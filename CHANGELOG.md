@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP server registration, and installation of Mondoo's agent skills from
   https://github.com/mondoohq/skills.
 - **Clear Findings**, to empty the findings view after changing rules or scan scope.
+- MQL language support for policy bundles (`*.mql.yaml`) and query files (`*.mql`):
+  live diagnostics, resource and field completion, and hover documentation from the
+  cnspec language server. cnspec is discovered, never downloaded.
 - **Analyze Dependencies** — a Dependencies tab showing which packages first-party
   code imports, grouped by reachability, with the importing files. Fully offline.
 - **Generate Bill of Materials** — software (SBOM), cryptography (CBOM) and AI (AIBOM)

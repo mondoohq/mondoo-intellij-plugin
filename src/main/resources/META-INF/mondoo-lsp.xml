@@ -37,6 +37,11 @@
 
     <platform.lsp.serverSupportProvider
         implementation="com.mondoo.intellij.lsp.XgrepLspServerSupportProvider"/>
+
+    <!-- A second server, for MQL policy bundles and queries. The platform keys
+         servers by provider class, so the two have independent lifecycles. -->
+    <platform.lsp.serverSupportProvider
+        implementation="com.mondoo.intellij.mql.CnspecLspServerSupportProvider"/>
   </extensions>
 
   <actions>

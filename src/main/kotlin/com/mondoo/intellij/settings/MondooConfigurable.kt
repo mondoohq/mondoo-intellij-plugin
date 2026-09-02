@@ -137,6 +137,24 @@ class MondooConfigurable : BoundSearchableConfigurable(
                         "half your cores. Lower it to stay quieter on a shared machine.",
                 )
             }
+            group("Infrastructure Security (cnspec)") {
+                row {
+                    checkBox("Enable MQL language support")
+                        .bindSelected(state::cnspecEnabled)
+                }
+                row("cnspec path:") {
+                    textFieldWithBrowseButton(
+                        FileChooserDescriptorFactory.createSingleFileOrExecutableAppDescriptor(),
+                    )
+                        .bindText(state::cnspecPath.toNonNullableProperty(""))
+                        .align(AlignX.FILL)
+                }.rowComment(
+                    "Leave empty to resolve <code>cnspec</code> from PATH. Unlike the code " +
+                        "scanner, cnspec is never downloaded automatically — it connects to " +
+                        "infrastructure with credentials and belongs to your system package " +
+                        "manager.",
+                )
+            }
             group("Scan scope") {
                 row("Exclude:") {
                     expandableTextField(
