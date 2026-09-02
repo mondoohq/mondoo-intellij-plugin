@@ -52,8 +52,39 @@ bash -c "$(curl -sSL https://install.mondoo.com/sh)"
 
 Set a custom location in **Settings** → **Tools** → **Mondoo** → **cnspec path**.
 
-## Not yet available
+## Running policies against a target
 
-Running policies against targets — local, SSH, Docker, Kubernetes, cloud — and the
-credential handling that needs, are not in the plugin yet. Use the cnspec CLI for
-those in the meantime.
+**Scan Target…** runs a policy scan. **Run MQL Query…** runs a single query, which is
+the fastest way to answer "what does this resource actually return here?" — select an
+expression in the editor first and it is offered as the default.
+
+Output streams into a console tab in the Mondoo tool window.
+
+**This machine** is always available and needs no configuration. **Manage Targets…**
+adds others:
+
+| Target | Needs |
+| --- | --- |
+| SSH host | `host`, or `user@host:port`. A private key file, or your SSH agent |
+| Docker | A container name or id, or an image reference |
+| Kubernetes | Nothing for the current context; a path for local manifests |
+
+cnspec supports many more providers than these. The rest remain available from its
+command line.
+
+## How credentials are handled
+
+Two rules, both enforced by the code rather than by convention:
+
+- **Secrets are never written to project settings.** They go to the IDE's password
+  safe — the OS keychain where there is one. A target's configuration physically
+  cannot hold a secret field, so `mondoo-targets.xml` is safe to commit.
+- **Secrets are never put on a command line.** Anything on a command line is visible
+  to every process on the machine through the process table. Connection details go in
+  an inventory file that is mode `0600` in a private directory and deleted when the
+  run ends; secrets are passed through the environment.
+
+Inventory files left behind by a crash are swept on the next start.
+
+Scans are disabled in a project you have not trusted, since running one connects to
+infrastructure using the project's configuration.

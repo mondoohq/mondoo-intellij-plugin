@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MQL language support for policy bundles (`*.mql.yaml`) and query files (`*.mql`):
   live diagnostics, resource and field completion, and hover documentation from the
   cnspec language server. cnspec is discovered, never downloaded.
+- **Scan Target** and **Run MQL Query** — run cnspec against this machine, an SSH
+  host, a Docker container or image, or Kubernetes, with output streamed into the
+  Mondoo tool window. **Manage Targets** configures them; secrets go to the IDE
+  password safe and reach cnspec through the environment, never through settings or
+  a command line.
 - **Lint Policy Bundle** — policy hygiene checks the language server does not make:
   required tags, missing asset filters, unreferenced queries. Findings appear in the
   Mondoo tool window.

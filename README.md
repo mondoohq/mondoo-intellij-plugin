@@ -22,7 +22,8 @@ No account, no configuration, and your code never leaves your machine.
 - **Bills of materials** — software, cryptography and AI inventories, ready for
   compliance.
 - **Policy authoring** — completion, hover, diagnostics, linting and formatting for
-  Mondoo policy bundles.
+  Mondoo policy bundles, and running them against your machine, an SSH host, Docker
+  or Kubernetes.
 
 Python, Go, Java, JavaScript, TypeScript, Ruby, Rust, C, C++, C#, Kotlin, Scala, PHP,
 Lua, shell, HTML, JSON and YAML.
@@ -56,8 +57,8 @@ File**.
 
 ## Status
 
-Code security, dependencies, bills of materials and policy authoring are complete.
-Running policies against infrastructure targets is next.
+Code security, dependencies, bills of materials, policy authoring and infrastructure
+scans are all in place.
 
 Verified in Android Studio and GoLand. See
 [ADR-0001](docs/adr/0001-lsp-client-and-ide-compatibility.md) for compatibility detail.
