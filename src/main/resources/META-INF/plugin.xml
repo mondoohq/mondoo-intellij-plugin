@@ -60,6 +60,8 @@
          unprompted; see XgrepStartupActivity. -->
     <backgroundPostStartupActivity
         implementation="com.mondoo.intellij.binary.XgrepStartupActivity"/>
+    <backgroundPostStartupActivity
+        implementation="com.mondoo.intellij.actions.MondooOnboardingActivity"/>
   </extensions>
 
   <actions>
@@ -99,6 +101,15 @@
               class="com.mondoo.intellij.actions.ConfigureMcpAction"
               text="Configure MCP Server..."
               description="Expose xgrep to AI agents over MCP"/>
+      <separator/>
+      <action id="Mondoo.Xgrep.OpenDemo"
+              class="com.mondoo.intellij.actions.OpenDemoFileAction"
+              text="Open Demo File"
+              description="Write a deliberately vulnerable file and open it"/>
+      <action id="Mondoo.Xgrep.Documentation"
+              class="com.mondoo.intellij.actions.OpenDocumentationAction"
+              text="Documentation"
+              description="Open the Mondoo documentation"/>
       <separator/>
       <action id="Mondoo.Xgrep.ShowPath"
               class="com.mondoo.intellij.actions.ShowXgrepPathAction"

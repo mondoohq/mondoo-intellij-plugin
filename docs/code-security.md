@@ -1,0 +1,140 @@
+# Code security
+
+Find and fix security issues while you write code, so they never reach review or
+production.
+
+Powered by [xgrep](https://mondoo.com/xgrep), Mondoo's software development security
+scanner. There is no account, no login, and no configuration, and your code never
+leaves your machine.
+
+## See issues while you write
+
+Open a file in a supported language and it is analysed immediately; findings update
+as you type. They appear three places:
+
+- **In the editor**, as highlights with the rule id in the message.
+- **In the Problems view**, for the file you are looking at.
+- **In the Mondoo tool window**, for the whole project — including files you have
+  never opened, which is what a workspace scan produces and what the Problems view
+  cannot show.
+
+The status bar shows the project-wide finding count. Click it for the scanner menu.
+
+Out of the box the scanner applies Mondoo's built-in security and secrets rules.
+Point **Settings | Tools | Mondoo | Custom rules path** at a rule file or directory
+to enforce your team's own rules, so the editor matches your pipeline.
+
+## Check the whole project before you commit
+
+Three actions cover code you do not have open, under **Tools | Mondoo Code Security**:
+
+| Action | What it checks |
+| --- | --- |
+| Scan Workspace | Every file in the project |
+| Scan Changed Files (Fast) | Only what is new or modified according to git |
+| Scan Changes Since... | Only what changed since a git ref you pick |
+
+The last is for reviewing a feature branch against `main` without scanning the whole
+tree.
+
+## Dismiss a finding that does not apply
+
+False positives erode trust in every other finding, so dismissing one is two clicks
+and leaves an audit trail. Put the caret on the finding and press Alt+Enter:
+
+- **Suppress xgrep finding (nogrep)** inserts a comment above the line:
+
+  ```python
+  # nogrep: python-os-system
+  os.system(cmd)
+  ```
+
+- **Suppress xgrep finding with reason...** records a justification in the same
+  comment, so reviewers see *why* it was dismissed:
+
+  ```python
+  # input is validated upstream nogrep: python-os-system
+  os.system(cmd)
+  ```
+
+The reason goes **before** the keyword. That is not cosmetic: rule ids run to the end
+of the line, so a reason placed after the id is swallowed into it and the suppression
+silently does nothing.
+
+A dismissal made here holds everywhere — the same comments are understood by the
+xgrep command line and by CI. Suppressing several rules on one line extends the same
+comment (`nogrep: rule-one, rule-two`). JSON has no comments, so findings there
+cannot be suppressed inline.
+
+## Keep noise out of your results
+
+Generated code, vendored dependencies and test fixtures produce findings nobody
+intends to fix. Exclude them under **Settings | Tools | Mondoo | Scan scope**, one
+glob per line:
+
+```
+src/generated/**
+vendor
+*.min.js
+```
+
+- `*` matches within one path segment, `**` spans segments, `?` matches one character.
+- A pattern containing `/` matches the project-relative path.
+- A pattern without `/` matches any single segment at any depth, so `vendor` excludes
+  every vendor directory.
+
+**Include only** does the opposite: when non-empty, only matching files are scanned.
+An exclude still wins. Files ignored by `.gitignore` are never scanned.
+
+On large repositories, **Scan parallelism** caps how many files on-demand scans
+process at once. `0` lets the scanner size itself to your CPU.
+
+## Search your code by structure
+
+Text search cannot tell `eval(userInput)` from the word "eval" in a comment.
+**Search Code...** matches on structure instead. `$X` binds any expression and `...`
+matches anything:
+
+```
+eval($X)
+```
+
+Results open in the Find tool window, with grouping, preview and occurrence
+navigation. **Export Search as Rule** turns the pattern into a reusable
+xgrep rule, so a pattern worth finding once becomes a finding the scanner flags from
+then on — point the custom rules path at it to enforce it.
+
+## Bring xgrep to your AI agent
+
+- **Install AI Skills...** installs xgrep's bundled skills (triage, code inspection,
+  rule authoring, secure coding) into `~/.claude/plugins` or the current project.
+- **Configure MCP Server...** registers xgrep as an MCP server so AI agents get its
+  code graph, symbol inspection and scanning on demand. JetBrains has no API for a
+  plugin to register one directly, so this writes the config file where the location
+  is known and copies the JSON for you where it is not.
+
+## Supported languages
+
+Python, Go, Java, JavaScript, TypeScript (including React), Ruby, Rust, C, C++, C#,
+Kotlin, Scala, PHP, Lua, shell scripts, HTML, JSON and YAML.
+
+## Installation and troubleshooting
+
+The plugin finds the scanner in this order: the **xgrep path** setting, its own
+managed install, `xgrep` on your `PATH`, then common locations including Go's
+`~/go/bin` for developers who build it themselves.
+
+When nothing is found it downloads a release from Mondoo, verifying the published
+SHA-256 before unpacking. Nothing is downloaded before you ask: either leave
+automatic download enabled, or run **Set Up Scanner**. Turn the scanner off entirely
+with **Enable the xgrep security scanner**.
+
+If the status bar shows **xgrep: set up**, the scanner could not be located. Click it,
+or run **Set Up Scanner**. **Show xgrep Path** reports which binary is in use.
+
+## Scope and limitations
+
+Editor scanning analyses one file at a time, which is what keeps it fast enough to run
+on every keystroke. Findings that require following data across files are the job of
+`xgrep ci` in your pipeline. The editor and CI share the same rules and the same
+suppression comments, so what you fix or dismiss here carries over.

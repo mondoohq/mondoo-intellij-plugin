@@ -33,6 +33,13 @@ Early development. Roadmap:
    scans against local, SSH, Docker, Kubernetes and cloud targets.
 3. **Bill of materials** — SBOM and AIBOM generation.
 
+## Documentation
+
+- [Code security](docs/code-security.md) — findings, scans, suppressions, structural
+  search, and settings.
+- [Architecture decisions](docs/adr/) — start with
+  [ADR-0001](docs/adr/0001-lsp-client-and-ide-compatibility.md).
+
 ## Development
 
 See [DEVELOPMENT.md](DEVELOPMENT.md).
