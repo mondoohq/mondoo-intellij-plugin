@@ -29,8 +29,11 @@
 ./gradlew verifyPlugin     # Plugin Verifier across the IDE matrix
 ```
 
-To test in Android Studio, build the ZIP and install it via
-**Settings | Plugins | ⚙ | Install Plugin from Disk…**.
+`runGoLand` and `runAndroidStudio` use the local installs in `/Applications`;
+`runIde` and `runPyCharm` download the IDE on first use.
+
+For installing a build into an IDE you actually work in, and for what to check when it
+does not appear, see [docs/install-dev-build.md](docs/install-dev-build.md).
 
 ## Testing policy
 

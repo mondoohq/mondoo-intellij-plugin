@@ -51,7 +51,14 @@ class MondooState : BaseState() {
     /** mondoo.xgrepRulesPath — empty means the embedded security+secrets corpus. */
     var xgrepRulesPath: String? by string("")
 
-    /** mondoo.xgrepScanJobs — 0 lets the server size itself to the CPU. */
+    /**
+     * mondoo.xgrepScanJobs — how many files on-demand scans process in parallel.
+     *
+     * 0 uses the scanner's own default, which is `min(NumCPU / 2, 4)`: never more
+     * than four workers and never more than half the machine's cores. That is
+     * already an editor-appropriate cap, so raising this is the unusual choice, not
+     * lowering it.
+     */
     var xgrepScanJobs: Int by property(0)
 
     /** mondoo.xgrepExcludePatterns — globs never scanned. */

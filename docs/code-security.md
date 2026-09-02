@@ -86,8 +86,12 @@ vendor
 **Include only** does the opposite: when non-empty, only matching files are scanned.
 An exclude still wins. Files ignored by `.gitignore` are never scanned.
 
-On large repositories, **Scan parallelism** caps how many files on-demand scans
-process at once. `0` lets the scanner size itself to your CPU.
+On large repositories, **Scan parallelism** caps how many files on-demand scans process
+at once. `0` uses the scanner's own default: at most four workers, and never more than
+half your cores. That is deliberately conservative for an editor, so lowering it only
+matters on a shared or heavily loaded machine.
+
+Editor scanning is per file and is not affected by this setting.
 
 ## Search your code by structure
 

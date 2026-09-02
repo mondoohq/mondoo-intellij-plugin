@@ -129,7 +129,11 @@ class MondooConfigurable : BoundSearchableConfigurable(
                 }.rowComment("Passed as <code>-f</code>. Empty uses the embedded security and secrets rules.")
                 row("Scan parallelism:") {
                     intTextField(range = 0..32).bindIntText(state::xgrepScanJobs)
-                }.rowComment("0 lets the scanner size itself to your CPU.")
+                }.rowComment(
+                    "How many files on-demand scans process at once. 0 uses the " +
+                        "scanner's default of at most four workers, and never more than " +
+                        "half your cores. Lower it to stay quieter on a shared machine.",
+                )
             }
             group("Scan scope") {
                 row("Exclude:") {

@@ -61,14 +61,16 @@ against both. The evidence, including two mistakes made on the way to it, is in
 
 ## Installation
 
-Not yet on the JetBrains Marketplace. To install a local build:
+Not yet on the JetBrains Marketplace. To run a development build in GoLand, IntelliJ
+IDEA, PyCharm, Android Studio or any other JetBrains IDE, see
+**[Installing a development build](docs/install-dev-build.md)**.
+
+The short version:
 
 ```bash
-./gradlew buildPlugin
+./gradlew runGoLand    # sandboxed IDE with the plugin loaded, nothing installed
+./gradlew buildPlugin  # -> build/distributions/*.zip, for Install Plugin from Disk
 ```
-
-then **Settings | Plugins | ⚙ | Install Plugin from Disk…** and pick
-`build/distributions/*.zip`.
 
 ## Getting started
 
@@ -81,6 +83,8 @@ in Find Action (⇧⌘A / Ctrl+Shift+A).
 
 ## Documentation
 
+- **[Installing a development build](docs/install-dev-build.md)** — running an
+  unreleased build in GoLand or any other JetBrains IDE.
 - **[Code security](docs/code-security.md)** — findings, scans, suppressions, scan
   scope, structural search, AI agents, troubleshooting.
 - **[Architecture decisions](docs/adr/)** — why the plugin is built the way it is.
