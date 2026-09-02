@@ -58,9 +58,15 @@ applies to Marketplace distribution.
 
 ### Requirements
 
-The IDE must be **2026.1.4 or newer** (build `261.26222+`). An older IDE refuses the
-plugin with an incompatibility message rather than installing a broken one — that floor
-is where the platform LSP client API became available outside the commercial IDEs.
+The IDE must be **2026.1.4 or newer** — build `261.26222` or later. Check with
+**Help** → **About**: the part before the first dot in the build number must be 261 or
+higher.
+
+An older IDE refuses the plugin with an incompatibility message rather than installing a
+broken one. The floor is where the platform LSP client API became available outside the
+commercial IDEs, and there is no working fallback below it.
+
+For Android Studio that means **Quail 4** (`AI-261.26222.65`) or newer.
 
 ### Updating to a newer build
 

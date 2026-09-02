@@ -7,6 +7,15 @@ Powered by [xgrep](https://mondoo.com/xgrep), Mondoo's software development secu
 scanner. There is no account, no login, and no configuration, and your code never
 leaves your machine.
 
+## Requirements
+
+An IntelliJ-based IDE at **2026.1.4 or newer** (build `261.26222+`). Check with
+**Help** → **About**: the part of the build number before the first dot must be 261 or
+higher.
+
+Nothing else. The scanner is found on your machine or downloaded on first use, with its
+published checksum verified.
+
 ## See issues while you write
 
 Open a file in a supported language and it is analysed immediately; findings update

@@ -35,29 +35,54 @@ its bundled skills for agents that support them.
 
 Supported languages: Python, Go, Java, JavaScript, TypeScript (including React), Ruby,
 Rust, C, C++, C#, Kotlin, Scala, PHP, Lua, shell scripts, HTML, JSON and YAML.
+
+**Requires an IntelliJ-based IDE version 2026.1.4 or newer** (build `261.26222` or
+later). Nothing else — the scanner is found or downloaded automatically.
 <!-- Plugin description end -->
 
 ## Requirements
 
-Just the IDE. The plugin finds an existing `xgrep` on your machine, and otherwise
-downloads one — verifying the published SHA-256 before unpacking. Nothing is downloaded
-before you ask: leave automatic download on, or run **Set Up Scanner**.
+### IDE version
 
-## Compatibility
+**2026.1.4 or newer — build `261.26222` or later.** This is a hard minimum. An older IDE
+will refuse to install the plugin rather than installing a broken one, and the
+Marketplace will not offer it.
 
-Requires **2026.1.4 or later** (build `261.26222+`) of any IntelliJ-based IDE:
-IntelliJ IDEA, GoLand, PyCharm, WebStorm, PhpStorm, RubyMine, CLion, Rider, RustRover,
-DataGrip and Android Studio.
+To check yours: **Help** → **About**. The build number is the `IU-`/`GO-`/`AI-` prefixed
+line, and the part before the first dot must be **261 or higher**.
 
-That floor is where the platform LSP client API became available outside the commercial
-IDEs. The plugin declares no product-specific modules, so it installs everywhere, and
-LSP-backed scanning sits behind an optional dependency so it still loads in any product
-that lacks the module.
+| IDE | Minimum |
+| --- | --- |
+| IntelliJ IDEA, GoLand, PyCharm, WebStorm, PhpStorm, RubyMine, CLion, Rider, RustRover, DataGrip | 2026.1.4 |
+| Android Studio | Quail 4 (`AI-261.26222.65`) or newer |
+
+The floor is not arbitrary: 2026.1.4 is the first build where the platform LSP client
+API is available outside the commercial IDEs, and that API is how the plugin talks to
+the scanner. Below it there is no working implementation to fall back to.
+
+The plugin declares no product-specific modules, so it installs in every
+IntelliJ-based IDE, and LSP-backed scanning sits behind an optional dependency so it
+still loads in a product that lacks the module.
 
 Live scanning is verified end to end in **Android Studio Quail 4** (`AI-261.26222.65`)
 and **GoLand 2026.2** (`GO-262.9437.286`), and the Plugin Verifier reports *Compatible*
 against both. The evidence, including two mistakes made on the way to it, is in
 [ADR-0001](docs/adr/0001-lsp-client-and-ide-compatibility.md).
+
+### Operating system
+
+macOS, Linux and Windows, on x86-64 or ARM64.
+
+### The scanner
+
+Nothing to install by hand. The plugin uses an existing `xgrep` if it finds one — the
+configured path, your `PATH`, or common locations including `~/go/bin` — and otherwise
+downloads a release, verifying the published SHA-256 before unpacking.
+
+Nothing is downloaded before you ask: leave automatic download on, or run **Set Up
+Scanner**.
+
+You do **not** need Node, Python, or a JDK. The IDE's own runtime is used.
 
 ## Installation
 
