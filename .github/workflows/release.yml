@@ -1,8 +1,21 @@
 name: Release
 
+# Publishing is driven by a GitHub Release. Creating one as a pre-release routes the
+# upload to a non-default Marketplace channel, so a beta reaches only people who opted
+# into it.
 on:
   release:
     types: [prereleased, released]
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Build, verify and sign, but do not publish"
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -13,22 +26,72 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || github.ref }}
+          fetch-depth: 0
+
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
 
+      # Nothing below is worth doing if the tag and the version disagree: publishing
+      # 0.1.0 from a tag that says v0.2.0 is silent and very hard to undo.
+      - name: Check the tag matches pluginVersion
+        if: github.event_name == 'release'
+        run: |
+          version=$(grep '^pluginVersion' gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          tag="${{ github.event.release.tag_name }}"
+          echo "pluginVersion=$version  tag=$tag"
+          if [ "v$version" != "$tag" ] && [ "$version" != "$tag" ]; then
+            echo "::error::Tag $tag does not match pluginVersion $version"
+            exit 1
+          fi
+
+      - name: Check the changelog has an entry for this version
+        if: github.event_name == 'release'
+        run: |
+          version=$(grep '^pluginVersion' gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          if ! grep -qE "^## \[($version|Unreleased)\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+
+      # A release must not be able to ship something the normal pipeline would reject.
+      - name: Test
+        run: ./gradlew check --stacktrace
+
+      - name: Verify plugin
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.pluginVerifier
+          key: plugin-verifier-${{ hashFiles('build.gradle.kts', 'gradle.properties') }}
+      - run: ./gradlew verifyPlugin --stacktrace
+
+      - name: Build and sign
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew buildPlugin signPlugin verifyPluginSignature --stacktrace
+
       - name: Publish
+        if: github.event_name == 'release' || inputs.dryRun == false
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew publishPlugin
+        run: ./gradlew publishPlugin --stacktrace
 
       - name: Attach the signed artifact to the release
+        if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" ./build/distributions/*.zip
+        run: gh release upload "${{ github.event.release.tag_name }}" ./build/distributions/*.zip --clobber
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: plugin-distribution
+          path: build/distributions/*.zip

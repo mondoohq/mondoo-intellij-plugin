@@ -4,6 +4,7 @@ intelliJPlatform = "2.18.1"
 junit5 = "5.11.4"
 junitPlatform = "1.11.4"
 opentest4j = "1.3.0"
+changelog = "2.4.0"
 
 [libraries]
 junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit5" }
@@ -13,3 +14,4 @@ opentest4j = { group = "org.opentest4j", name = "opentest4j", version.ref = "ope
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 intelliJPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "intelliJPlatform" }
+changelog = { id = "org.jetbrains.changelog", version.ref = "changelog" }

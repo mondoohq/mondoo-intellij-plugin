@@ -83,6 +83,7 @@ in Find Action (⇧⌘A / Ctrl+Shift+A).
   scope, structural search, AI agents, troubleshooting.
 - **[Architecture decisions](docs/adr/)** — why the plugin is built the way it is.
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** — building, testing and the cross-IDE rules.
+- **[RELEASING.md](RELEASING.md)** — how a release is cut and published.
 
 ## Status
 
@@ -94,6 +95,10 @@ Phases 2 and 3 are not started:
 | 1 | **Code security** — findings, scans, suppressions, structural search, AI agents | Complete |
 | 2 | **Infrastructure security** — MQL language support, policy authoring, scans against local, SSH, Docker, Kubernetes and cloud targets | Planned |
 | 3 | **Bill of materials** — SBOM and AIBOM generation | Planned |
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE).
 
 ## Getting help
 

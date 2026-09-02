@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.intelliJPlatform)
+    alias(libs.plugins.changelog)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -50,11 +51,37 @@ dependencies {
     testImplementation(libs.opentest4j)
 }
 
+changelog {
+    repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
+    groups.set(listOf("Added", "Changed", "Fixed", "Removed"))
+}
+
+/**
+ * Rendered eagerly at configuration time. Doing it inside a provider would capture
+ * the Project through the changelog extension, which the configuration cache cannot
+ * serialize.
+ */
+val renderedChangeNotes: String = run {
+    val version = providers.gradleProperty("pluginVersion").get()
+    with(changelog) {
+        renderItem(
+            (getOrNull(version) ?: getUnreleased())
+                .withHeader(false)
+                .withEmptySections(false),
+            org.jetbrains.changelog.Changelog.OutputType.HTML,
+        )
+    }
+}
+
 intellijPlatform {
     pluginConfiguration {
         id = "com.mondoo.security"
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
+
+        // Marketplace change notes come from CHANGELOG.md, so what a user reads on
+        // the Marketplace and what is in the repository cannot drift apart.
+        changeNotes = renderedChangeNotes
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
@@ -77,6 +104,13 @@ intellijPlatform {
 
     publishing {
         token = providers.environmentVariable("PUBLISH_TOKEN")
+
+        // A pre-release suffix routes the upload to a non-default channel, so
+        // 1.2.0-beta.1 reaches only people who opted into the beta repository while
+        // 1.2.0 goes to everyone.
+        channels = providers.gradleProperty("pluginVersion").map { version ->
+            listOf(version.substringAfter('-', "").substringBefore('.').ifEmpty { "default" })
+        }
     }
 
     pluginVerification {
