@@ -14,6 +14,15 @@ TASK="${1:-runGoLand}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# A second IDE cannot start against a sandbox another instance is holding: it exits
+# without writing idea.log, and the wait below then times out reporting that the
+# language server never started — which is true but badly misleading.
+if pgrep -f "plugins_${TASK}" >/dev/null 2>&1; then
+  echo "FAIL: a sandbox IDE for $TASK is already running."
+  echo "      Close it, or: pkill -f 'plugins_${TASK}'"
+  exit 1
+fi
+
 PROBE="$(mktemp -d)/mondoo-smoke"
 mkdir -p "$PROBE"
 cat > "$PROBE/go.mod" <<'EOF'
@@ -49,7 +58,12 @@ DEADLINE=$((SECONDS + 300))
 until [ -f "$LOG" ] && grep -q "LSP server initialized" "$LOG" 2>/dev/null; do
   if [ $SECONDS -ge $DEADLINE ]; then
     echo "FAIL: language server did not initialize within 300s"
-    [ -f "$LOG" ] && tail -20 "$LOG"
+    if [ ! -f "$LOG" ]; then
+      echo "      No idea.log was written — the IDE did not start."
+      echo "      Check /tmp/mondoo-smoke.out for the Gradle output."
+    else
+      tail -20 "$LOG"
+    fi
     exit 1
   fi
   sleep 5
