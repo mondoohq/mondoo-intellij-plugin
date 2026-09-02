@@ -56,14 +56,27 @@ class XgrepFindingsStore(private val project: Project) {
 
     private fun publishChanged() {
         if (project.isDisposed) return
-        project.messageBus.syncPublisher(TOPIC).findingsChanged(findingCount())
+        val total = findingCount()
+        // Logged on change only. Doubles as the answer to "how many findings does the
+        // plugin actually think there are", which is the first question in any
+        // "nothing is showing up" report.
+        if (total != lastLoggedTotal) {
+            lastLoggedTotal = total
+            LOG.info("Mondoo: findings now $total across ${byUri.size} file(s)")
+        }
+        project.messageBus.syncPublisher(TOPIC).findingsChanged(total)
     }
+
+    @Volatile
+    private var lastLoggedTotal: Int = -1
 
     fun interface Listener {
         fun findingsChanged(total: Int)
     }
 
     companion object {
+        private val LOG = com.intellij.openapi.diagnostic.Logger.getInstance(XgrepFindingsStore::class.java)
+
         @JvmStatic
         fun getInstance(project: Project): XgrepFindingsStore = project.service()
 

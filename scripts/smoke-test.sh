@@ -71,6 +71,18 @@ check "plugin loads"                 "Loaded custom plugins: Mondoo"
 check "optional LSP module loads"    "Mondoo: LSP module loaded"
 check "server starts for a file"     "Mondoo: starting xgrep lsp"
 check "server completes handshake"   "LSP server initialized"
+check "findings reach the store"     "Mondoo: findings now"
+
+# The store feeds both the tool window and the status-bar count, so a non-zero total
+# is what makes those meaningful. Zero would mean the scanner ran and found nothing,
+# which for a deliberately vulnerable file means the wiring is broken.
+found=$(grep -oE "Mondoo: findings now [0-9]+" "$LOG" | tail -1 | grep -oE "[0-9]+$" || echo 0)
+if [ "${found:-0}" -gt 0 ]; then
+  echo "  ok   store holds $found finding(s) for a vulnerable file"
+else
+  echo "  FAIL store holds no findings for a deliberately vulnerable file"
+  fail=1
+fi
 
 errors=$(grep -c " ERROR " "$LOG" || true)
 if [ "$errors" -eq 0 ]; then
