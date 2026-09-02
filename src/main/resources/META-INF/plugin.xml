@@ -45,6 +45,7 @@
     <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanCoordinator"/>
     <projectService serviceImplementation="com.mondoo.intellij.search.XgrepSearchService"/>
     <projectService serviceImplementation="com.mondoo.intellij.bom.BomService"/>
+    <projectService serviceImplementation="com.mondoo.intellij.deps.DependencyReachabilityService"/>
 
     <toolWindow id="Mondoo"
                 anchor="bottom"
@@ -84,6 +85,10 @@
               text="Clear Findings"
               description="Empty the findings view"/>
       <separator/>
+      <action id="Mondoo.Deps.Analyze"
+              class="com.mondoo.intellij.actions.AnalyzeDependenciesAction"
+              text="Analyze Dependencies"
+              description="Show which dependency packages your code actually imports"/>
       <action id="Mondoo.Bom.Generate"
               class="com.mondoo.intellij.actions.GenerateBomAction"
               text="Generate Bill of Materials..."

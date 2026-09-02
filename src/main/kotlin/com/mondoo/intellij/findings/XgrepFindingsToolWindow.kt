@@ -54,11 +54,19 @@ private const val GROUP_MODE_KEY = "mondoo.xgrep.findings.groupMode"
 internal class XgrepFindingsToolWindowFactory : ToolWindowFactory, DumbAware {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = XgrepFindingsPanel(project)
-        Disposer.register(toolWindow.disposable, panel)
-        val content = ContentFactory.getInstance().createContent(panel, "Code Security", false)
-        content.isCloseable = false
-        toolWindow.contentManager.addContent(content)
+        val factory = ContentFactory.getInstance()
+
+        val findings = XgrepFindingsPanel(project)
+        Disposer.register(toolWindow.disposable, findings)
+        toolWindow.contentManager.addContent(
+            factory.createContent(findings, "Code Security", false).also { it.isCloseable = false },
+        )
+
+        val dependencies = com.mondoo.intellij.deps.DependenciesPanel(project)
+        Disposer.register(toolWindow.disposable, dependencies)
+        toolWindow.contentManager.addContent(
+            factory.createContent(dependencies, "Dependencies", false).also { it.isCloseable = false },
+        )
     }
 }
 

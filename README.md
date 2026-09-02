@@ -30,6 +30,10 @@ line and by your pipeline, so a dismissal made here is not editor-local.
 and ignores the word in a comment. Results open in the Find tool window. Export a
 pattern as a reusable rule and point the scanner at it.
 
+**Dependency reachability.** See which dependencies your code actually imports,
+grouped by whether they are reachable, unused or transitive — so triage starts with
+the ones that matter. Fully offline, no account.
+
 **Bills of materials.** Inventory dependencies (SBOM), cryptography (CBOM) or AI
 components (AIBOM) as CycloneDX or SPDX, ready for compliance or a release artifact.
 
@@ -146,6 +150,8 @@ in Find Action (⇧⌘A / Ctrl+Shift+A).
 
 - **[Installing a development build](docs/install-dev-build.md)** — running an
   unreleased build in GoLand or any other JetBrains IDE.
+- **[Dependency reachability](docs/dependencies.md)** — which dependencies your code
+  actually uses.
 - **[Bill of materials](docs/bill-of-materials.md)** — SBOM, CBOM and AIBOM.
 - **[Code security](docs/code-security.md)** — findings, scans, suppressions, scan
   scope, structural search, AI agents, troubleshooting.
