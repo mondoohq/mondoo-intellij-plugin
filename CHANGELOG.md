@@ -23,3 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An in-editor setup banner when the scanner is unavailable on a file it would scan.
 - **Reload Rules**, to pick up edits to a rule file.
 - MCP server registration and AI-skills installation, for agents.
+- **Clear Findings**, to empty the findings view after changing rules or scan scope.
+
+### Changed
+
+- Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
+  the wait rather than the scan, and says so.

@@ -59,7 +59,9 @@ class XgrepScanCoordinator(private val project: Project) {
             return
         }
 
-        object : Task.Backgroundable(project, title, false) {
+        // Cancellable: a workspace scan of a large repository runs for minutes, and an
+        // indeterminate bar with no way out is its own bug.
+        object : Task.Backgroundable(project, title, true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
                 val done = CountDownLatch(1)
@@ -74,10 +76,27 @@ class XgrepScanCoordinator(private val project: Project) {
                     if (response == null) {
                         log.warn("$command did not return within ${REQUEST_TIMEOUT_MS}ms")
                     }
-                    // The scan itself completes asynchronously; wait for the server's
-                    // window/showMessage, bounded so a lost message cannot hang forever.
-                    if (!done.await(SCAN_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
-                        notify("The xgrep scan did not report a result in time", NotificationType.WARNING)
+                    // The scan completes asynchronously, so wait for the server's
+                    // window/showMessage — in short slices, so cancellation is noticed
+                    // promptly, and bounded so a lost message cannot hang forever.
+                    val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(SCAN_TIMEOUT_MINUTES)
+                    while (true) {
+                        if (indicator.isCanceled) {
+                            // The server exposes no cancel command, so the scan itself
+                            // keeps running; we stop waiting on it. Say so rather than
+                            // implying it was stopped.
+                            notify(
+                                "Stopped waiting for the xgrep scan. It continues in the " +
+                                    "background and its findings will still appear.",
+                                NotificationType.INFORMATION,
+                            )
+                            return
+                        }
+                        if (done.await(CANCELLATION_POLL_MS, TimeUnit.MILLISECONDS)) return
+                        if (System.nanoTime() >= deadline) {
+                            notify("The xgrep scan did not report a result in time", NotificationType.WARNING)
+                            return
+                        }
                     }
                 } finally {
                     XgrepScanNotifier.cancelWait()
@@ -104,6 +123,9 @@ class XgrepScanCoordinator(private val project: Project) {
          */
         private const val REQUEST_TIMEOUT_MS = 120_000
         private const val SCAN_TIMEOUT_MINUTES = 30L
+
+        /** How often the wait wakes to notice cancellation. */
+        private const val CANCELLATION_POLL_MS = 250L
 
         @JvmStatic
         fun getInstance(project: Project): XgrepScanCoordinator = project.service()

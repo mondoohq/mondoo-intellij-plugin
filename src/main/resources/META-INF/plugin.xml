@@ -78,6 +78,10 @@
               class="com.mondoo.intellij.actions.ScanChangesSinceAction"
               text="Scan Changes Since..."
               description="Check only what changed since a git ref you pick"/>
+      <action id="Mondoo.Xgrep.ClearFindings"
+              class="com.mondoo.intellij.actions.ClearFindingsAction"
+              text="Clear Findings"
+              description="Empty the findings view"/>
       <separator/>
       <action id="Mondoo.Xgrep.SearchCode"
               class="com.mondoo.intellij.actions.SearchCodeAction"

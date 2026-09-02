@@ -98,6 +98,11 @@ Phases 2 and 3 are not started:
 | 2 | **Infrastructure security** — MQL language support, policy authoring, scans against local, SSH, Docker, Kubernetes and cloud targets | Planned |
 | 3 | **Bill of materials** — SBOM and AIBOM generation | Planned |
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports go to
+[SECURITY.md](SECURITY.md), not to the issue tracker.
+
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
