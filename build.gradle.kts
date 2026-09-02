@@ -52,7 +52,7 @@ dependencies {
 
 intellijPlatform {
     pluginConfiguration {
-        id = "com.mondoo.intellij"
+        id = "com.mondoo.security"
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
 
@@ -85,22 +85,42 @@ intellijPlatform {
             VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
         )
         ides {
-            // IntelliJ IDEA moved to a unified distribution in 2025.3, so there is
-            // no separate Community product at 261 — IntellijIdeaCommunity has no
-            // 2026.1.4 download. The unified IDEA below covers it.
-            create(IntelliJPlatformType.IntellijIdea, "2026.1.4")
-            create(IntelliJPlatformType.GoLand, "2026.1.4")
-            create(IntelliJPlatformType.PyCharm, "2026.1.4")
-            create(IntelliJPlatformType.WebStorm, "2026.1.4")
-            create(IntelliJPlatformType.PhpStorm, "2026.1.4")
-            create(IntelliJPlatformType.RubyMine, "2026.1.4")
-            create(IntelliJPlatformType.CLion, "2026.1.4")
-            create(IntelliJPlatformType.Rider, "2026.1.4")
-            create(IntelliJPlatformType.RustRover, "2026.1.4")
+            // -PverifyLocal=true verifies only against IDEs already on this machine.
+            // The full matrix downloads ~1 GB per IDE, which is a CI job, not
+            // something to run on a laptop before every commit.
+            if (providers.gradleProperty("verifyLocal").isPresent) {
+                // Only IDEs at or above the declared floor. An older install
+                // (e.g. a 2025.2 left on disk) has no LSP module and would report a
+                // compatibility problem for an IDE this plugin does not claim to
+                // support — a false failure that hides real ones.
+                val floor = providers.gradleProperty("pluginSinceBuild").get().substringBefore('.').toInt()
+                listOf(
+                    "/Applications/Android Studio.app",
+                    "/Applications/GoLand.app",
+                    "/Applications/IntelliJ IDEA.app",
+                    "/Applications/IntelliJ IDEA CE.app",
+                ).map(::file).filter { ide ->
+                    val build = File(ide, "Contents/Resources/build.txt")
+                        .takeIf { it.isFile }?.readText()?.trim().orEmpty()
+                    val major = build.substringAfter('-', build).substringBefore('.').toIntOrNull()
+                    ide.exists() && major != null && major >= floor
+                }.forEach { local(it) }
+            } else {
+                // IntelliJ IDEA moved to a unified distribution in 2025.3, so there
+                // is no separate Community product at 261 to verify against.
+                create(IntelliJPlatformType.IntellijIdea, "2026.1.4")
+                create(IntelliJPlatformType.GoLand, "2026.1.4")
+                create(IntelliJPlatformType.PyCharm, "2026.1.4")
+                create(IntelliJPlatformType.WebStorm, "2026.1.4")
+                create(IntelliJPlatformType.PhpStorm, "2026.1.4")
+                create(IntelliJPlatformType.RubyMine, "2026.1.4")
+                create(IntelliJPlatformType.CLion, "2026.1.4")
+                create(IntelliJPlatformType.RustRover, "2026.1.4")
 
-            // Android Studio is not published as a resolvable artifact, so it is
-            // verified from the local install. Skipped automatically when absent.
-            file("/Applications/Android Studio.app").takeIf { it.exists() }?.let { local(it) }
+                // Android Studio is not a resolvable artifact, so it is verified
+                // from a local install when one is present.
+                file("/Applications/Android Studio.app").takeIf { it.exists() }?.let { local(it) }
+            }
         }
     }
 }

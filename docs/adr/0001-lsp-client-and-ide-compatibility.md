@@ -351,8 +351,31 @@ Phase 1 acceptance, run against the real scanner and a real IDE rather than mock
 | 7 | Workspace and changed-files scans | `xgrep: workspace scan found 3 finding(s) in 1 file(s)` and `xgrep: changed-files scan found 4 finding(s) in 2 file(s)`; both match the completion regex, both publish diagnostics. |
 | 8 | Structural search round trip | Exported rule fed back via `-f` fires as `search-rule`. |
 | 9 | Binary bootstrap | Covered at milestone 1: with PATH and `~/go/bin` hidden, the plugin downloaded, hash-verified and installed 0.57.0, then restarted the server against it. |
-| 10 | `verifyPlugin` across the IDE matrix | See below. |
+| 10 | `verifyPlugin` | **Compatible** against Android Studio Quail 4 (`AI-261.26222.65`) and GoLand 2026.2 (`GO-262.9437.286`). |
 
 The suppression check is the one worth keeping in any future regression suite: it is
 the only one that proves the plugin and the CLI agree on a format, and a silent
 disagreement there means dismissals stop working with no error anywhere.
+
+### What the verifier caught
+
+Two real problems, both of which would have surfaced at publish time or later:
+
+1. **The plugin ID may not contain the word "intellij".** `com.mondoo.intellij` was
+   rejected outright by Marketplace rules. Renamed to **`com.mondoo.security`** before
+   anything was published — changing it after release would orphan every install. The
+   Kotlin package stays `com.mondoo.intellij`, which is unaffected.
+2. **`IntellijIdeaCommunity` has no 2026.1.4 download.** IDEA moved to a unified
+   distribution in 2025.3, so there is no separate Community product at 261. This also
+   closes this ADR's open question about whether Community exposes the LSP module:
+   there is no Community build at that version to expose it.
+
+The local matrix filters by build number against `pluginSinceBuild`. An older IDE left
+on disk (a 2025.2 install, say) has no LSP module and reports a compatibility problem
+for a version the plugin does not claim to support — a false failure that would hide
+real ones.
+
+Remaining verifier notes are advisory, not problems: 31 deprecated-API usages, dominated
+by the deliberate `LspServerSupportProvider` choice above, plus `startServersIfNeeded`.
+Those are the cost of supporting builds that lack the renamed API, and are revisited
+when the floor rises.
