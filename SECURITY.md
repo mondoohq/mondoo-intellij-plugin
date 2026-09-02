@@ -1,27 +1,30 @@
-# Security policy
+# Security Policies
 
-## Reporting a vulnerability
+Mondoo's organization-wide policy applies to this repository. See
+[Mondoo Security Policies](https://github.com/mondoohq/.github/blob/main/SECURITY.md)
+for the full guidelines on responsible disclosure.
 
-Please do not open a public issue for a security vulnerability.
+## Reporting a Vulnerability
 
-Email **security@mondoo.com**, or use GitHub's private vulnerability reporting on this
-repository (**Security** → **Report a vulnerability**). Include the affected version,
-what an attacker could achieve, and steps to reproduce if you have them.
+Submit individual reports to **security@mondoo.com**, including a full description of
+the finding, how to reproduce the behavior and any supporting information. Please do
+not open a public issue for a security vulnerability. Applicable submissions will be
+directed to our Bug Bounty Program.
 
-We aim to acknowledge a report within three business days.
+## Scope for this repository
 
-## Scope
+This repository is the Mondoo plugin for JetBrains IDEs. It is a thin client:
+scanning, rule loading and fix computation happen in the
+[xgrep](https://mondoo.com/xgrep) binary, so findings in the scanner itself belong to
+that project.
 
-This repository is the Mondoo plugin for JetBrains IDEs. It is a thin client: scanning,
-rule loading and fix computation happen in the `xgrep` binary, so findings about the
-scanner itself belong in the [xgrep](https://mondoo.com/xgrep) project.
+Findings that are in scope here include, but are not limited to:
 
-Vulnerabilities that are in scope here include, but are not limited to:
-
-- The scanner-download path — the release manifest is fetched over HTTPS and the
-  published SHA-256 is verified before anything is unpacked. Report anything that
-  bypasses that check or allows an unverified binary to run.
-- Archive extraction, which refuses entries that escape the destination directory.
-- Anything that causes the plugin to execute code or a binary the user did not choose.
-- Leakage of credentials or file contents beyond the local machine. The plugin makes no
-  network calls other than fetching the scanner release.
+- **The scanner download path.** The release manifest is fetched over HTTPS and the
+  published SHA-256 is verified before anything is unpacked. Anything that bypasses
+  that verification, or causes an unverified binary to be executed, is in scope.
+- **Archive extraction**, which refuses entries that would escape the destination
+  directory.
+- Anything causing the plugin to execute code or a binary the user did not choose.
+- Leakage of credentials or file contents off the local machine. The plugin makes no
+  network requests other than fetching the scanner release.
