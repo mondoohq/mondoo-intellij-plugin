@@ -30,6 +30,9 @@ line and by your pipeline, so a dismissal made here is not editor-local.
 and ignores the word in a comment. Results open in the Find tool window. Export a
 pattern as a reusable rule and point the scanner at it.
 
+**Bills of materials.** Inventory dependencies (SBOM), cryptography (CBOM) or AI
+components (AIBOM) as CycloneDX or SPDX, ready for compliance or a release artifact.
+
 **Your AI agent, with xgrep's analysis.** Register xgrep as an MCP server, and install
 [Mondoo's agent skills](https://github.com/mondoohq/skills) — triage, code inspection,
 rule authoring, remediation and secure coding.
@@ -143,6 +146,7 @@ in Find Action (⇧⌘A / Ctrl+Shift+A).
 
 - **[Installing a development build](docs/install-dev-build.md)** — running an
   unreleased build in GoLand or any other JetBrains IDE.
+- **[Bill of materials](docs/bill-of-materials.md)** — SBOM, CBOM and AIBOM.
 - **[Code security](docs/code-security.md)** — findings, scans, suppressions, scan
   scope, structural search, AI agents, troubleshooting.
 - **[Architecture decisions](docs/adr/)** — why the plugin is built the way it is.
@@ -157,8 +161,8 @@ Phases 2 and 3 are not started:
 | Phase | Scope | State |
 | --- | --- | --- |
 | 1 | **Code security** — findings, scans, suppressions, structural search, AI agents | Complete |
-| 2 | **Infrastructure security** — MQL language support, policy authoring, scans against local, SSH, Docker, Kubernetes and cloud targets | Planned |
-| 3 | **Bill of materials** — SBOM and AIBOM generation | Planned |
+| 2 | **Infrastructure security** — MQL language support, policy authoring, scans against local, SSH, Docker, Kubernetes and cloud targets | Next |
+| 3 | **Bill of materials** — SBOM, CBOM and AIBOM generation | Complete |
 
 ## Contributing
 

@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP server registration, and installation of Mondoo's agent skills from
   https://github.com/mondoohq/skills.
 - **Clear Findings**, to empty the findings view after changing rules or scan scope.
+- **Generate Bill of Materials** — software (SBOM), cryptography (CBOM) and AI (AIBOM)
+  inventories, in CycloneDX or SPDX. The format step is skipped for cryptography and
+  AI bills, which the scanner can only express as CycloneDX JSON.
 
 ### Fixed
 

@@ -44,6 +44,7 @@
     <projectService serviceImplementation="com.mondoo.intellij.findings.XgrepFindingsStore"/>
     <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanCoordinator"/>
     <projectService serviceImplementation="com.mondoo.intellij.search.XgrepSearchService"/>
+    <projectService serviceImplementation="com.mondoo.intellij.bom.BomService"/>
 
     <toolWindow id="Mondoo"
                 anchor="bottom"
@@ -82,6 +83,11 @@
               class="com.mondoo.intellij.actions.ClearFindingsAction"
               text="Clear Findings"
               description="Empty the findings view"/>
+      <separator/>
+      <action id="Mondoo.Bom.Generate"
+              class="com.mondoo.intellij.actions.GenerateBomAction"
+              text="Generate Bill of Materials..."
+              description="Inventory dependencies, cryptography or AI components"/>
       <separator/>
       <action id="Mondoo.Xgrep.SearchCode"
               class="com.mondoo.intellij.actions.SearchCodeAction"
