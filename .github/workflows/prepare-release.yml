@@ -34,7 +34,7 @@ jobs:
       - name: Bump the version and close the changelog section
         run: |
           sed -i "s/^pluginVersion = .*/pluginVersion = ${{ inputs.version }}/" gradle.properties
-          ./gradlew patchChangelog --release-note="" --stacktrace
+          ./gradlew patchChangelog --stacktrace
 
       - name: Open the release PR
         env:
