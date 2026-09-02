@@ -18,6 +18,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.mondoo.intellij.binary.XgrepBinaryService
 import com.mondoo.intellij.mcp.McpConfig
+import com.mondoo.intellij.skills.MondooSkills
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -87,10 +88,15 @@ class ConfigureMcpAction : AnAction() {
 }
 
 /**
- * Installs xgrep's bundled Claude Code skills.
+ * Installs Mondoo's agent skills from https://github.com/mondoohq/skills.
  *
- * The skills ship inside the binary, so this is a thin wrapper around
- * `xgrep skill install --dir`, matching the VS Code extension (ADR-0004).
+ * The skills live in their own repository and are installed through Claude Code's
+ * plugin marketplace, not from the scanner binary. Registering the marketplace only
+ * makes them available; each skill is installed individually, so this offers a
+ * choice rather than pulling all seven.
+ *
+ * Falls back to copying the commands when the `claude` CLI is not on PATH, since
+ * they work verbatim inside an agent session too.
  */
 class InstallAiSkillsAction : AnAction() {
 
@@ -98,46 +104,73 @@ class InstallAiSkillsAction : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project
-        val binary = XgrepBinaryService.getInstance().resolvedBinaryOrNull()
-        if (binary == null) {
-            Messages.showWarningDialog(project, "xgrep is not installed yet.", "Install AI Skills")
+        val skills = MondooSkills.ALL
+
+        val labels = skills.map { "${it.title} — ${it.description}" }.toTypedArray()
+        val index = Messages.showChooseDialog(
+            project,
+            "Install which Mondoo agent skill?",
+            "Install AI Skills",
+            null,
+            labels,
+            labels.first(),
+        )
+        if (index < 0) return
+        val skill = skills[index]
+
+        val claude = com.intellij.execution.configurations.PathEnvironmentVariableUtil
+            .findInPath(if (com.intellij.util.system.OS.CURRENT == com.intellij.util.system.OS.Windows) "claude.exe" else "claude")
+        if (claude == null) {
+            // No CLI: hand over the commands, which work inside an agent session.
+            CopyPasteManager.copyTextToClipboard(MondooSkills.slashCommands(listOf(skill)))
+            Messages.showInfoMessage(
+                project,
+                "The Claude Code CLI was not found on your PATH.\n\n" +
+                    "The commands to install ${skill.title} have been copied to the clipboard; " +
+                    "paste them into your agent session.\n\n" +
+                    "Skills: ${MondooSkills.REPOSITORY_URL}",
+                "Install AI Skills",
+            )
             return
         }
 
-        val destinations = buildList {
-            add(Path.of(System.getProperty("user.home"), ".claude", "plugins"))
-            project?.basePath?.let { add(Path.of(it, ".claude", "plugins")) }
-        }
-        val labels = destinations.map { it.toString() }.toTypedArray()
-        val index = Messages.showChooseDialog(
-            project, "Install xgrep's AI skills where?", "Install AI Skills", null, labels, labels.first(),
-        )
-        if (index < 0) return
-        val destination = destinations[index]
-
-        object : Task.Backgroundable(project, "Installing xgrep AI skills", true) {
+        object : Task.Backgroundable(project, "Installing the ${skill.title} skill", true) {
             override fun run(indicator: ProgressIndicator) {
-                val command = GeneralCommandLine(binary.toString(), "skill", "install", "--dir", destination.toString())
-                    .withWorkDirectory(project?.basePath)
-                val output = CapturingProcessHandler(command).runProcess(SKILL_INSTALL_TIMEOUT_MS)
-                ApplicationManager.getApplication().invokeLater {
-                    val notifications = NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
-                    if (output.exitCode == 0) {
-                        val summary = output.stdout.lines().lastOrNull { it.isNotBlank() }
-                            ?: "Skills installed into $destination"
-                        notifications.createNotification(summary, NotificationType.INFORMATION).notify(project)
-                    } else {
-                        notifications.createNotification(
-                            "Could not install skills: ${output.stderr.take(300)}",
+                // Registering the marketplace is idempotent and required before the
+                // install, which otherwise fails with "Marketplace not found".
+                val steps = listOf(
+                    MondooSkills.marketplaceAddArgs(),
+                    MondooSkills.installArgs(skill),
+                )
+                for (args in steps) {
+                    val command = GeneralCommandLine(claude.absolutePath)
+                        .withParameters(args)
+                        .withWorkDirectory(project?.basePath)
+                    val output = CapturingProcessHandler(command).runProcess(SKILL_INSTALL_TIMEOUT_MS)
+                    if (output.exitCode != 0) {
+                        notify(
+                            project,
+                            "Could not install ${skill.title}: ${output.stderr.take(300)}",
                             NotificationType.ERROR,
-                        ).notify(project)
+                        )
+                        return
                     }
                 }
+                notify(
+                    project,
+                    "Installed the ${skill.title} skill from ${MondooSkills.MARKETPLACE}",
+                    NotificationType.INFORMATION,
+                )
             }
         }.queue()
     }
 
+    private fun notify(project: Project?, content: String, type: NotificationType) {
+        NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
+            .createNotification(content, type).notify(project)
+    }
+
     private companion object {
-        const val SKILL_INSTALL_TIMEOUT_MS = 60_000
+        const val SKILL_INSTALL_TIMEOUT_MS = 120_000
     }
 }

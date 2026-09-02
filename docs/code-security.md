@@ -119,8 +119,11 @@ then on — point the custom rules path at it to enforce it.
 
 ## Bring xgrep to your AI agent
 
-- **Install AI Skills...** installs xgrep's bundled skills (triage, code inspection,
-  rule authoring, secure coding) into `~/.claude/plugins` or the current project.
+- **Install AI Skills...** installs a skill from
+  [mondoohq/skills](https://github.com/mondoohq/skills) — finding triage, code
+  inspection, rule authoring, remediation, bulk fixes, secure coding, or MQL. It uses
+  the `claude` CLI when that is on your PATH, and otherwise copies the equivalent
+  `/plugin` commands for you to paste into an agent session.
 - **Configure MCP Server...** registers xgrep as an MCP server so AI agents get its
   code graph, symbol inspection and scanning on demand. JetBrains has no API for a
   plugin to register one directly, so this writes the config file where the location

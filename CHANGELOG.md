@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scan scope settings (include/exclude globs), custom rules path, and scan parallelism.
 - An in-editor setup banner when the scanner is unavailable on a file it would scan.
 - **Reload Rules**, to pick up edits to a rule file.
-- MCP server registration and AI-skills installation, for agents.
+- MCP server registration, and installation of Mondoo's agent skills from
+  https://github.com/mondoohq/skills.
 - **Clear Findings**, to empty the findings view after changing rules or scan scope.
 
 ### Changed

@@ -31,7 +31,8 @@ and ignores the word in a comment. Results open in the Find tool window. Export 
 pattern as a reusable rule and point the scanner at it.
 
 **Your AI agent, with xgrep's analysis.** Register xgrep as an MCP server, and install
-its bundled skills for agents that support them.
+[Mondoo's agent skills](https://github.com/mondoohq/skills) — triage, code inspection,
+rule authoring, remediation and secure coding.
 
 Supported languages: Python, Go, Java, JavaScript, TypeScript (including React), Ruby,
 Rust, C, C++, C#, Kotlin, Scala, PHP, Lua, shell scripts, HTML, JSON and YAML.
