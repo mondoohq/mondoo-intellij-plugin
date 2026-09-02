@@ -44,6 +44,7 @@
 
     <projectService serviceImplementation="com.mondoo.intellij.findings.XgrepFindingsStore"/>
     <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanCoordinator"/>
+    <projectService serviceImplementation="com.mondoo.intellij.search.XgrepSearchService"/>
 
     <toolWindow id="Mondoo"
                 anchor="bottom"
@@ -77,10 +78,28 @@
               text="Scan Changes Since..."
               description="Check only what changed since a git ref you pick"/>
       <separator/>
+      <action id="Mondoo.Xgrep.SearchCode"
+              class="com.mondoo.intellij.actions.SearchCodeAction"
+              text="Search Code..."
+              description="Structural code search"/>
+      <action id="Mondoo.Xgrep.ExportSearchRule"
+              class="com.mondoo.intellij.actions.ExportSearchRuleAction"
+              text="Export Search as Rule"
+              description="Turn a structural pattern into a reusable xgrep rule"/>
+      <separator/>
       <action id="Mondoo.Xgrep.Setup"
               class="com.mondoo.intellij.actions.SetupScannerAction"
               text="Set Up Scanner"
               description="Find or download the xgrep security scanner"/>
+      <action id="Mondoo.Xgrep.InstallSkills"
+              class="com.mondoo.intellij.actions.InstallAiSkillsAction"
+              text="Install AI Skills..."
+              description="Install xgrep's skills for AI coding agents"/>
+      <action id="Mondoo.Xgrep.ConfigureMcp"
+              class="com.mondoo.intellij.actions.ConfigureMcpAction"
+              text="Configure MCP Server..."
+              description="Expose xgrep to AI agents over MCP"/>
+      <separator/>
       <action id="Mondoo.Xgrep.ShowPath"
               class="com.mondoo.intellij.actions.ShowXgrepPathAction"
               text="Show xgrep Path"
