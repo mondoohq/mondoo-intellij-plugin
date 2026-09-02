@@ -39,6 +39,12 @@
         bundle="messages.MondooBundle" key="settings.display.name"
         instance="com.mondoo.intellij.settings.MondooConfigurable"/>
 
+    <!-- In-editor bar when a scannable file is open but no scanner is available.
+         A banner rather than a balloon: the condition persists until acted on, and
+         a dismissed balloon leaves the user with no findings and no explanation. -->
+    <editorNotificationProvider
+        implementation="com.mondoo.intellij.ui.XgrepSetupBannerProvider"/>
+
     <notificationGroup id="Mondoo" displayType="BALLOON"
                        bundle="messages.MondooBundle" key="notification.group.mondoo"/>
 

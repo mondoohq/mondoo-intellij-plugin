@@ -38,4 +38,16 @@
     <platform.lsp.serverSupportProvider
         implementation="com.mondoo.intellij.lsp.XgrepLspServerSupportProvider"/>
   </extensions>
+
+  <actions>
+    <!-- In the optional module: reloading rules means restarting the language
+         server, which does not exist where this module did not load. -->
+    <action id="Mondoo.Xgrep.ReloadRules"
+            class="com.mondoo.intellij.lsp.ReloadRulesAction"
+            text="Reload Rules"
+            description="Restart the scanner so it re-reads its rules and settings">
+      <add-to-group group-id="Mondoo.CodeSecurity" anchor="after"
+                    relative-to-action="Mondoo.Xgrep.ScanSince"/>
+    </action>
+  </actions>
 </idea-plugin>

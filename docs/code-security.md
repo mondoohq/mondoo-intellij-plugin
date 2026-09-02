@@ -130,7 +130,15 @@ automatic download enabled, or run **Set Up Scanner**. Turn the scanner off enti
 with **Enable the xgrep security scanner**.
 
 If the status bar shows **xgrep: set up**, the scanner could not be located. Click it,
-or run **Set Up Scanner**. **Show xgrep Path** reports which binary is in use.
+or run **Set Up Scanner**. A bar also appears at the top of any file the scanner would
+have checked, offering the same thing; dismiss it for good with **Don't show again**.
+**Show xgrep Path** reports which binary is in use.
+
+## Changing rules or settings
+
+The rules path, scan parallelism and scan scope are read when the scanner starts, so
+changing them prompts you to reload. **Reload Rules** does the same on demand, which is
+what picks up edits to a rule file you are working on.
 
 ## Scope and limitations
 

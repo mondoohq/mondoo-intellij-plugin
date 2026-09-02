@@ -20,7 +20,13 @@ import java.nio.file.Path
 internal object XgrepInstallListener {
 
     fun notifyInstalled(@Suppress("UNUSED_PARAMETER") binary: Path) {
-        ProjectManager.getInstanceIfCreated()?.openProjects?.forEach(::restartServers)
+        ProjectManager.getInstanceIfCreated()?.openProjects?.forEach { project ->
+            restartServers(project)
+            // Clear the setup banner now that there is a binary to use.
+            if (!project.isDisposed) {
+                com.intellij.ui.EditorNotifications.getInstance(project).updateAllNotifications()
+            }
+        }
     }
 
     private fun restartServers(project: Project) {
