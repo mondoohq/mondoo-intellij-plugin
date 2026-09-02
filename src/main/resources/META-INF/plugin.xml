@@ -45,6 +45,7 @@
     <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanCoordinator"/>
     <projectService serviceImplementation="com.mondoo.intellij.search.XgrepSearchService"/>
     <projectService serviceImplementation="com.mondoo.intellij.bom.BomService"/>
+    <projectService serviceImplementation="com.mondoo.intellij.policy.PolicyLintService"/>
     <projectService serviceImplementation="com.mondoo.intellij.deps.DependencyReachabilityService"/>
 
     <toolWindow id="Mondoo"

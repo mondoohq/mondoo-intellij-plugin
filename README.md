@@ -21,7 +21,8 @@ No account, no configuration, and your code never leaves your machine.
   actually imports, so you are not chasing vulnerabilities in code that never runs.
 - **Bills of materials** — software, cryptography and AI inventories, ready for
   compliance.
-- **MQL support** — completion, hover and diagnostics for Mondoo policy bundles.
+- **Policy authoring** — completion, hover, diagnostics, linting and formatting for
+  Mondoo policy bundles.
 
 Python, Go, Java, JavaScript, TypeScript, Ruby, Rust, C, C++, C#, Kotlin, Scala, PHP,
 Lua, shell, HTML, JSON and YAML.
@@ -49,13 +50,14 @@ File**.
 | [Code security](docs/code-security.md) | Findings, scans, suppressions, search |
 | [Dependencies](docs/dependencies.md) | Which dependencies your code really uses |
 | [Bill of materials](docs/bill-of-materials.md) | SBOM, CBOM and AIBOM |
+| [Infrastructure security](docs/infrastructure-security.md) | Writing and linting MQL policies |
 | [Installing a dev build](docs/install-dev-build.md) | Running an unreleased build |
 | [Contributing](CONTRIBUTING.md) · [Releasing](RELEASING.md) · [Decisions](docs/adr/) | Working on the plugin |
 
 ## Status
 
-Code security, dependencies and bills of materials are complete. MQL language support
-is in progress; policy authoring and infrastructure scans are next.
+Code security, dependencies, bills of materials and policy authoring are complete.
+Running policies against infrastructure targets is next.
 
 Verified in Android Studio and GoLand. See
 [ADR-0001](docs/adr/0001-lsp-client-and-ide-compatibility.md) for compatibility detail.
