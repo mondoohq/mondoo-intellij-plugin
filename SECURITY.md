@@ -4,10 +4,10 @@
 
 Please do not open a public issue for a security vulnerability.
 
-Report it to **security@mondoo.com**, or through GitHub's private vulnerability
-reporting on this repository (**Security** → **Report a vulnerability**). Include the
-affected version, what an attacker could achieve, and steps to reproduce if you have
-them.
+Use GitHub's private vulnerability reporting on this repository
+(**Security** → **Report a vulnerability**), or write to **hello@mondoo.com** with
+"security" in the subject. Include the affected version, what an attacker could
+achieve, and steps to reproduce if you have them.
 
 We aim to acknowledge a report within three business days.
 

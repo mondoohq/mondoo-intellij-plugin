@@ -1,3 +1,6 @@
+// Copyright Mondoo, Inc. 2026
+// SPDX-License-Identifier: Apache-2.0
+
 // See the class KDoc below and docs/adr/0001: the deprecated LSP names are used
 // deliberately, because they are the ones present in every build we support.
 @file:Suppress("DEPRECATION")

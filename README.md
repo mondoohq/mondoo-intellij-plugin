@@ -111,4 +111,4 @@ Apache License 2.0 — see [LICENSE](LICENSE).
 
 - **Issues**: [GitHub Issues](https://github.com/mondoohq/mondoo-intellij-plugin/issues)
 - **Documentation**: [mondoo.com/docs](https://mondoo.com/docs)
-- **Community**: [Mondoo Community](https://github.com/mondoohq/community)
+- **Community**: [Mondoo discussions](https://github.com/orgs/mondoohq/discussions)

@@ -2,6 +2,9 @@
 
 Thanks for helping improve the Mondoo plugin for JetBrains IDEs.
 
+Questions and ideas are welcome in
+[Mondoo discussions](https://github.com/orgs/mondoohq/discussions).
+
 ## Before you start
 
 [DEVELOPMENT.md](DEVELOPMENT.md) covers building, running against a local IDE, and the
@@ -43,3 +46,16 @@ Behaviour shared with the `xgrep` command line — the suppression comment forma
 all — should be checked against the real binary rather than assumed, because a silent
 disagreement means dismissals stop working with no error anywhere. DEVELOPMENT.md
 describes how.
+
+## Licensing
+
+This plugin is Apache 2.0, and every source file carries an SPDX header:
+
+```kotlin
+// Copyright Mondoo, Inc. 2026
+// SPDX-License-Identifier: Apache-2.0
+```
+
+`.copywrite.hcl` records the convention. Note this differs from cnspec, which is
+BUSL-1.1 — the plugin is deliberately more permissive, since it is a thin client that
+people embed in their own IDE setups.
