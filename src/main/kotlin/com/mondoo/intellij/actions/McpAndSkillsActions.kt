@@ -4,6 +4,7 @@
 package com.mondoo.intellij.actions
 
 import com.intellij.execution.configurations.GeneralCommandLine
+import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -15,6 +16,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.util.system.OS
 import com.mondoo.intellij.binary.XgrepBinaryService
 import com.mondoo.intellij.mcp.McpConfig
 import com.mondoo.intellij.skills.MondooSkills
@@ -111,16 +113,7 @@ class InstallAiSkillsAction : AnAction() {
         ) ?: return
         val skill = skills[index]
 
-        val claude = com.intellij.execution.configurations.PathEnvironmentVariableUtil
-            .findInPath(
-                if (com.intellij.util.system.OS.CURRENT ==
-                    com.intellij.util.system.OS.Windows
-                ) {
-                    "claude.exe"
-                } else {
-                    "claude"
-                },
-            )
+        val claude = findClaudeCli()
         if (claude == null) {
             // No CLI: hand over the commands, which work inside an agent session.
             CopyPasteManager.copyTextToClipboard(MondooSkills.slashCommands(listOf(skill)))
@@ -169,6 +162,23 @@ class InstallAiSkillsAction : AnAction() {
     private fun notify(project: Project?, content: String, type: NotificationType) {
         NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
             .createNotification(content, type).notify(project)
+    }
+
+    /**
+     * Finds the Claude Code CLI on PATH.
+     *
+     * Windows needs more than one name. The CLI usually arrives through npm, which
+     * installs a `.cmd` shim rather than an executable, so looking only for
+     * `claude.exe` reports "not found" on the machines where it is most likely to be
+     * installed. GeneralCommandLine runs a `.cmd` through the shell for us.
+     */
+    private fun findClaudeCli(): java.io.File? {
+        val names = if (OS.CURRENT == OS.Windows) {
+            listOf("claude.exe", "claude.cmd", "claude.bat")
+        } else {
+            listOf("claude")
+        }
+        return names.firstNotNullOfOrNull { PathEnvironmentVariableUtil.findInPath(it) }
     }
 
     private companion object {
