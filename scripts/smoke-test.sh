@@ -14,10 +14,17 @@ TASK="${1:-runGoLand}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+# pgrep and pkill are not in Git Bash, which is how this runs on Windows. There they
+# are simply unavailable rather than empty: a CI runner is a fresh machine with no
+# stale sandbox to find, and the guard below exists for a developer's laptop.
+have_pgrep() { command -v pgrep >/dev/null 2>&1; }
+ide_running() { have_pgrep && pgrep -f "plugins_${TASK}" >/dev/null 2>&1; }
+kill_ide() { command -v pkill >/dev/null 2>&1 && pkill -f "plugins_${TASK}" 2>/dev/null || true; }
+
 # A second IDE cannot start against a sandbox another instance is holding: it exits
 # without writing idea.log, and the wait below then times out reporting that the
 # language server never started — which is true but badly misleading.
-if pgrep -f "plugins_${TASK}" >/dev/null 2>&1; then
+if ide_running; then
   echo "FAIL: a sandbox IDE for $TASK is already running."
   echo "      Close it, or: pkill -f 'plugins_${TASK}'"
   exit 1
@@ -69,9 +76,25 @@ else
 fi
 LOG="$LOG_DIR/idea.log"
 
+# Whether a real scanner exists to exercise. The plugin never downloads one without
+# being asked, so in CI and on a bare machine there is simply none — and asserting
+# that a language server started would then be asserting something about the machine
+# rather than about this build.
+if command -v xgrep >/dev/null 2>&1 || [ -x "$HOME/go/bin/xgrep" ]; then
+  HAVE_XGREP=yes
+else
+  HAVE_XGREP=no
+  echo "note: no xgrep on PATH — the scanner assertions will be skipped"
+fi
+
+# Inside the workspace: CI collects it as an artifact, and /tmp means something
+# different again under Git Bash on Windows.
+GRADLE_OUT="$ROOT/build/smoke-test.out"
+mkdir -p "$(dirname "$GRADLE_OUT")"
+
 GRADLE_PID=""
 cleanup() {
-  pkill -f "plugins_${TASK}" 2>/dev/null || true
+  kill_ide
   [ -n "$GRADLE_PID" ] && kill "$GRADLE_PID" 2>/dev/null || true
 }
 trap cleanup EXIT
@@ -83,11 +106,23 @@ trap cleanup EXIT
 attempt() {
   rm -rf "$LOG_DIR"
   ./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py,$PROBE/example.mql.yaml" \
-    --console=plain >/tmp/mondoo-smoke.out 2>&1 &
+    --console=plain >"$GRADLE_OUT" 2>&1 &
   GRADLE_PID=$!
 
+  # What "ready" means depends on whether there is a scanner to start. With one, the
+  # language server initialising is the real signal. Without one, the self-check line
+  # is: it is written by a post-startup activity, so it proves the IDE opened the
+  # project and the plugin initialised — which is the whole of what can be checked
+  # on a machine with no xgrep.
+  local ready
+  if [ "$HAVE_XGREP" = "yes" ]; then
+    ready="XgrepLspServerDescriptor.*LSP server initialized"
+  else
+    ready="Mondoo self-check"
+  fi
+
   local deadline=$((SECONDS + 300))
-  until [ -f "$LOG" ] && grep -q "XgrepLspServerDescriptor.*LSP server initialized" "$LOG" 2>/dev/null; do
+  until [ -f "$LOG" ] && grep -q "$ready" "$LOG" 2>/dev/null; do
     [ $SECONDS -ge $deadline ] && return 1
     sleep 5
   done
@@ -107,13 +142,13 @@ if ! attempt; then
   echo "  first attempt did not start; retrying once after full teardown"
   cleanup
   # Wait for the IDE to actually exit, not merely to leave the process table.
-  for _ in $(seq 1 20); do pgrep -f "plugins_${TASK}" >/dev/null 2>&1 || break; sleep 1; done
+  for _ in $(seq 1 20); do ide_running || break; sleep 1; done
   sleep 5
   if ! attempt; then
-    echo "FAIL: language server did not initialize within 300s (twice)"
+    echo "FAIL: the IDE did not reach a ready state within 300s (twice)"
     if [ ! -f "$LOG" ]; then
       echo "      No idea.log was written — the IDE did not start."
-      echo "      Check /tmp/mondoo-smoke.out for the Gradle output."
+      echo "      Check $GRADLE_OUT for the Gradle output."
     else
       tail -20 "$LOG"
     fi
@@ -132,11 +167,22 @@ check() {
 }
 
 echo "Assertions:"
+
+# These hold whether or not a scanner is installed: they are about the plugin loading
+# and initialising, which is the part that breaks on a platform nobody tried.
 check "plugin loads"                 "Loaded custom plugins: Mondoo"
 check "optional LSP module loads"    "Mondoo: LSP module loaded"
-check "server starts for a file"     "Mondoo: starting xgrep lsp"
-check "server completes handshake"   "LSP server initialized"
-check "findings reach the store"     "Mondoo: findings now"
+
+# The rest needs a real xgrep. Where there is none the plugin correctly starts no
+# server, so asserting on one would be asserting the machine has a binary rather than
+# anything about this build. Reported either way, never silently.
+if [ "$HAVE_XGREP" = "yes" ]; then
+  check "server starts for a file"     "Mondoo: starting xgrep lsp"
+  check "server completes handshake"   "LSP server initialized"
+  check "findings reach the store"     "Mondoo: findings now"
+else
+  echo "  --   xgrep not installed: scanner assertions skipped"
+fi
 
 # Resolves every action id in DeclaredActions and instantiates every service inside
 # the running IDE. A menu item whose class was renamed, or a service that throws in
@@ -152,12 +198,14 @@ fi
 # The store feeds both the tool window and the status-bar count, so a non-zero total
 # is what makes those meaningful. Zero would mean the scanner ran and found nothing,
 # which for a deliberately vulnerable file means the wiring is broken.
-found=$(grep -oE "Mondoo: findings now [0-9]+" "$LOG" | tail -1 | grep -oE "[0-9]+$" || echo 0)
-if [ "${found:-0}" -gt 0 ]; then
-  echo "  ok   store holds $found finding(s) for a vulnerable file"
-else
-  echo "  FAIL store holds no findings for a deliberately vulnerable file"
-  fail=1
+if [ "$HAVE_XGREP" = "yes" ]; then
+  found=$(grep -oE "Mondoo: findings now [0-9]+" "$LOG" | tail -1 | grep -oE "[0-9]+$" || echo 0)
+  if [ "${found:-0}" -gt 0 ]; then
+    echo "  ok   store holds $found finding(s) for a vulnerable file"
+  else
+    echo "  FAIL store holds no findings for a deliberately vulnerable file"
+    fail=1
+  fi
 fi
 
 # The MQL server is optional here: cnspec is never auto-installed, so a machine

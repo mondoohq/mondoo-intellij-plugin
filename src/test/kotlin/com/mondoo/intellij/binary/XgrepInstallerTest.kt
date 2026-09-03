@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.time.Duration
 import java.util.zip.ZipEntry
@@ -108,11 +109,15 @@ class XgrepInstallerTest {
     }
 
     /**
-     * The Windows failure this message exists for cannot be reproduced on a POSIX
-     * filesystem — nothing here refuses to delete an open file — so the test holds
-     * the target directory undeletable the only portable way there is, and checks
-     * that the install says which problem it hit rather than reporting whatever the
-     * filesystem said about the move.
+     * Stands in for the case this message exists for: a running `xgrep.exe` that
+     * Windows will not let the installer delete.
+     *
+     * Two blocks, applied together, because the platforms disagree about which one
+     * bites. POSIX will not unlink from a directory it cannot write but is perfectly
+     * happy to delete an open file; Windows is the other way round. Applying only the
+     * permission change passed on a Mac and failed on the Windows runner — the first
+     * thing that job caught, and a fair warning about testing a Windows behaviour
+     * from a Mac.
      */
     @Test
     fun `explains itself when the existing install cannot be replaced`(@TempDir root: Path) {
@@ -121,10 +126,11 @@ class XgrepInstallerTest {
         installer.install(release(url, zip), "0.57.0")
 
         val target = root.resolve("0.57.0")
-        val blocker = Files.createDirectory(target.resolve("busy"))
-        Files.writeString(blocker.resolve("held"), "x")
-        // A directory the walk cannot empty stands in for a running xgrep.exe.
-        blocker.toFile().setWritable(false)
+        val held = target.resolve("held.txt")
+        Files.writeString(held, "x")
+
+        val open = Files.newByteChannel(held, StandardOpenOption.READ, StandardOpenOption.WRITE)
+        target.toFile().setWritable(false)
         try {
             val error = assertThrows(XgrepInstallException::class.java) {
                 installer.install(release(url, zip), "0.57.0")
@@ -134,7 +140,8 @@ class XgrepInstallerTest {
                 "should name the likely cause, said: ${error.message}",
             )
         } finally {
-            blocker.toFile().setWritable(true)
+            target.toFile().setWritable(true)
+            open.close()
         }
     }
 

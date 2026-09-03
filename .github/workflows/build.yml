@@ -11,12 +11,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The plugin is built and installed on all three desktop platforms, so it is built
+  # and tested on all three. Linux alone would miss what actually differs: resolving
+  # xgrep.exe rather than xgrep, unpacking a .zip rather than a .tar.gz, looking in
+  # Chocolatey, WinGet and Scoop, and keeping a backslash intact through JSON and
+  # YAML escaping.
   build:
-    name: Build and test
-    runs-on: ubuntu-latest
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    # Git Bash on the Windows runner, so ./gradlew and the shell steps below are
+    # written once rather than once per platform.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Linux only: it reclaims preinstalled Linux toolchains, and the other two
+      # runners have room already.
       - uses: ./.github/actions/free-disk-space
+        if: runner.os == 'Linux'
+
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: zulu
@@ -24,8 +43,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
 
       # Style before substance: a formatting failure should be the first thing you
-      # see, not something you find after a six-minute build.
+      # see, not something you find after a six-minute build. Once is enough — the
+      # answer cannot differ by platform.
       - name: Check formatting
+        if: runner.os == 'Linux'
         run: ./gradlew ktlintCheck --stacktrace
 
       - name: Build
@@ -37,6 +58,7 @@ jobs:
       # Rule 1 of cross-IDE compatibility: no product-specific module dependency.
       # See DEVELOPMENT.md and docs/adr/0001.
       - name: Guard against product-specific dependencies
+        if: runner.os == 'Linux'
         run: |
           if grep -nE '<depends>com\.intellij\.modules\.(java|python|go|php|ruby|rider|cidr|database)' \
                src/main/resources/META-INF/plugin.xml; then
@@ -44,7 +66,10 @@ jobs:
             exit 1
           fi
 
+      # One artifact, from one platform. The plugin ZIP is pure JVM bytecode and
+      # resources, so three would be three copies of the same file.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: runner.os == 'Linux'
         with:
           name: plugin-artifact
           path: build/distributions/*.zip
@@ -52,35 +77,65 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: tests-report
+          name: tests-report-${{ runner.os }}
           path: build/reports/tests
 
-  # The plugin resolves and unpacks a Windows executable, writes Windows paths into
-  # JSON and YAML, and looks in Chocolatey, WinGet and Scoop directories — all of it
-  # logic no Linux runner exercises. The unit suite is IDE-free and platform-neutral,
-  # so running it here is cheap and is the only automated Windows coverage there is.
-  # No free-disk step: that one reclaims Linux toolchains and would fail on Windows.
-  test-windows:
-    name: Test on Windows
-    runs-on: windows-latest
+  # Starts a real IntelliJ IDEA with the plugin installed and reads its log. This is
+  # the only check that exercises the plugin as a plugin — class loading, the optional
+  # LSP module, extension points, service construction — rather than as a jar, and
+  # until now it only ever ran on one developer's Mac.
+  #
+  # No scanner is installed here on purpose: the plugin never downloads one unasked,
+  # so a runner has none, and the script skips the scanner assertions rather than
+  # asserting something about the machine. What remains is what breaks on an untried
+  # platform: whether the plugin loads and initialises at all.
+  smoke:
+    name: IDE smoke test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: ./.github/actions/free-disk-space
+        if: runner.os == 'Linux'
+
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
 
-      # gradlew.bat, not ./gradlew: this runner's default shell is PowerShell, which
-      # cannot execute the extensionless POSIX wrapper script.
-      - name: Test
-        run: .\gradlew.bat test --stacktrace
+      # The IDE is a Swing application and needs a display. macOS and Windows runners
+      # have one; a Linux runner does not, hence the virtual framebuffer.
+      - name: Install a virtual display
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
 
+      - name: Smoke test
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            xvfb-run --auto-servernum scripts/smoke-test.sh runIde
+          else
+            scripts/smoke-test.sh runIde
+          fi
+
+      # The log is the entire evidence for this job, and a failure is unreadable
+      # without it.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: tests-report-windows
-          path: build/reports/tests
+          name: idea-log-${{ runner.os }}
+          path: |
+            .intellijPlatform/sandbox/mondoo-intellij-plugin/*/log/idea.log
+            build/smoke-test.out
+          if-no-files-found: warn
 
   # Runs alongside build and verify rather than after them: a security finding is
   # not a reason to hold up compile feedback, and vice versa.
