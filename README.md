@@ -34,8 +34,10 @@ Lua, shell, HTML, JSON and YAML.
 
 ## Install
 
-Requires an IntelliJ-based IDE **2026.1.4 or newer** — IntelliJ IDEA, GoLand, PyCharm,
-WebStorm, PhpStorm, RubyMine, CLion, Rider, RustRover, DataGrip or Android Studio.
+Requires an IntelliJ-based IDE **2026.1.4 or newer**. Tested on IntelliJ IDEA, GoLand
+and Android Studio. It declares no product-specific dependencies, so it installs in
+the rest of the family too — PyCharm, WebStorm, PhpStorm, RubyMine, CLion, Rider,
+RustRover and DataGrip — those simply are not part of the release check.
 
 1. Download the ZIP from the
    [latest release](https://github.com/mondoohq/mondoo-intellij-plugin/releases/latest).

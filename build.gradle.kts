@@ -167,23 +167,28 @@ intellijPlatform {
                     ide.exists() && major != null && major >= floor
                 }.forEach { local(it) }
             } else {
-                // IntelliJ IDEA moved to a unified distribution in 2025.3, so there
-                // is no separate Community product at 261 to verify against.
+                // Three hosts, chosen for what each one can catch rather than for
+                // coverage of the product list:
+                //
+                //  - IntelliJ IDEA, the unified distribution every other IDE is built
+                //    from. It moved to a single product in 2025.3, so there is no
+                //    separate Community build at 261 to check as well.
+                //  - GoLand, which has no Java, Python or Kotlin plugin. An accidental
+                //    dependency on a product-specific module shows up here and nowhere
+                //    else in this list.
+                //  - Android Studio, the one host not built by JetBrains, and the one
+                //    the SDK documentation still wrongly says has no LSP client.
+                //
+                // The rest of the family shares IDEA's platform and is covered by the
+                // guard in CI that plugin.xml declares no product-specific <depends>.
+                // Adding them back is one line each if that guard ever proves too weak.
                 create(IntelliJPlatformType.IntellijIdea, "2026.1.4")
                 create(IntelliJPlatformType.GoLand, "2026.1.4")
-                create(IntelliJPlatformType.PyCharm, "2026.1.4")
-                create(IntelliJPlatformType.WebStorm, "2026.1.4")
-                create(IntelliJPlatformType.PhpStorm, "2026.1.4")
-                create(IntelliJPlatformType.RubyMine, "2026.1.4")
-                create(IntelliJPlatformType.CLion, "2026.1.4")
-                create(IntelliJPlatformType.RustRover, "2026.1.4")
-                // Claimed in the README, so verified here. An IDE nobody checks is a
-                // promise, not a supported target.
-                create(IntelliJPlatformType.Rider, "2026.1.4")
-                create(IntelliJPlatformType.DataGrip, "2026.1.4")
 
-                // Android Studio is not a resolvable artifact, so it is verified
-                // from a local install when one is present.
+                // Android Studio is not published as a resolvable artifact, so it can
+                // only be verified from a local install — which means locally, not in
+                // CI. `./gradlew verifyPlugin -PverifyLocal=true` is the one that
+                // covers it.
                 file("/Applications/Android Studio.app").takeIf { it.exists() }?.let { local(it) }
             }
         }
@@ -223,15 +228,6 @@ intellijPlatformTesting {
             }
         }
     }
-    runIde.register("runPyCharm") {
-        type = IntelliJPlatformType.PyCharm
-        version = "2026.1.4"
-        useInstaller = true
-        task {
-            systemProperty("mondoo.selfcheck", "true")
-        }
-    }
-
     // Sandboxed Android Studio, using the locally installed app. Android Studio is
     // not published as a resolvable Maven artifact, and this also avoids touching a
     // running IDE's own config. Quail 4 is AI-261.26222.65 — the exact platform

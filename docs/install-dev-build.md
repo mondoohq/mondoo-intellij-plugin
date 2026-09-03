@@ -12,14 +12,14 @@ directory. Your day-to-day IDE is untouched, so a broken build cannot disrupt yo
 
 ```bash
 ./gradlew runIde            # IntelliJ IDEA
-./gradlew runGoLand         # GoLand
-./gradlew runPyCharm        # PyCharm
+./gradlew runGoLand         # GoLand (uses your local install)
 ./gradlew runAndroidStudio  # Android Studio (uses your local install)
 ```
 
-`runIde` and `runPyCharm` download the IDE on first use — around 1 GB, cached afterwards.
-`runGoLand` and `runAndroidStudio` use the copy already in `/Applications`; point them
-elsewhere in `build.gradle.kts` if yours lives somewhere else.
+Those are the three IDEs this plugin is tested against. `runIde` downloads IDEA on
+first use — around 1 GB, cached afterwards. `runGoLand` and `runAndroidStudio` use the
+copy already in `/Applications`; point them elsewhere in `build.gradle.kts` if yours
+lives somewhere else.
 
 To run against a different IDE, add a task in `build.gradle.kts`:
 

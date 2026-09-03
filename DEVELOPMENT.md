@@ -24,13 +24,35 @@
 ./gradlew build            # compile + test
 ./gradlew runIde           # IntelliJ IDEA 2026.1.4 with the plugin loaded
 ./gradlew runGoLand        # GoLand — catches accidental Java-only dependencies
-./gradlew runPyCharm       # PyCharm
+./gradlew runAndroidStudio # Android Studio — the one host JetBrains does not build
+./gradlew ktlintCheck      # formatting; ktlintFormat fixes most of it
 ./gradlew buildPlugin      # -> build/distributions/*.zip
-./gradlew verifyPlugin     # Plugin Verifier across the IDE matrix
+./gradlew verifyPlugin     # Plugin Verifier — see below
 ```
 
 `runGoLand` and `runAndroidStudio` use the local installs in `/Applications`;
-`runIde` and `runPyCharm` download the IDE on first use.
+`runIde` downloads the IDE on first use.
+
+### What gets verified
+
+Three hosts, chosen for what each one catches rather than to enumerate the product
+list: **IntelliJ IDEA** is the unified distribution the others are built from,
+**GoLand** has no Java, Python or Kotlin plugin so a product-specific dependency
+surfaces there, and **Android Studio** is the one host JetBrains does not build.
+
+CI verifies the first two, one per job — the verifier downloads a full IDE per target
+and several at once exhaust a runner's disk. Android Studio is not published as a
+resolvable artifact, so it can only be verified from a local install:
+
+```bash
+./gradlew verifyPlugin -PverifyLocal=true   # every install in /Applications at or above the floor
+./gradlew verifyPlugin -PverifyIde=GO       # one downloadable IDE, as CI does it
+```
+
+Run the local one before a release. The rest of the family — PyCharm, WebStorm,
+PhpStorm, RubyMine, CLion, Rider, RustRover, DataGrip — shares IDEA's platform and is
+covered by the CI guard that `plugin.xml` declares no product-specific `<depends>`;
+add any of them back to the matrix in one line if that guard ever proves too weak.
 
 For installing a build into an IDE you actually work in, and for what to check when it
 does not appear, see [docs/install-dev-build.md](docs/install-dev-build.md).
