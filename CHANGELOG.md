@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.1.0] - 2026-09-03
+
+### Added
+
 - Code security powered by [xgrep](https://mondoo.com/xgrep): findings as you type,
   shown in the editor, the Problems view, a dedicated Mondoo tool window grouped by
   severity and rule or by file, and a status-bar count.
@@ -56,13 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   binary is not something a plugin should do on its own, so the plugin offers, names
   the version, and waits — per version, so agreeing to one release is not agreement
   to every later one.
-
 - Scanner downloads are pinned to HTTPS on the release host and capped at the size
   the manifest declares. The release manifest is data from the network and names an
   artifact the plugin then executes; the checksum alone cannot protect against a
   tampered manifest, since the same document supplies the hash, and it cannot be
   checked at all until a stream ends.
-
 - The scanner no longer runs in a project that has not been trusted. It is a process
   spawned over project contents, so an untrusted project is not scanned and no scanner
   is downloaded for one.
@@ -71,3 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
+
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/mondoohq/mondoo-intellij-plugin/commits/v0.1.0
