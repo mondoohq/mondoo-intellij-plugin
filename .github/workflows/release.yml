@@ -3,6 +3,17 @@ name: Release
 # Publishing is driven by a GitHub Release. Creating one as a pre-release routes the
 # upload to a non-default Marketplace channel, so a beta reaches only people who opted
 # into it.
+#
+# Two jobs, because they answer two different questions and only one of them needs
+# credentials Mondoo may not have yet:
+#
+#   build    — is there an installable plugin, and is it attached to the release?
+#   publish  — did it reach the JetBrains Marketplace?
+#
+# A release with no Marketplace secrets still produces a ZIP on the GitHub Release
+# that people install with "Install Plugin from Disk…", which is how this plugin is
+# distributed until the Marketplace listing exists. Publishing is then simply skipped,
+# and says so in the job summary rather than failing the release.
 on:
   release:
     types: [prereleased, released]
@@ -18,11 +29,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Publish to JetBrains Marketplace
+  build:
+    name: Build and attach to the release
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      signed: ${{ steps.signing.outputs.available }}
+      publishable: ${{ steps.publishable.outputs.value }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -73,14 +87,14 @@ jobs:
         run: ./gradlew check --stacktrace
 
       # A single IDE here. The full matrix runs on every push in build.yml, and the
-      # release job cannot hold eight IDEs on one runner — it exhausted the disk and
+      # release job cannot hold several IDEs on one runner — it exhausted the disk and
       # took the runner down with it.
       - name: Verify plugin
         run: ./gradlew verifyPlugin -PverifyIde=IU --stacktrace
 
-      # Signing needs credentials a dry run may not have. A dry run exists to prove
-      # the pipeline before a real release depends on those secrets, so it must not
-      # require them — it builds, and signs only when it can.
+      # Signing needs credentials this repository may not have yet. An unsigned build
+      # still installs from disk, so its absence must not deny people the binary — it
+      # only stops the Marketplace upload, which is the publish job's business.
       - name: Check for signing credentials
         id: signing
         env:
@@ -90,7 +104,7 @@ jobs:
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::No signing credentials; building unsigned. A real release must be signed."
+            echo "::warning::No signing credentials; building unsigned."
           fi
 
       - name: Build
@@ -104,25 +118,10 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew signPlugin verifyPluginSignature --stacktrace
 
-      # A published release must be signed. A dry run may legitimately be unsigned;
-      # a real one may not, and failing here is far better than shipping unsigned.
-      - name: Require signing for a real release
-        if: github.event_name == 'release' && steps.signing.outputs.available != 'true'
-        run: |
-          echo "::error::Cannot publish: signing credentials are not configured."
-          echo "Set CERTIFICATE_CHAIN, PRIVATE_KEY and PRIVATE_KEY_PASSWORD. See RELEASING.md."
-          exit 1
-
-      - name: Publish
-        if: github.event_name == 'release' || inputs.dryRun == false
-        env:
-          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
-          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew publishPlugin --stacktrace
-
-      - name: Attach the signed artifact to the release
+      # The point of the split: the binary reaches the GitHub Release whether or not
+      # anything can be published, because that download is how the plugin is
+      # installed until the Marketplace listing exists.
+      - name: Attach the plugin to the release
         if: github.event_name == 'release'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -133,3 +132,85 @@ jobs:
         with:
           name: plugin-distribution
           path: build/distributions/*.zip
+
+      # Both secrets, both checked here: a job-level `if` cannot read a secret, so the
+      # publish job is gated on this instead.
+      - name: Decide whether this can be published
+        id: publishable
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          if [ "${{ steps.signing.outputs.available }}" = "true" ] && [ -n "$PUBLISH_TOKEN" ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Said plainly and where it is read, because a skipped job is easy to miss and
+      # "the release is green" must not be mistaken for "it is on the Marketplace".
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "## Release ${{ github.event.release.tag_name || github.ref_name }}"
+            echo
+            if [ "${{ steps.signing.outputs.available }}" = "true" ]; then
+              echo "- Signed: yes"
+            else
+              echo "- Signed: **no** — \`CERTIFICATE_CHAIN\`, \`PRIVATE_KEY\` and \`PRIVATE_KEY_PASSWORD\` are not set."
+            fi
+            if [ "${{ steps.publishable.outputs.value }}" = "true" ]; then
+              echo "- Marketplace: publishing in the next job."
+            else
+              echo "- Marketplace: **not published**. The plugin is attached to the GitHub"
+              echo "  Release and installs with **Install Plugin from Disk…**. See RELEASING.md"
+              echo "  for the secrets and the Marketplace listing a publish needs."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish to JetBrains Marketplace
+    needs: build
+    if: |
+      needs.build.outputs.publishable == 'true' &&
+      (github.event_name == 'release' || inputs.dryRun == false)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+        with:
+          cache-disabled: true # same reasoning as the build job
+
+      # The exact file the previous job built, signed and attached to the release —
+      # not a rebuild of it. Two builds of one version could differ; this way what
+      # someone downloads from GitHub and what the Marketplace serves are the same
+      # bytes.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: plugin-distribution
+          path: dist
+
+      - name: Publish
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          archive=$(ls dist/*.zip | head -1)
+          echo "Publishing $archive"
+          # -x excludes the build and signing tasks: publishPlugin depends on them by
+          # default, which would rebuild the very artifact this job exists to reuse.
+          # patchChangelog too — publishing must not rewrite the changelog.
+          ./gradlew publishPlugin \
+            -PpublishArchive="$PWD/$archive" \
+            -x buildPlugin -x signPlugin -x patchChangelog \
+            --stacktrace
+
+      - name: Summarise
+        if: always()
+        run: echo "Published to the JetBrains Marketplace." >> "$GITHUB_STEP_SUMMARY"

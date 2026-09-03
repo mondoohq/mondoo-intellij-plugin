@@ -3,10 +3,30 @@
 Publishing is driven by a GitHub Release. `main` is PR-only, so a release starts with a
 workflow rather than a direct commit.
 
+## What a release produces
+
+Two things, from two jobs, because only one of them needs credentials:
+
+| Job | Produces | Needs secrets |
+| --- | --- | --- |
+| **Build and attach to the release** | The plugin ZIP, attached to the GitHub Release | No |
+| **Publish to JetBrains Marketplace** | The Marketplace listing update | Yes |
+
+A release cut without any secrets still works and still gives people something to
+install: the ZIP lands on the GitHub Release and installs with **Install Plugin from
+Disk…**, which is how this plugin is distributed until the Marketplace listing exists.
+The publish job is then simply skipped, and the build job's summary says so in as many
+words — a green release is not by itself evidence that anything reached the
+Marketplace.
+
+The publish job uploads *the file the build job produced*, downloaded as a workflow
+artifact rather than rebuilt. Two builds of one version could differ; this way what
+someone downloads from GitHub and what the Marketplace serves are the same bytes.
+
 ## One-time setup
 
-Four repository secrets are required. Without them the release job fails at signing,
-before anything reaches the Marketplace.
+Four repository secrets are required **to publish to the Marketplace**. Without them a
+release still builds and attaches its binary; only the publish job is skipped.
 
 | Secret | What it is |
 | --- | --- |
@@ -33,14 +53,17 @@ Also needed before the first publish, and both have lead time:
 2. **Review and merge** that PR. This is the point to read the changelog as a user would.
 3. **Create a GitHub Release** tagged `v<version>` against `main`. Mark it as a
    **pre-release** to route the upload to a non-default Marketplace channel.
-4. The **Release** workflow then runs, in this order:
+4. The **Release** workflow then runs. The build job, in this order:
    - the tag matches `pluginVersion` — publishing 0.1.0 from a tag that says v0.2.0 is
      silent and hard to undo, so this fails the job rather than guessing;
    - the changelog has a section for the version;
-   - `check` (tests) and `verifyPlugin` (the IDE compatibility matrix);
-   - `buildPlugin`, `signPlugin`, `verifyPluginSignature`;
-   - `publishPlugin`;
-   - the signed ZIP is attached to the GitHub Release.
+   - `check` (tests) and `verifyPlugin`;
+   - `buildPlugin`, then `signPlugin` and `verifyPluginSignature` when the signing
+     secrets exist;
+   - the ZIP is attached to the GitHub Release, signed or not.
+
+   Then the publish job, only when both the signing secrets and `PUBLISH_TOKEN` are
+   set: `publishPlugin`, uploading the artifact the build job produced.
 
 The attached ZIP is what people install with **Install Plugin from Disk…** until the
 plugin is on the Marketplace, so its name and contents are user-facing. The README

@@ -297,6 +297,17 @@ tasks {
         systemProperty("ide.show.tips.on.startup.default.value", "false")
         systemProperty("mondoo.selfcheck", "true")
     }
+    publishPlugin {
+        // -PpublishArchive=<zip> publishes a file that already exists instead of
+        // building one. The release pipeline builds and signs once, attaches that
+        // exact file to the GitHub Release, and then hands the same bytes to the
+        // Marketplace — so what someone downloads from GitHub and what the
+        // Marketplace serves cannot be two different builds of the same version.
+        providers.gradleProperty("publishArchive").orNull?.let { path ->
+            archiveFile = layout.file(provider { file(path) })
+        }
+    }
+
     test {
         useJUnitPlatform()
     }
