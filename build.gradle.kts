@@ -276,6 +276,23 @@ tasks {
     wrapper {
         gradleVersion = providers.gradleProperty("gradleVersion").get()
     }
+
+    // The built-in runIde launches the IntelliJ IDEA the plugin is compiled against.
+    // It gets the same probe wiring as runGoLand and runAndroidStudio so the smoke
+    // test can drive all three: without the project argument the IDE stops at the
+    // welcome screen, no file is ever opened, and a run that started perfectly well
+    // reports that the language server never started.
+    runIde {
+        providers.gradleProperty("mondooProbeProject").orNull
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            ?.forEach { args(it) }
+        systemProperty("idea.trust.all.projects", "true")
+        systemProperty("jb.consents.confirmation.enabled", "false")
+        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
+        systemProperty("ide.show.tips.on.startup.default.value", "false")
+        systemProperty("mondoo.selfcheck", "true")
+    }
     test {
         useJUnitPlatform()
     }

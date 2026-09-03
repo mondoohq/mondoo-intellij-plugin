@@ -57,7 +57,16 @@ queries:
     mql: sshd.config.params["PermitRootLogin"] == "no"
 EOF
 
-LOG_DIR="$ROOT/.intellijPlatform/sandbox/mondoo-intellij-plugin/IU-2026.1.4/log_${TASK}"
+# The built-in runIde task logs to the sandbox's default "log" directory; tasks
+# registered through intellijPlatformTesting get one named after the task. Guessing
+# wrong here reports "the language server never started" for a run that started fine,
+# which is worse than no run at all.
+SANDBOX="$ROOT/.intellijPlatform/sandbox/mondoo-intellij-plugin/IU-2026.1.4"
+if [ "$TASK" = "runIde" ]; then
+  LOG_DIR="$SANDBOX/log"
+else
+  LOG_DIR="$SANDBOX/log_${TASK}"
+fi
 LOG="$LOG_DIR/idea.log"
 
 GRADLE_PID=""
