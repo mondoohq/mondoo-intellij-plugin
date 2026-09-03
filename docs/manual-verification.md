@@ -63,9 +63,15 @@ printf 'import os\n\ndef run(cmd):\n    os.system(cmd)\n' > "$P/main.py"
 
 ## Setup and agents
 
+- [ ] With the scanner missing, opening a project offers to install it and names the
+      version. Nothing is downloaded until **Install** is clicked.
+- [ ] **Not now** downloads nothing, and the offer returns on the next project open.
+- [ ] **Never** downloads nothing and clears **Offer to download and update the
+      scanner** in settings.
 - [ ] With the scanner missing, the editor shows the setup banner on a scannable file.
 - [ ] **Don't show again** dismisses it for good.
-- [ ] **Set Up Scanner** downloads and the banner clears.
+- [ ] **Set Up Scanner** downloads without asking — that is what the action is — and
+      the banner clears.
 - [ ] **Install AI Skills…** installs, or copies commands when the CLI is absent.
 - [ ] **Configure MCP Server…** writes or copies a valid config.
 

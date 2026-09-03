@@ -27,11 +27,15 @@ private data class ServerAffectingSettings(
     val includePatterns: List<String>,
 )
 
-class MondooConfigurable : BoundSearchableConfigurable(
-    /* displayName = */ "Mondoo",
-    /* helpTopic = */ "com.mondoo.intellij.settings",
-    /* _id = */ "com.mondoo.intellij.settings",
-) {
+class MondooConfigurable :
+    BoundSearchableConfigurable(
+        /* displayName = */
+        "Mondoo",
+        /* helpTopic = */
+        "com.mondoo.intellij.settings",
+        /* _id = */
+        "com.mondoo.intellij.settings",
+    ) {
     override fun apply() {
         val before = serverAffectingSettings()
         super.apply()
@@ -112,9 +116,11 @@ class MondooConfigurable : BoundSearchableConfigurable(
                         .bindSelected(state::xgrepEnabled)
                 }
                 row {
-                    checkBox("Download and update the scanner automatically")
+                    checkBox("Offer to download and update the scanner")
                         .bindSelected(state::xgrepAutoInstall)
-                }
+                }.rowComment(
+                    "You are asked before anything is downloaded, and again for each new version.",
+                )
                 row("xgrep path:") {
                     textFieldWithBrowseButton(
                         FileChooserDescriptorFactory.createSingleFileOrExecutableAppDescriptor(),

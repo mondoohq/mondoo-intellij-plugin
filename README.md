@@ -7,7 +7,11 @@ secrets appear in the editor as you type, with one-click fixes.
 No account, no configuration, and your code never leaves your machine.
 <!-- Plugin description end -->
 
-![Findings in the editor and the Mondoo tool window](docs/images/plugin-overview.png)
+<!-- The overview screenshot goes here, once someone has taken it:
+     ![Findings in the editor and the Mondoo tool window](docs/images/plugin-overview.png)
+     docs/images/README.md says exactly what to capture. Left commented out rather
+     than pointing at a file that is not there, because GitHub renders a missing
+     image as a broken one at the top of the page. -->
 
 ## What you get
 
@@ -38,8 +42,9 @@ WebStorm, PhpStorm, RubyMine, CLion, Rider, RustRover, DataGrip or Android Studi
 2. **Settings** → **Plugins** → **⚙** → **Install Plugin from Disk…**
 3. Restart.
 
-Then open a file. Findings appear on their own — the scanner is downloaded on first use
-and verified against its published checksum.
+Then open a file. If the scanner is not already on your machine the plugin offers to
+download it, verifying its published checksum before use — nothing is fetched until
+you say so.
 
 To see it working straight away: **Tools** → **Mondoo Code Security** → **Open Demo
 File**.

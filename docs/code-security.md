@@ -140,10 +140,16 @@ The plugin finds the scanner in this order: the **xgrep path** setting, its own
 managed install, `xgrep` on your `PATH`, then common locations including Go's
 `~/go/bin` for developers who build it themselves.
 
-When nothing is found it downloads a release from Mondoo, verifying the published
-SHA-256 before unpacking. Nothing is downloaded before you ask: either leave
-automatic download enabled, or run **Set Up Scanner**. Turn the scanner off entirely
-with **Enable the xgrep security scanner**.
+When nothing is found the plugin offers to download a release from Mondoo and tells
+you which version; nothing is fetched until you accept. Choose **Install** and it
+downloads, verifying the published SHA-256 before unpacking; **Not now** asks again
+next time; **Never** turns the offer off. **Set Up Scanner** installs without asking,
+because asking for it is what that action is.
+
+You are asked again when a new version appears — agreeing to one release is not
+agreement to every later one. Turn the offer off in advance by clearing **Offer to download and
+update the scanner**, or disable the scanner entirely with **Enable the xgrep
+security scanner**.
 
 If the status bar shows **xgrep: set up**, the scanner could not be located. Click it,
 or run **Set Up Scanner**. A bar also appears at the top of any file the scanner would

@@ -11,10 +11,11 @@ import com.mondoo.intellij.settings.MondooSettings
  * Resolves the scanner in the background when a project opens, and offers an
  * update when one is due.
  *
- * Deliberately does not download anything on first run: an IDE that reaches out
- * to the network and installs a binary before the user has asked for anything is
- * a surprise. Discovery is silent; installation waits for either the
- * `xgrepAutoInstall` setting or the explicit "Set Up Scanner" action.
+ * Deliberately downloads nothing on its own: an IDE that reaches out to the network
+ * and installs a binary before the user has asked for anything is a surprise.
+ * Discovery is silent; when nothing is found the most this does is *offer*, and the
+ * download waits for that offer to be accepted or for the explicit "Set Up Scanner"
+ * action. `xgrepAutoInstall` governs whether the offer is made at all.
  */
 internal class XgrepStartupActivity : ProjectActivity {
     override suspend fun execute(project: Project) {

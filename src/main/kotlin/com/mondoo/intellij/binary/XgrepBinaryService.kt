@@ -15,12 +15,13 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.util.system.OS
 import com.intellij.util.system.CpuArch
+import com.intellij.util.system.OS
 import com.mondoo.intellij.settings.MondooConfigurable
 import com.mondoo.intellij.settings.MondooSettings
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.io.path.isExecutable
 import kotlin.io.path.isRegularFile
@@ -55,7 +56,7 @@ class XgrepBinaryService {
     private val log = Logger.getInstance(XgrepBinaryService::class.java)
     private val installer = XgrepInstaller(managedRoot(), PlatformXgrepDownloader(), executableName())
     private val state = AtomicReference<XgrepStatus>(XgrepStatus.Resolving)
-    private val installInFlight = AtomicReference(false)
+    private val installInFlight = AtomicBoolean(false)
     private val cached = AtomicReference<Resolution?>(null)
 
     val status: XgrepStatus get() = state.get()
@@ -125,11 +126,15 @@ class XgrepBinaryService {
     }
 
     /**
-     * Ensures a usable xgrep exists, downloading one if needed and permitted.
+     * Ensures a usable xgrep exists, asking before it downloads one.
      *
-     * @param force when true, install even if auto-install is off and regardless of
-     *   remembered consent — this is the "Set Up Scanner" action, where the user has
-     *   just asked for it explicitly.
+     * Nothing reaches the network without the user saying so. Automatic download
+     * being *enabled* means "you may offer"; it is not standing permission to fetch
+     * and run a binary. Consent is per version, as in the VS Code extension: agreeing
+     * to 0.57.0 is not agreement to every later release.
+     *
+     * @param force skip the offer — this is "Set Up Scanner" and the setup banner,
+     *   where the user has just asked for the install by name.
      */
     fun ensureInstalled(project: Project?, force: Boolean = false) {
         val settings = MondooSettings.getInstance().state
@@ -138,7 +143,11 @@ class XgrepBinaryService {
             checkForUpdate(project)
             return
         }
-        if (!settings.xgrepAutoInstall && !force) {
+        if (force) {
+            runInstall(project)
+            return
+        }
+        if (!settings.xgrepAutoInstall) {
             state.set(XgrepStatus.Unavailable("xgrep is not installed and automatic download is off"))
             notify(
                 project,
@@ -149,7 +158,48 @@ class XgrepBinaryService {
             )
             return
         }
-        runInstall(project, force)
+        offerInstall(project)
+    }
+
+    /**
+     * Resolves which version would be installed, then asks.
+     *
+     * The version lookup is a network call, so it cannot run on the EDT; the offer
+     * itself is a notification rather than a modal dialog, because this fires while
+     * a project is opening and a dialog there interrupts whatever the user came to
+     * do. Declining is remembered only as far as "not this version".
+     */
+    private fun offerInstall(project: Project?) {
+        object : Task.Backgroundable(project, "Checking for the xgrep security scanner", true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                val settings = MondooSettings.getInstance().state
+                val version = resolveTargetVersion(settings)
+
+                if (settings.installConsentVersion == version) {
+                    runInstall(project)
+                    return
+                }
+
+                state.set(XgrepStatus.Unavailable("xgrep is not installed"))
+                notify(
+                    project,
+                    "Install the xgrep security scanner ($version) from releases.mondoo.com? " +
+                        "It scans on this machine; your code is never uploaded.",
+                    NotificationType.INFORMATION,
+                    NotificationAction.createSimpleExpiring("Install") {
+                        MondooSettings.getInstance().state.installConsentVersion = version
+                        runInstall(project, consentedTo = version)
+                    },
+                    NotificationAction.createSimpleExpiring("Not now") { },
+                    // Turns the offer off for good rather than asking again next
+                    // release, which is what "Never" has to mean to be worth clicking.
+                    NotificationAction.createSimpleExpiring("Never") {
+                        MondooSettings.getInstance().state.xgrepAutoInstall = false
+                    },
+                )
+            }
+        }.queue()
     }
 
     /** Offers an update when the manifest advertises a newer release. */
@@ -168,28 +218,38 @@ class XgrepBinaryService {
             project,
             "A newer xgrep is available (${managed.second} → $target)",
             NotificationType.INFORMATION,
-            NotificationAction.createSimpleExpiring("Update") { runInstall(project, force = true) },
+            // Clicking Update is consent for that version, and only that one.
+            NotificationAction.createSimpleExpiring("Update") {
+                MondooSettings.getInstance().state.installConsentVersion = target
+                runInstall(project, consentedTo = target)
+            },
         )
     }
 
-    private fun runInstall(project: Project?, force: Boolean) {
+    /**
+     * Downloads and installs. Callers are responsible for having consent — either
+     * because the user clicked an install action, or via [offerInstall].
+     *
+     * @param consentedTo the version the user was shown, when they were shown one.
+     *   The manifest is re-read here, so a release published between the offer and
+     *   the click would otherwise install something nobody agreed to; that asks
+     *   again instead. Null means the user asked for an install by name and takes
+     *   whatever is current.
+     */
+    private fun runInstall(project: Project?, consentedTo: String? = null) {
         if (!installInFlight.compareAndSet(false, true)) return
 
         object : Task.Backgroundable(project, "Installing the xgrep security scanner", true) {
             override fun run(indicator: ProgressIndicator) {
                 val settings = MondooSettings.getInstance().state
-                val version = resolveTargetVersion(settings)
 
-                // Remember consent per version, as the VS Code extension does: a user
-                // who agreed to 0.57.0 has not implicitly agreed to every later release.
-                if (!force && settings.installConsentVersion != version) {
-                    settings.installConsentVersion = version
-                }
-
-                indicator.text = "Downloading xgrep $version"
+                // One manifest fetch, and the version comes from it: asking
+                // resolveTargetVersion() first and then fetching again could install a
+                // different release than the one the user was shown.
+                indicator.text = "Checking the xgrep release manifest"
                 val manifest = installer.fetchManifest()
                 val release = manifest?.let { ArtifactSelector.select(it, osToken(), archToken()) }
-                if (release == null) {
+                if (manifest == null || release == null) {
                     val reason = if (manifest == null) {
                         "could not reach the xgrep release manifest"
                     } else {
@@ -199,10 +259,23 @@ class XgrepBinaryService {
                     notify(project, "Could not install xgrep: $reason", NotificationType.ERROR)
                     return
                 }
+                val version = manifest.version
+                if (consentedTo != null && version != consentedTo) {
+                    log.info(
+                        "xgrep moved from $consentedTo to $version between the offer " +
+                            "and the install; asking again",
+                    )
+                    settings.installConsentVersion = null
+                    // onFinished() releases the in-flight flag; the new offer queues
+                    // its own task and cannot re-enter this one.
+                    offerInstall(project)
+                    return
+                }
 
+                indicator.text = "Downloading xgrep $version"
                 state.set(XgrepStatus.Downloading(version, 0))
                 val binary = try {
-                    installer.install(release, manifest.version) { copied, total ->
+                    installer.install(release, version) { copied, total ->
                         if (total > 0) {
                             indicator.fraction = copied.toDouble() / total
                             state.set(XgrepStatus.Downloading(version, (copied * 100 / total).toInt()))
@@ -215,13 +288,14 @@ class XgrepBinaryService {
                     return
                 }
 
-                settings.resolvedVersion = manifest.version
+                settings.resolvedVersion = version
                 settings.resolvedCheckedAt = System.currentTimeMillis()
+                settings.installConsentVersion = version
                 invalidate()
-                installer.pruneOtherVersions(manifest.version)
-                ready(binary, manifest.version)
+                installer.pruneOtherVersions(version)
+                ready(binary, version)
 
-                notify(project, "xgrep ${manifest.version} installed", NotificationType.INFORMATION)
+                notify(project, "xgrep $version installed", NotificationType.INFORMATION)
                 XgrepInstallListener.notifyInstalled(binary)
             }
 

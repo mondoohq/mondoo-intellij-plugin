@@ -17,8 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   honoured by the xgrep command line and by CI, so a dismissal is not editor-local.
 - Structural code search, with results in the Find tool window, and export of a
   pattern as a reusable rule.
-- Automatic scanner setup: xgrep is discovered or downloaded, with its published
-  SHA-256 verified before unpacking. Nothing is downloaded before you ask.
+- Automatic scanner setup: xgrep is discovered, or offered for download and then
+  verified against its published SHA-256 before unpacking. Nothing reaches the
+  network until you accept the offer, and you are asked again for each new version.
 - Scan scope settings (include/exclude globs), custom rules path, and scan parallelism.
 - An in-editor setup banner when the scanner is unavailable on a file it would scan.
 - **Reload Rules**, to pick up edits to a rule file.
@@ -51,10 +52,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- Scanner downloads are pinned to HTTPS on the release host. The release manifest is
-  data from the network and names an artifact the plugin then executes; the checksum
-  alone cannot protect against a tampered manifest, since the same document supplies
-  the hash.
+- The scanner is never downloaded without being asked for. Fetching and running a
+  binary is not something a plugin should do on its own, so the plugin offers, names
+  the version, and waits — per version, so agreeing to one release is not agreement
+  to every later one.
+
+- Scanner downloads are pinned to HTTPS on the release host and capped at the size
+  the manifest declares. The release manifest is data from the network and names an
+  artifact the plugin then executes; the checksum alone cannot protect against a
+  tampered manifest, since the same document supplies the hash, and it cannot be
+  checked at all until a stream ends.
 
 - The scanner no longer runs in a project that has not been trusted. It is a process
   spawned over project contents, so an untrusted project is not scanned and no scanner
