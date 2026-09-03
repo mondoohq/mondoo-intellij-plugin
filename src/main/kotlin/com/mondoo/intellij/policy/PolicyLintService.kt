@@ -11,6 +11,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.Topic
 import com.mondoo.intellij.binary.CnspecBinaryService
+import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
@@ -49,6 +50,10 @@ class PolicyLintService(private val project: Project) {
             .withParameters("policy", "lint", bundle.fileName.toString(), "-o", "sarif")
             // From the bundle's directory, so the paths it reports are relative to it.
             .withWorkDirectory(bundle.parent?.toString())
+            // UTF-8 explicitly: GeneralCommandLine otherwise decodes with the IDE's
+            // default charset, which on Windows is the ANSI code page. SARIF is UTF-8,
+            // and a mis-decode is either mojibake in a message or a parse failure.
+            .withCharset(StandardCharsets.UTF_8)
 
         val output = CapturingProcessHandler(command).runProcess(LINT_TIMEOUT_MS, true)
 

@@ -15,6 +15,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.Topic
 import com.mondoo.intellij.binary.XgrepBinaryService
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -55,9 +56,14 @@ class DependencyReachabilityService(private val project: Project) {
         object : Task.Backgroundable(project, "Analyzing dependency reachability", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
+                // UTF-8 explicitly: GeneralCommandLine otherwise decodes with the
+                // IDE's default charset, which on Windows is the ANSI code page. The
+                // scanner emits UTF-8 JSON, and a mis-decode there is either mojibake
+                // in a package name or an outright parse failure.
                 val command = GeneralCommandLine(binary.toString())
                     .withParameters("deps", "reachability", projectPath, "--json")
                     .withWorkDirectory(projectPath)
+                    .withCharset(StandardCharsets.UTF_8)
 
                 val output = CapturingProcessHandler(command).runProcess(TIMEOUT_MS, true)
                 if (indicator.isCanceled) return
