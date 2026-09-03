@@ -3,9 +3,9 @@
 
 package com.mondoo.intellij.platform
 
+import com.mondoo.intellij.DeclaredActions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import com.mondoo.intellij.DeclaredActions
 import org.junit.jupiter.api.Test
 
 /**

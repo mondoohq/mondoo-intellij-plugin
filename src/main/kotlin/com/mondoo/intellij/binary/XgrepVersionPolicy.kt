@@ -26,7 +26,8 @@ object XgrepVersionPolicy {
 
     fun shouldRefresh(lastCheckedAtMillis: Long, nowMillis: Long): Boolean =
         lastCheckedAtMillis <= 0L ||
-            nowMillis < lastCheckedAtMillis || // clock moved backwards
+            nowMillis < lastCheckedAtMillis ||
+            // clock moved backwards
             nowMillis - lastCheckedAtMillis >= CHECK_TTL_MILLIS
 
     /**

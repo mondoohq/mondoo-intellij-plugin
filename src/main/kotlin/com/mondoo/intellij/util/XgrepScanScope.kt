@@ -63,10 +63,7 @@ object GlobMatcher {
  * never synced) and as a diagnostics filter (so already-published findings for
  * newly-excluded files disappear).
  */
-data class XgrepScanScope(
-    val includePatterns: List<String>,
-    val excludePatterns: List<String>,
-) {
+data class XgrepScanScope(val includePatterns: List<String>, val excludePatterns: List<String>) {
     fun isScanned(relativePath: String): Boolean {
         if (excludePatterns.any { GlobMatcher.matches(it, relativePath) }) return false
         if (includePatterns.isEmpty()) return true

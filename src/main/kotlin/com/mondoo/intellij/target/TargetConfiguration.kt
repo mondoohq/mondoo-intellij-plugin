@@ -25,12 +25,7 @@ data class TargetField(
  * reachable from the cnspec CLI, and adding one here is a matter of listing its
  * fields — the machinery below does not change.
  */
-enum class TargetType(
-    val id: String,
-    val title: String,
-    val description: String,
-    val fields: List<TargetField>,
-) {
+enum class TargetType(val id: String, val title: String, val description: String, val fields: List<TargetField>) {
     LOCAL(
         "local",
         "This machine",
@@ -93,11 +88,7 @@ enum class TargetType(
  * addressed by [name] and the field key, and are read from the password safe at the
  * moment of use.
  */
-data class TargetConfiguration(
-    val name: String,
-    val type: TargetType,
-    val values: Map<String, String> = emptyMap(),
-) {
+data class TargetConfiguration(val name: String, val type: TargetType, val values: Map<String, String> = emptyMap()) {
     /** Non-secret fields only — enforced, not merely intended. */
     init {
         val secretKeys = type.fields.filter { it.secret }.map { it.key }.toSet()

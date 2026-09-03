@@ -3,7 +3,6 @@
 
 package com.mondoo.intellij.deps
 
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 
 /**
@@ -71,10 +70,7 @@ data class DependencyPackage(
  *
  * Pure: unit-tested without an IDE or the scanner.
  */
-data class ReachabilityReport(
-    val packages: List<DependencyPackage>,
-    val summary: Map<Reachability, Int>,
-) {
+data class ReachabilityReport(val packages: List<DependencyPackage>, val summary: Map<Reachability, Int>) {
     val total: Int get() = packages.size
 
     /** Packages grouped for display, in the order the enum declares. */

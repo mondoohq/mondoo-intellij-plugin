@@ -9,6 +9,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.mondoo.intellij.binary.CnspecBinaryService
+import com.mondoo.intellij.util.MondooDialogs
 import com.mondoo.intellij.util.ProjectTrust
 
 /** Base for actions that run cnspec against something. */
@@ -40,18 +41,13 @@ abstract class CnspecTargetAction : AnAction() {
 
         if (choices.size == 1) return choices.single()
 
-        val labels = choices.map { target ->
+        return MondooDialogs.chooseFrom(project, "Which target?", "Mondoo", choices) { target ->
             if (target.type == TargetType.LOCAL && target.name == "This machine") {
                 target.name
             } else {
                 "${target.name} — ${target.type.title}"
             }
-        }.toTypedArray()
-
-        val index = Messages.showChooseDialog(
-            project, "Which target?", "Mondoo", null, labels, labels.first(),
-        )
-        return choices.getOrNull(index)
+        }
     }
 }
 

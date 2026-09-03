@@ -30,8 +30,13 @@ class MondooSkillsTest {
     fun `offers exactly the skills the repository publishes`() {
         assertEquals(
             setOf(
-                "xgrep-triage", "xgrep-inspect", "xgrep-rule-creator", "xgrep-remediate",
-                "xgrep-fix", "secure-coding", "mondoo-mql",
+                "xgrep-triage",
+                "xgrep-inspect",
+                "xgrep-rule-creator",
+                "xgrep-remediate",
+                "xgrep-fix",
+                "secure-coding",
+                "mondoo-mql",
             ),
             MondooSkills.ALL.map { it.id }.toSet(),
         )

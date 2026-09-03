@@ -53,9 +53,12 @@ class ArtifactSelectorTest {
     @Test
     fun `never selects a deb rpm or musl build`() {
         val selected = listOf(
-            "darwin" to "amd64", "darwin" to "arm64",
-            "linux" to "amd64", "linux" to "arm64",
-            "windows" to "amd64", "windows" to "arm64",
+            "darwin" to "amd64",
+            "darwin" to "arm64",
+            "linux" to "amd64",
+            "linux" to "arm64",
+            "windows" to "amd64",
+            "windows" to "arm64",
         ).mapNotNull { (os, arch) -> pick(os, arch) }
 
         assertEquals(6, selected.size)

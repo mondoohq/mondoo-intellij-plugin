@@ -49,10 +49,8 @@ internal class CnspecLspServerSupportProvider : LspServerSupportProvider {
     }
 }
 
-internal class CnspecLspServerDescriptor(
-    project: Project,
-    private val binaryPath: String,
-) : ProjectWideLspServerDescriptor(project, "Mondoo MQL") {
+internal class CnspecLspServerDescriptor(project: Project, private val binaryPath: String) :
+    ProjectWideLspServerDescriptor(project, "Mondoo MQL") {
 
     override fun isSupportedFile(file: VirtualFile): Boolean = MqlFiles.isSupported(file.name)
 

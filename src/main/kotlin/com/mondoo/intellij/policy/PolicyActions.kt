@@ -73,7 +73,9 @@ class LintPolicyAction : PolicyBundleAction() {
                             NotificationType.WARNING,
                         )
                         findings.isEmpty() -> notify(
-                            project, "${file.name} is clean.", NotificationType.INFORMATION,
+                            project,
+                            "${file.name} is clean.",
+                            NotificationType.INFORMATION,
                         )
                         else -> {
                             val errors = findings.count { it.severity == LintSeverity.ERROR }

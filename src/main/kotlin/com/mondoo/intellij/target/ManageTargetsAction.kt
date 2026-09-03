@@ -8,6 +8,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.mondoo.intellij.util.MondooDialogs
 import com.mondoo.intellij.util.ProjectTrust
 
 /**
@@ -35,9 +36,9 @@ class ManageTargetsAction : AnAction() {
         val actions = buildList {
             add("Add a target")
             if (existing.isNotEmpty()) add("Remove a target")
-        }.toTypedArray()
+        }
 
-        when (Messages.showChooseDialog(project, "Targets", "Mondoo Targets", null, actions, actions.first())) {
+        when (MondooDialogs.choose(project, "Targets", "Mondoo Targets", actions)) {
             0 -> addTarget(project, store)
             1 -> removeTarget(project, store, existing)
             else -> Unit
@@ -46,15 +47,17 @@ class ManageTargetsAction : AnAction() {
 
     private fun addTarget(project: Project, store: TargetStore) {
         val types = TargetType.entries.filter { it != TargetType.LOCAL }
-        val labels = types.map { "${it.title} — ${it.description}" }.toTypedArray()
-        val typeIndex = Messages.showChooseDialog(
-            project, "What kind of target?", "Add Target", null, labels, labels.first(),
-        )
-        if (typeIndex < 0) return
-        val type = types[typeIndex]
+        val type = MondooDialogs.chooseFrom(project, "What kind of target?", "Add Target", types) {
+            "${it.title} — ${it.description}"
+        } ?: return
 
         val name = Messages.showInputDialog(
-            project, "A name for this target:", "Add Target", null, type.title, null,
+            project,
+            "A name for this target:",
+            "Add Target",
+            null,
+            type.title,
+            null,
         )?.trim().orEmpty()
         if (name.isEmpty()) return
         if (store.find(name) != null) {
@@ -99,12 +102,9 @@ class ManageTargetsAction : AnAction() {
 
     private fun removeTarget(project: Project, store: TargetStore, existing: List<TargetConfiguration>) {
         if (existing.isEmpty()) return
-        val labels = existing.map { "${it.name} — ${it.type.title}" }.toTypedArray()
-        val index = Messages.showChooseDialog(
-            project, "Remove which target?", "Remove Target", null, labels, labels.first(),
-        )
-        if (index < 0) return
-        val target = existing[index]
+        val target = MondooDialogs.chooseFrom(project, "Remove which target?", "Remove Target", existing) {
+            "${it.name} — ${it.type.title}"
+        } ?: return
         // Deleting also forgets its secrets, so nothing is orphaned in the safe.
         store.delete(target.name)
         Messages.showInfoMessage(project, "Removed \"${target.name}\".", "Remove Target")

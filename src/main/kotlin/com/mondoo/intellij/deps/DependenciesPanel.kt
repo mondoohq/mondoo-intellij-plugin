@@ -45,7 +45,9 @@ private sealed interface DepNode {
  * answer: "declared but unused" and "imported and reachable" call for completely
  * different actions, and a flat list buries that.
  */
-internal class DependenciesPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
+internal class DependenciesPanel(private val project: Project) :
+    JPanel(BorderLayout()),
+    Disposable {
 
     private val root = DefaultMutableTreeNode()
     private val model = DefaultTreeModel(root)
@@ -78,7 +80,11 @@ internal class DependenciesPanel(private val project: Project) : JPanel(BorderLa
 
     private fun toolbar(): javax.swing.JComponent {
         val group = DefaultActionGroup()
-        group.add(object : AnAction("Analyze Dependencies", "Rebuild the dependency reachability graph", AllIcons.Actions.Refresh) {
+        group.add(object : AnAction(
+            "Analyze Dependencies",
+            "Rebuild the dependency reachability graph",
+            AllIcons.Actions.Refresh,
+        ) {
             override fun getActionUpdateThread() = ActionUpdateThread.BGT
             override fun update(e: AnActionEvent) {
                 e.presentation.isEnabled = !DependencyReachabilityService.getInstance(project).isRunning()

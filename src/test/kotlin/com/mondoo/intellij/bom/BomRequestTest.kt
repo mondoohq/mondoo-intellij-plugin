@@ -19,10 +19,14 @@ class BomRequestTest {
         val a = args(BomRequest(setOf(BomContent.SCA), BomFormat.CYCLONEDX_JSON))
         assertEquals(
             listOf(
-                "sbom", "/work/project",
-                "--include", "sca",
-                "--format", "cyclonedx-json",
-                "--output", "/tmp/out.json",
+                "sbom",
+                "/work/project",
+                "--include",
+                "sca",
+                "--format",
+                "cyclonedx-json",
+                "--output",
+                "/tmp/out.json",
             ),
             a,
         )
@@ -118,7 +122,10 @@ class BomRequestTest {
         val name = BomRequest(setOf(BomContent.SCA), BomFormat.SPDX_JSON).defaultFileName("../weird name/v2")
         assertFalse(name.contains("/"))
         assertEquals("..-weird-name-v2.sbom.spdx.json", name)
-        assertEquals("project.sbom.spdx.json", BomRequest(setOf(BomContent.SCA), BomFormat.SPDX_JSON).defaultFileName(""))
+        assertEquals(
+            "project.sbom.spdx.json",
+            BomRequest(setOf(BomContent.SCA), BomFormat.SPDX_JSON).defaultFileName(""),
+        )
     }
 
     @Test

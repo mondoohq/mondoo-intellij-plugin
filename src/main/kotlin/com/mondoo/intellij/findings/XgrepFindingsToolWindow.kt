@@ -51,7 +51,9 @@ private const val GROUP_MODE_KEY = "mondoo.xgrep.findings.groupMode"
  * them), it cannot group by severity and rule, and it interleaves every other
  * inspection so its count would never match the status bar.
  */
-internal class XgrepFindingsToolWindowFactory : ToolWindowFactory, DumbAware {
+internal class XgrepFindingsToolWindowFactory :
+    ToolWindowFactory,
+    DumbAware {
 
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val factory = ContentFactory.getInstance()
@@ -71,7 +73,8 @@ internal class XgrepFindingsToolWindowFactory : ToolWindowFactory, DumbAware {
 }
 
 internal class XgrepFindingsPanel(private val project: Project) :
-    JPanel(BorderLayout()), com.intellij.openapi.Disposable {
+    JPanel(BorderLayout()),
+    com.intellij.openapi.Disposable {
 
     private val root = DefaultMutableTreeNode()
     private val model = DefaultTreeModel(root)
@@ -115,7 +118,11 @@ internal class XgrepFindingsPanel(private val project: Project) :
 
     private fun toolbar(): ActionToolbar {
         val group = DefaultActionGroup()
-        group.add(object : ToggleAction("Group by File", "Group findings by file instead of severity", AllIcons.Actions.GroupByFile) {
+        group.add(object : ToggleAction(
+            "Group by File",
+            "Group findings by file instead of severity",
+            AllIcons.Actions.GroupByFile,
+        ) {
             override fun getActionUpdateThread() = ActionUpdateThread.EDT
             override fun isSelected(e: AnActionEvent) = groupMode == GroupMode.FILE
             override fun setSelected(e: AnActionEvent, state: Boolean) {

@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+
+# The IntelliJ style, not ktlint's own: this is a JetBrains plugin, its code is read
+# and edited inside the IDE whose formatter this describes, and ktlint_official
+# disagrees with that formatter on chained calls and multiline expressions in ways
+# that would mean reformatting the whole tree to satisfy a linter.
+ktlint_code_style = intellij_idea
+
+# Import order and wildcard bans are worth having; a rule that rewrites how a
+# multi-line call is laid out is not, when two formatters disagree about it.
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_string-template-indent = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_function-expression-body = disabled
+
+[*.{yml,yaml,json,md}]
+indent_size = 2

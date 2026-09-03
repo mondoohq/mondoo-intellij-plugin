@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.intelliJPlatform)
     alias(libs.plugins.changelog)
+    alias(libs.plugins.ktlint)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -176,6 +177,10 @@ intellijPlatform {
                 create(IntelliJPlatformType.RubyMine, "2026.1.4")
                 create(IntelliJPlatformType.CLion, "2026.1.4")
                 create(IntelliJPlatformType.RustRover, "2026.1.4")
+                // Claimed in the README, so verified here. An IDE nobody checks is a
+                // promise, not a supported target.
+                create(IntelliJPlatformType.Rider, "2026.1.4")
+                create(IntelliJPlatformType.DataGrip, "2026.1.4")
 
                 // Android Studio is not a resolvable artifact, so it is verified
                 // from a local install when one is present.

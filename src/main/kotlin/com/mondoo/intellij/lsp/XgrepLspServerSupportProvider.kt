@@ -94,10 +94,8 @@ internal fun inScope(project: Project, file: VirtualFile): Boolean {
     return scope.isScanned(relative)
 }
 
-internal class XgrepLspServerDescriptor(
-    project: Project,
-    private val binaryPath: String,
-) : ProjectWideLspServerDescriptor(project, "xgrep Security Scanner") {
+internal class XgrepLspServerDescriptor(project: Project, private val binaryPath: String) :
+    ProjectWideLspServerDescriptor(project, "xgrep Security Scanner") {
 
     override fun isSupportedFile(file: VirtualFile): Boolean =
         XgrepLanguages.isSupported(file.name)

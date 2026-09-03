@@ -8,13 +8,13 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.VfsUtil
 import com.mondoo.intellij.binary.XgrepBinaryService
 import com.mondoo.intellij.bom.BomContent
 import com.mondoo.intellij.bom.BomFormat
 import com.mondoo.intellij.bom.BomRequest
 import com.mondoo.intellij.bom.BomService
+import com.mondoo.intellij.util.MondooDialogs
 import com.mondoo.intellij.util.ProjectTrust
 import java.nio.file.Path
 
@@ -40,16 +40,12 @@ class GenerateBomAction : AnAction() {
         val project = e.project ?: return
 
         val contents = BomContent.entries
-        val contentLabels = contents.map { "${it.title} — ${it.description}" }.toTypedArray()
-        val contentIndex = Messages.showChooseDialog(
+        val contentIndex = MondooDialogs.choose(
             project,
             "Which bill of materials?",
             "Generate Bill of Materials",
-            null,
-            contentLabels,
-            contentLabels.first(),
-        )
-        if (contentIndex < 0) return
+            contents.map { "${it.title} — ${it.description}" },
+        ) ?: return
         val content = setOf(contents[contentIndex])
 
         // Ask for a format only when there is a choice. Cryptography and AI bills are
@@ -59,16 +55,12 @@ class GenerateBomAction : AnAction() {
         val format = if (formats.size == 1) {
             formats.single()
         } else {
-            val labels = formats.map { it.title }.toTypedArray()
-            val index = Messages.showChooseDialog(
+            val index = MondooDialogs.choose(
                 project,
                 "Output format?",
                 "Generate Bill of Materials",
-                null,
-                labels,
-                labels.first(),
-            )
-            if (index < 0) return
+                formats.map { it.title },
+            ) ?: return
             formats[index]
         }
 

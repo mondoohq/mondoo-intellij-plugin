@@ -20,11 +20,7 @@ package com.mondoo.intellij.binary
  *
  * `filename` is a full URL and `hash` is the SHA-256 of the artifact.
  */
-data class ReleaseManifest(
-    val name: String,
-    val version: String,
-    val files: List<ReleaseFile>,
-) {
+data class ReleaseManifest(val name: String, val version: String, val files: List<ReleaseFile>) {
     companion object {
         /**
          * Parses `latest.json`. Total by design: a truncated response, an HTML
@@ -53,12 +49,7 @@ data class ReleaseManifest(
     }
 }
 
-data class ReleaseFile(
-    val filename: String,
-    val size: Long,
-    val platform: String,
-    val hash: String,
-) {
+data class ReleaseFile(val filename: String, val size: Long, val platform: String, val hash: String) {
     val isZip: Boolean get() = filename.endsWith(".zip")
 }
 

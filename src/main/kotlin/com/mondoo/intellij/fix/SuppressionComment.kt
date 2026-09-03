@@ -33,9 +33,11 @@ object SuppressionComment {
     private val STYLES: Map<String, Style> = buildMap {
         val slash = Style.Line("//")
         val hash = Style.Line("#")
-        listOf("go", "java", "js", "cjs", "mjs", "jsx", "ts", "mts", "cts", "tsx",
-               "rs", "c", "h", "cc", "cpp", "cxx", "c++", "hpp", "hh", "hxx",
-               "cs", "kt", "kts", "scala", "sc", "php", "phtml")
+        listOf(
+            "go", "java", "js", "cjs", "mjs", "jsx", "ts", "mts", "cts", "tsx",
+            "rs", "c", "h", "cc", "cpp", "cxx", "c++", "hpp", "hh", "hxx",
+            "cs", "kt", "kts", "scala", "sc", "php", "phtml",
+        )
             .forEach { put(it, slash) }
         listOf("py", "pyi", "rb", "rake", "gemspec", "sh", "bash", "zsh", "ksh", "yaml", "yml")
             .forEach { put(it, hash) }

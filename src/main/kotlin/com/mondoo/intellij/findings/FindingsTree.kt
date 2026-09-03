@@ -75,8 +75,10 @@ object FindingsTree {
 
             val rules = inBucket.groupBy { it.ruleId }
                 .entries
-                .sortedWith(compareByDescending<Map.Entry<String, List<Finding>>> { it.value.size }
-                    .thenBy { it.key })
+                .sortedWith(
+                    compareByDescending<Map.Entry<String, List<Finding>>> { it.value.size }
+                        .thenBy { it.key },
+                )
                 .map { (ruleId, items) ->
                     FindingsNode.Group(
                         label = ruleId,

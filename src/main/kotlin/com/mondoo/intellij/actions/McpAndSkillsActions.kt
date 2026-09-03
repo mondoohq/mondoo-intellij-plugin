@@ -10,7 +10,6 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -19,6 +18,7 @@ import com.intellij.openapi.ui.Messages
 import com.mondoo.intellij.binary.XgrepBinaryService
 import com.mondoo.intellij.mcp.McpConfig
 import com.mondoo.intellij.skills.MondooSkills
+import com.mondoo.intellij.util.MondooDialogs
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -47,15 +47,12 @@ class ConfigureMcpAction : AnAction() {
             if (projectConfig != null) add("This project (.mcp.json)")
             add("Copy the JSON to the clipboard")
         }
-        val index = Messages.showChooseDialog(
+        val index = MondooDialogs.choose(
             project,
             "Where should the xgrep MCP server be registered?",
             "Configure MCP",
-            null,
-            choices.toTypedArray(),
-            choices.first(),
-        )
-        if (index < 0) return
+            choices,
+        ) ?: return
 
         val json = McpConfig.serverEntryJson(binary.toString())
         if (projectConfig != null && index == 0) {
@@ -106,20 +103,24 @@ class InstallAiSkillsAction : AnAction() {
         val project = e.project
         val skills = MondooSkills.ALL
 
-        val labels = skills.map { "${it.title} — ${it.description}" }.toTypedArray()
-        val index = Messages.showChooseDialog(
+        val index = MondooDialogs.choose(
             project,
             "Install which Mondoo agent skill?",
             "Install AI Skills",
-            null,
-            labels,
-            labels.first(),
-        )
-        if (index < 0) return
+            skills.map { "${it.title} — ${it.description}" },
+        ) ?: return
         val skill = skills[index]
 
         val claude = com.intellij.execution.configurations.PathEnvironmentVariableUtil
-            .findInPath(if (com.intellij.util.system.OS.CURRENT == com.intellij.util.system.OS.Windows) "claude.exe" else "claude")
+            .findInPath(
+                if (com.intellij.util.system.OS.CURRENT ==
+                    com.intellij.util.system.OS.Windows
+                ) {
+                    "claude.exe"
+                } else {
+                    "claude"
+                },
+            )
         if (claude == null) {
             // No CLI: hand over the commands, which work inside an agent session.
             CopyPasteManager.copyTextToClipboard(MondooSkills.slashCommands(listOf(skill)))

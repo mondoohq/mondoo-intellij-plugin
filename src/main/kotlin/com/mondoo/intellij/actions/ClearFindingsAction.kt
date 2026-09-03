@@ -25,7 +25,8 @@ class ClearFindingsAction : AnAction() {
     override fun update(e: AnActionEvent) {
         val project = e.project
         e.presentation.isEnabled =
-            project != null && XgrepFindingsStore.getInstance(project).findingCount() > 0
+            project != null &&
+            XgrepFindingsStore.getInstance(project).findingCount() > 0
     }
 
     override fun actionPerformed(e: AnActionEvent) {

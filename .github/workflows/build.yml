@@ -23,6 +23,11 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
 
+      # Style before substance: a formatting failure should be the first thing you
+      # see, not something you find after a six-minute build.
+      - name: Check formatting
+        run: ./gradlew ktlintCheck --stacktrace
+
       - name: Build
         run: ./gradlew build --stacktrace
 
@@ -129,7 +134,7 @@ jobs:
         # each — and eight of them exhaust a single runner's disk part-way through,
         # taking the runner down with them. A job each keeps every one in budget and
         # runs them in parallel.
-        ide: [IU, GO, PY, WS, PS, RM, CL, RR]
+        ide: [IU, GO, PY, WS, PS, RM, CL, RR, RD, DB]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 

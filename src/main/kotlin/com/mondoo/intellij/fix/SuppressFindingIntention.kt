@@ -24,9 +24,7 @@ import com.mondoo.intellij.findings.XgrepFindingsStore
  * @param withReason prompts for a justification and records it in the comment, so
  *   reviewers see *why* a finding was dismissed rather than only that it was.
  */
-internal abstract class SuppressFindingIntentionBase(
-    private val withReason: Boolean,
-) : IntentionAction {
+internal abstract class SuppressFindingIntentionBase(private val withReason: Boolean) : IntentionAction {
 
     override fun getFamilyName(): String = "Suppress xgrep finding"
 

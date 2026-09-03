@@ -54,7 +54,9 @@ internal object XgrepSetupBannerPolicy {
  * user editing Markdown is never told about a scanner that would ignore the file
  * anyway. It is dismissible for good.
  */
-internal class XgrepSetupBannerProvider : EditorNotificationProvider, DumbAware {
+internal class XgrepSetupBannerProvider :
+    EditorNotificationProvider,
+    DumbAware {
 
     override fun collectNotificationData(
         project: Project,
