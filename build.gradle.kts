@@ -201,7 +201,8 @@ intellijPlatformTesting {
     // Uses the locally installed GoLand rather than downloading another ~1 GB
     // distribution. Point it elsewhere if your install is not at the default path.
     runIde.register("runGoLand") {
-        localPath = file("/Applications/GoLand.app")
+        // -PgolandPath=<install> for anyone not on a Mac, or with it somewhere else.
+        localPath = file(providers.gradleProperty("golandPath").getOrElse("/Applications/GoLand.app"))
         task {
             providers.gradleProperty("mondooProbeProject").orNull
                 ?.split(",")
@@ -233,7 +234,10 @@ intellijPlatformTesting {
     // running IDE's own config. Quail 4 is AI-261.26222.65 — the exact platform
     // build this plugin targets.
     runIde.register("runAndroidStudio") {
-        localPath = file("/Applications/Android Studio.app")
+        // -PandroidStudioPath=<install> for anyone not on a Mac, or with it elsewhere.
+        localPath = file(
+            providers.gradleProperty("androidStudioPath").getOrElse("/Applications/Android Studio.app"),
+        )
         task {
             // Open a scratch project with a vulnerable file already restored, so
             // fileOpened() fires and the language server starts without any UI

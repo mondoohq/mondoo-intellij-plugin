@@ -31,7 +31,13 @@
 ```
 
 `runGoLand` and `runAndroidStudio` use the local installs in `/Applications`;
-`runIde` downloads the IDE on first use.
+`runIde` downloads the IDE on first use. Off macOS, or with the apps somewhere else,
+point them at yours:
+
+```bash
+./gradlew runGoLand -PgolandPath='C:\Program Files\JetBrains\GoLand 2026.1.4'
+./gradlew runAndroidStudio -PandroidStudioPath=/opt/android-studio
+```
 
 ### What gets verified
 
