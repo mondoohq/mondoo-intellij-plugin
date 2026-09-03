@@ -1,0 +1,26 @@
+name: Free disk space
+description: >
+  Reclaims the preinstalled toolchains this build never uses, so the IntelliJ
+  distributions it does use fit.
+
+runs:
+  using: composite
+  steps:
+    # Every job that touches the IntelliJ Platform needs this, and it must run before
+    # anything writes: restoring the Gradle or verifier cache is itself a multi-
+    # gigabyte write, and jobs were dying inside it with "No space left on device".
+    # It is a composite action rather than a copied block because the copy is what
+    # drifted — the verify jobs had it and the build job did not, so the build job
+    # was the next to fall over.
+    - shell: bash
+      run: |
+        df -h / | tail -1
+        # Not $AGENT_TOOLSDIRECTORY: setup-java installs the JDK there, and removing
+        # it leaves JAVA_HOME pointing at nothing. Run this before setup-java and the
+        # JDK lands on an already-roomy disk.
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                    /usr/local/.ghcup /usr/local/share/boost \
+                    /usr/local/share/powershell /usr/local/share/chromium \
+                    /usr/local/lib/node_modules || true
+        sudo docker image prune --all --force || true
+        df -h / | tail -1

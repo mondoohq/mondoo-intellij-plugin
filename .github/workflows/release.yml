@@ -29,13 +29,22 @@ jobs:
           ref: ${{ github.event.release.tag_name || github.ref }}
           fetch-depth: 0
 
+      # The Plugin Verifier downloads a full IDE — 1-2 GB — and this job is
+      # deliberately uncached, so it pays for the platform distribution too.
+      - uses: ./.github/actions/free-disk-space
+
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: zulu
           java-version: 21
       - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
         with:
-          cache-disabled: true # see the note on caching below
+          # Deliberately uncached. The Actions cache is shared across refs, so
+          # restoring one in the job that signs and publishes would let anyone able
+          # to poison it from a lower-privileged run influence what ships. Releases
+          # are rare; paying the download each time is the right trade. build.yml
+          # keeps its cache.
+          cache-disabled: true
 
       # Nothing below is worth doing if the tag and the version disagree: publishing
       # 0.1.0 from a tag that says v0.2.0 is silent and very hard to undo.
@@ -62,24 +71,6 @@ jobs:
       # A release must not be able to ship something the normal pipeline would reject.
       - name: Test
         run: ./gradlew check --stacktrace
-
-      # Deliberately uncached. The Actions cache is shared across refs, so restoring
-      # one in the job that signs and publishes would let anyone able to poison it
-      # from a lower-privileged run influence what ships. Releases are rare; paying
-      # the download each time is the right trade. build.yml keeps its cache.
-      # The Plugin Verifier downloads a full IDE per target — 1-2 GB each — which
-      # overruns a runner's free disk long before the matrix finishes. Reclaiming the
-      # preinstalled toolchains we do not use buys roughly 25 GB.
-      - name: Free disk space
-        run: |
-          df -h / | tail -1
-          # Not $AGENT_TOOLSDIRECTORY: setup-java installs the JDK there, and
-          # removing it leaves JAVA_HOME pointing at nothing.
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-                      /usr/local/share/boost /usr/local/share/powershell \
-                      /usr/local/share/chromium /usr/local/lib/node_modules || true
-          sudo docker image prune --all --force || true
-          df -h / | tail -1
 
       # A single IDE here. The full matrix runs on every push in build.yml, and the
       # release job cannot hold eight IDEs on one runner — it exhausted the disk and
