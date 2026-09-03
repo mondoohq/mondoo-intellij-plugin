@@ -87,8 +87,7 @@ class XgrepInstaller(
             staged.toFile().setExecutable(true, false)
 
             val target = versionDir(version)
-            deleteRecursively(target)
-            Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE)
+            swapIntoPlace(staging, target, version)
             return findBinary(target)
                 ?: throw XgrepInstallException("Installed tree at $target has no '$executableName'")
         } catch (e: XgrepInstallException) {
@@ -98,8 +97,34 @@ class XgrepInstaller(
             deleteRecursively(staging)
             throw XgrepInstallException("Failed to install xgrep $version: ${e.message}", e)
         } finally {
-            Files.deleteIfExists(archive)
+            // Best-effort: on Windows the archive can still be held open a moment
+            // after extraction, and a throw from here would replace whatever real
+            // failure brought us to the finally block. A stray temp file is the
+            // lesser problem.
+            runCatching { Files.deleteIfExists(archive) }
         }
+    }
+
+    /**
+     * Puts the staged tree at [target], replacing whatever is already there.
+     *
+     * Windows refuses to delete or rename a running executable, so reinstalling the
+     * version the language server is using fails here. It used to fail obscurely —
+     * the delete was best-effort, so the move was left to complain that the
+     * destination exists — and the user got a filesystem message about a problem
+     * that has an obvious remedy. Say what happened instead.
+     */
+    private fun swapIntoPlace(staging: Path, target: Path, version: String) {
+        if (Files.exists(target)) {
+            deleteRecursively(target)
+            if (Files.exists(target)) {
+                throw XgrepInstallException(
+                    "Could not replace the existing xgrep $version at $target. It is most " +
+                        "likely still running: restart the IDE and try again.",
+                )
+            }
+        }
+        Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE)
     }
 
     /** Removes every installed version except [keep]. Best-effort. */

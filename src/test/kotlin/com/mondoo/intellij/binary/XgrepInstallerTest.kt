@@ -107,6 +107,37 @@ class XgrepInstallerTest {
         assertTrue(error.message!!.contains("xgrep.exe"), error.message)
     }
 
+    /**
+     * The Windows failure this message exists for cannot be reproduced on a POSIX
+     * filesystem — nothing here refuses to delete an open file — so the test holds
+     * the target directory undeletable the only portable way there is, and checks
+     * that the install says which problem it hit rather than reporting whatever the
+     * filesystem said about the move.
+     */
+    @Test
+    fun `explains itself when the existing install cannot be replaced`(@TempDir root: Path) {
+        val zip = zipWith(mapOf("xgrep" to "scanner"))
+        val installer = XgrepInstaller(root, FakeDownloader(archives = mapOf(url to zip)))
+        installer.install(release(url, zip), "0.57.0")
+
+        val target = root.resolve("0.57.0")
+        val blocker = Files.createDirectory(target.resolve("busy"))
+        Files.writeString(blocker.resolve("held"), "x")
+        // A directory the walk cannot empty stands in for a running xgrep.exe.
+        blocker.toFile().setWritable(false)
+        try {
+            val error = assertThrows(XgrepInstallException::class.java) {
+                installer.install(release(url, zip), "0.57.0")
+            }
+            assertTrue(
+                error.message!!.contains("still running"),
+                "should name the likely cause, said: ${error.message}",
+            )
+        } finally {
+            blocker.toFile().setWritable(true)
+        }
+    }
+
     @Test
     fun `rejects a checksum mismatch and leaves nothing behind`(@TempDir root: Path) {
         val zip = zipWith(mapOf("xgrep" to "payload"))

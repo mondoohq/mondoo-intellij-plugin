@@ -101,7 +101,10 @@ class CnspecBinaryService {
 
     private fun commonBinDirs(): List<Path> = buildList {
         if (OS.CURRENT == OS.Windows) {
+            // The four ways a CLI usually arrives on Windows.
             System.getenv("ProgramData")?.let { add(Path.of(it, "chocolatey", "bin")) }
+            System.getenv("LOCALAPPDATA")?.let { add(Path.of(it, "Microsoft", "WinGet", "Links")) }
+            System.getenv("USERPROFILE")?.let { add(Path.of(it, "scoop", "shims")) }
             System.getenv("ProgramFiles")?.let { add(Path.of(it, "Mondoo")) }
         } else {
             add(Path.of("/usr/local/bin"))
