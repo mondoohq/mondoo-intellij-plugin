@@ -124,6 +124,14 @@ class XgrepInstaller(
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    /**
+     * Copies, reporting progress, and refuses to write more than the manifest says
+     * the artifact is.
+     *
+     * Without the cap an endpoint that kept sending would fill the IDE's system
+     * directory before the checksum ever got a chance to reject it — the hash is
+     * only checked once the stream ends, which for an endless stream is never.
+     */
     private fun copyReporting(
         input: InputStream,
         out: java.io.OutputStream,
@@ -135,8 +143,13 @@ class XgrepInstaller(
         while (true) {
             val read = input.read(buffer)
             if (read < 0) break
-            out.write(buffer, 0, read)
             copied += read
+            if (total > 0 && copied > total) {
+                throw XgrepInstallException(
+                    "Download is larger than the $total bytes the release manifest declares",
+                )
+            }
+            out.write(buffer, 0, read)
             onProgress(copied, total)
         }
     }
@@ -151,10 +164,19 @@ class XgrepInstaller(
             .extract(into)
     }
 
-    /** Locates the binary anywhere in the tree, so a layout change degrades loudly. */
+    /**
+     * Locates the binary anywhere in the tree, so a layout change degrades loudly.
+     *
+     * An exact name match, because [executableName] already carries the platform's
+     * suffix: `xgrep` on Unix, `xgrep.exe` on Windows, matching what the release
+     * archives contain. Stripping `.exe` from the entry name but not from
+     * [executableName] compared `"xgrep"` against `"xgrep.exe"`, which no archive
+     * entry could satisfy — the managed install was impossible on Windows, and an
+     * already-installed one invisible.
+     */
     private fun findBinary(dir: Path): Path? =
         Files.walk(dir).use { stream ->
-            stream.filter { it.isRegularFile() && it.name.removeSuffix(".exe") == executableName }
+            stream.filter { it.isRegularFile() && it.name == executableName }
                 .findFirst()
                 .orElse(null)
         }

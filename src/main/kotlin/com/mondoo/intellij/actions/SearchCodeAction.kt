@@ -5,6 +5,7 @@ package com.mondoo.intellij.actions
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -19,6 +20,7 @@ import com.intellij.usages.UsageViewManager
 import com.intellij.usages.UsageViewPresentation
 import com.mondoo.intellij.search.XgrepSearchMatch
 import com.mondoo.intellij.search.XgrepSearchService
+import com.mondoo.intellij.util.MondooDialogs
 import com.mondoo.intellij.util.XgrepLanguages
 import java.nio.file.Path
 
@@ -79,15 +81,13 @@ class SearchCodeAction : XgrepScanActionBase() {
         val current = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
             ?.let { XgrepLanguages.languageIdFor(it.name) }
             ?.takeIf { it.isNotEmpty() }
-        val index = Messages.showChooseDialog(
+        return MondooDialogs.choose(
             project,
             "Which language?",
             "Search Code",
-            null,
-            languages.toTypedArray(),
-            current ?: languages.first(),
-        )
-        return languages.getOrNull(index)
+            languages,
+            initial = current ?: languages.first(),
+        )?.let(languages::getOrNull)
     }
 
     private fun showUsages(project: Project, pattern: String, matches: List<XgrepSearchMatch>) {
@@ -96,11 +96,8 @@ class SearchCodeAction : XgrepScanActionBase() {
             val psi = PsiManager.getInstance(project).findFile(file) ?: return@mapNotNull null
             val document = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)
                 ?: return@mapNotNull null
-            if (match.line >= document.lineCount) return@mapNotNull null
-            val start = document.getLineStartOffset(match.line) + match.column
-            val end = (document.getLineStartOffset(match.endLine) + match.endColumn)
-                .coerceIn(start, document.textLength)
-            UsageInfo2UsageAdapter(UsageInfo(psi, start, end))
+            val range = offsetsIn(document, match) ?: return@mapNotNull null
+            UsageInfo2UsageAdapter(UsageInfo(psi, range.first, range.last))
         }
 
         val presentation = UsageViewPresentation().apply {
@@ -112,6 +109,28 @@ class SearchCodeAction : XgrepScanActionBase() {
         UsageViewManager.getInstance(project)
             .showUsages(emptyArray(), usages.toTypedArray(), presentation)
     }
+
+    /**
+     * The match's span, clamped to the document, or null when it cannot land in one.
+     *
+     * The document is what the editor holds now; the match describes what the
+     * scanner read moments ago. A file edited or reverted in between can be shorter
+     * than the match claims, and the platform's offset methods throw rather than
+     * clamp — an unguarded `getLineStartOffset(endLine)` past the end takes down
+     * the whole result list, not just the one stale hit.
+     */
+    private fun offsetsIn(document: Document, match: XgrepSearchMatch): IntRange? {
+        if (match.line >= document.lineCount) return null
+
+        val lineStart = document.getLineStartOffset(match.line)
+        val start = (lineStart + match.column).coerceIn(lineStart, document.getLineEndOffset(match.line))
+
+        val endLine = match.endLine.coerceIn(match.line, document.lineCount - 1)
+        val endLimit = document.getLineEndOffset(endLine).coerceAtLeast(start)
+        val end = (document.getLineStartOffset(endLine) + match.endColumn).coerceIn(start, endLimit)
+
+        return start..end
+    }
 }
 
 /** Turns the current pattern into a reusable xgrep rule, opened as YAML. */
@@ -120,7 +139,12 @@ class ExportSearchRuleAction : XgrepScanActionBase() {
         if (!requireServer(e)) return
         val project = e.project ?: return
         val pattern = Messages.showInputDialog(
-            project, "Structural pattern to export as a rule", "Export Search as Rule", null, "eval(\$X)", null,
+            project,
+            "Structural pattern to export as a rule",
+            "Export Search as Rule",
+            null,
+            "eval(\$X)",
+            null,
         )?.trim().orEmpty()
         if (pattern.isEmpty()) return
         val language = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
@@ -132,7 +156,11 @@ class ExportSearchRuleAction : XgrepScanActionBase() {
                 val yaml = XgrepSearchService.getInstance(project).exportRule(pattern, language)
                 ApplicationManager.getApplication().invokeLater {
                     if (yaml.isNullOrBlank()) {
-                        Messages.showWarningDialog(project, "The scanner did not return a rule.", "Export Search as Rule")
+                        Messages.showWarningDialog(
+                            project,
+                            "The scanner did not return a rule.",
+                            "Export Search as Rule",
+                        )
                         return@invokeLater
                     }
                     // Resolved by extension rather than referencing YAMLFileType: the

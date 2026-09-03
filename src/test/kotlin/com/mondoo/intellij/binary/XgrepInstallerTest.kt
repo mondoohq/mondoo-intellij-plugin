@@ -79,6 +79,34 @@ class XgrepInstallerTest {
         assertTrue(binary.toFile().canExecute(), "installed binary must be executable")
     }
 
+    /**
+     * The Windows path, which every other test misses because they all take the
+     * default executable name. XgrepBinaryService passes `xgrep.exe` there, and a
+     * mismatch here makes the managed install impossible on Windows rather than
+     * merely wrong.
+     */
+    @Test
+    fun `installs a windows release whose archive contains xgrep_exe`(@TempDir root: Path) {
+        val zip = zipWith(mapOf("xgrep.exe" to "scanner", "README.md" to "docs"))
+        val installer = XgrepInstaller(root, FakeDownloader(archives = mapOf(url to zip)), "xgrep.exe")
+
+        val binary = installer.install(release(url, zip), "0.57.0")
+
+        assertEquals("xgrep.exe", binary.fileName.toString())
+        assertEquals(binary, installer.installedBinary("0.57.0"))
+    }
+
+    @Test
+    fun `does not mistake a unix binary for the windows one`(@TempDir root: Path) {
+        val zip = zipWith(mapOf("xgrep" to "scanner"))
+        val installer = XgrepInstaller(root, FakeDownloader(archives = mapOf(url to zip)), "xgrep.exe")
+
+        val error = assertThrows(XgrepInstallException::class.java) {
+            installer.install(release(url, zip), "0.57.0")
+        }
+        assertTrue(error.message!!.contains("xgrep.exe"), error.message)
+    }
+
     @Test
     fun `rejects a checksum mismatch and leaves nothing behind`(@TempDir root: Path) {
         val zip = zipWith(mapOf("xgrep" to "payload"))
