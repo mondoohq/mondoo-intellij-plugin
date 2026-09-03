@@ -7,11 +7,7 @@ secrets appear in the editor as you type, with one-click fixes.
 No account, no configuration, and your code never leaves your machine.
 <!-- Plugin description end -->
 
-<!-- The overview screenshot goes here, once someone has taken it:
-     ![Findings in the editor and the Mondoo tool window](docs/images/plugin-overview.png)
-     docs/images/README.md says exactly what to capture. Left commented out rather
-     than pointing at a file that is not there, because GitHub renders a missing
-     image as a broken one at the top of the page. -->
+![Security findings highlighted in the editor, grouped by severity and rule in the Mondoo tool window, and counted in the status bar](.github/images/plugin-overview.png)
 
 ## What you get
 
