@@ -29,6 +29,15 @@ class XgrepFindingsStore(private val project: Project) {
     /** Findings by document URI. Concurrent: publishes arrive off the EDT. */
     private val byUri = ConcurrentHashMap<String, List<Finding>>()
 
+    /**
+     * The same findings keyed by path, so [findingsAt] is a lookup.
+     *
+     * It is asked on every intention-availability check, which the daemon runs as
+     * the caret moves; scanning every finding in the project each time turned a
+     * large result set into typing lag.
+     */
+    private val byPath = ConcurrentHashMap<String, List<Finding>>()
+
     /** Every finding in the project, ordered by path, line, column. */
     fun findings(): List<Finding> = byUri.values.flatten().sortedWith(ORDER)
 
@@ -36,7 +45,7 @@ class XgrepFindingsStore(private val project: Project) {
 
     /** Findings at a position, used by the suppression and explain intentions. */
     fun findingsAt(path: String, line: Int): List<Finding> =
-        byUri.values.asSequence().flatten().filter { it.path == path && it.line == line }.toList()
+        byPath[path].orEmpty().filter { it.line == line }
 
     /**
      * Replaces the findings for one document.
@@ -45,12 +54,18 @@ class XgrepFindingsStore(private val project: Project) {
      * file is now clean, and the tool window has to reflect that.
      */
     fun update(uri: String, findings: List<Finding>) {
-        if (findings.isEmpty()) byUri.remove(uri) else byUri[uri] = findings
+        val previous = if (findings.isEmpty()) byUri.remove(uri) else byUri.put(uri, findings)
+        // Drop the old path entry before adding the new one: a file that is now clean
+        // has no finding left to name its own path, so the index cannot be rebuilt
+        // from the incoming list alone.
+        previous?.firstOrNull()?.path?.let(byPath::remove)
+        findings.firstOrNull()?.path?.let { byPath[it] = findings }
         publishChanged()
     }
 
     fun clear() {
         byUri.clear()
+        byPath.clear()
         publishChanged()
     }
 

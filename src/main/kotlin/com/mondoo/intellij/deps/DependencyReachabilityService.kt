@@ -15,6 +15,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.util.messages.Topic
 import com.mondoo.intellij.binary.XgrepBinaryService
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -34,7 +35,7 @@ class DependencyReachabilityService(private val project: Project) {
 
     private val log = Logger.getInstance(DependencyReachabilityService::class.java)
     private val latest = AtomicReference<ReachabilityReport?>(null)
-    private val running = AtomicReference(false)
+    private val running = AtomicBoolean(false)
 
     /** The most recent report, or null if none has been produced. */
     fun report(): ReachabilityReport? = latest.get()

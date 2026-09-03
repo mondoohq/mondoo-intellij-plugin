@@ -43,6 +43,7 @@
 
     <projectService serviceImplementation="com.mondoo.intellij.findings.XgrepFindingsStore"/>
     <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanCoordinator"/>
+    <projectService serviceImplementation="com.mondoo.intellij.lsp.XgrepScanNotifier"/>
     <projectService serviceImplementation="com.mondoo.intellij.search.XgrepSearchService"/>
     <projectService serviceImplementation="com.mondoo.intellij.bom.BomService"/>
     <projectService serviceImplementation="com.mondoo.intellij.policy.PolicyLintService"/>

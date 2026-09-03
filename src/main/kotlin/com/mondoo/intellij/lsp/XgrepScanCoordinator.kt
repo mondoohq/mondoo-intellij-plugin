@@ -1,6 +1,12 @@
 // Copyright Mondoo, Inc. 2026
 // SPDX-License-Identifier: Apache-2.0
 
+// The platform renamed LspServer* to LspClient* in 2026.1.4, but the old names are
+// the ones present in every build this plugin supports, and untilBuild is open. The
+// registration reason is the same as in XgrepLspServerSupportProvider; see
+// docs/adr/0001.
+@file:Suppress("DEPRECATION")
+
 package com.mondoo.intellij.lsp
 
 import com.intellij.notification.NotificationGroupManager
@@ -68,7 +74,8 @@ class XgrepScanCoordinator(private val project: Project) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
                 val done = CountDownLatch(1)
-                XgrepScanNotifier.awaitNext { done.countDown() }
+                val notifier = XgrepScanNotifier.getInstance(project)
+                notifier.awaitNext { done.countDown() }
                 try {
                     val response = server.sendRequestSync(REQUEST_TIMEOUT_MS) {
                         it.workspaceService.executeCommand(ExecuteCommandParams(command, arguments))
@@ -102,7 +109,7 @@ class XgrepScanCoordinator(private val project: Project) {
                         }
                     }
                 } finally {
-                    XgrepScanNotifier.cancelWait()
+                    notifier.cancelWait()
                 }
             }
 

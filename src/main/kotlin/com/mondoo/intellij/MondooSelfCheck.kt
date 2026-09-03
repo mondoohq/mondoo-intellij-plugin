@@ -8,7 +8,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 
-
 /**
  * Verifies that what the plugin declares actually resolves, and logs the result.
  *
@@ -72,6 +71,7 @@ internal class MondooSelfCheck : ProjectActivity {
         check(failures, "CnspecBinaryService") { com.mondoo.intellij.binary.CnspecBinaryService.getInstance() }
         check(failures, "XgrepFindingsStore") { com.mondoo.intellij.findings.XgrepFindingsStore.getInstance(project) }
         check(failures, "XgrepScanCoordinator") { com.mondoo.intellij.lsp.XgrepScanCoordinator.getInstance(project) }
+        check(failures, "XgrepScanNotifier") { com.mondoo.intellij.lsp.XgrepScanNotifier.getInstance(project) }
         check(failures, "XgrepSearchService") { com.mondoo.intellij.search.XgrepSearchService.getInstance(project) }
         check(failures, "BomService") { com.mondoo.intellij.bom.BomService.getInstance(project) }
         check(failures, "DependencyReachabilityService") {
