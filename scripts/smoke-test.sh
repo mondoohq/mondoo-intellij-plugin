@@ -222,12 +222,26 @@ else
   echo "  --   MQL server not started (cnspec not installed; not a failure)"
 fi
 
-errors=$(grep -c " ERROR " "$LOG" || true)
-if [ "$errors" -eq 0 ]; then
+# Any ERROR in the log is a failure, with one exception, listed rather than pattern-
+# matched loosely so that adding to it is a decision somebody makes on purpose:
+#
+#   "Main process didn't respond in 5s" — the IDE's own native launcher watchdog,
+#   which fires on a cold CI runner that takes longer than five seconds to reach the
+#   configuring phase. It is about the machine's speed, not about anything loaded
+#   into the IDE, and it is reported below rather than hidden.
+IGNORABLE_ERRORS="Main process didn't respond in"
+
+all_errors=$(grep " ERROR " "$LOG" || true)
+ignored=$(printf '%s\n' "$all_errors" | grep -F "$IGNORABLE_ERRORS" || true)
+real_errors=$(printf '%s\n' "$all_errors" | grep -vF "$IGNORABLE_ERRORS" | grep " ERROR " || true)
+
+[ -n "$ignored" ] && echo "  --   $(printf '%s\n' "$ignored" | wc -l | tr -d ' ') known platform startup error(s) ignored"
+
+if [ -z "$real_errors" ]; then
   echo "  ok   no ERROR lines"
 else
-  echo "  FAIL $errors ERROR lines"
-  grep " ERROR " "$LOG" | head -5
+  echo "  FAIL $(printf '%s\n' "$real_errors" | wc -l | tr -d ' ') ERROR lines"
+  printf '%s\n' "$real_errors" | head -5
   fail=1
 fi
 

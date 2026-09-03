@@ -65,13 +65,20 @@ add any of them back to the matrix in one line if that guard ever proves too wea
 The plugin has real per-OS logic — it resolves `xgrep.exe` rather than `xgrep`, looks
 in Chocolatey, WinGet and Scoop directories, unpacks a `.zip` instead of a `.tar.gz`,
 and writes Windows paths into JSON and YAML where a backslash must survive escaping.
-All of that is in the pure, IDE-free layer and is unit-tested, and CI runs that suite
-on Linux **and** Windows.
+CI builds and runs the unit suite on Linux, macOS **and** Windows, and starts a real
+IntelliJ IDEA with the plugin on all three — macOS and Windows runners have a display,
+Linux gets one from `xvfb`.
 
-What is *not* covered: nobody has run the plugin inside an IDE on Windows or Linux.
-The verifier and the smoke test both run on macOS here, and the smoke-test script is
-bash. If you work on Windows, say so in a pull request — that is the coverage gap
-worth closing next.
+That in-IDE run is deliberately scanner-free. The plugin never downloads xgrep unasked,
+so a runner has none; the script reports which assertions that skips rather than
+asserting something about the machine, and waits on the self-check line instead of a
+language server that correctly never starts. So CI proves the plugin **loads and
+initialises** on all three platforms — class loading, the optional LSP module, every
+declared action, every service — and does not prove scanning works anywhere but here.
+
+What is still uncovered: no one has driven the UI on Windows or Linux. Findings
+appearing in the tree, quick fixes, dialogs and the credential prompts are all still
+macOS-only, by hand, from `docs/manual-verification.md`.
 
 For installing a build into an IDE you actually work in, and for what to check when it
 does not appear, see [docs/install-dev-build.md](docs/install-dev-build.md).

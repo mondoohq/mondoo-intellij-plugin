@@ -8,13 +8,14 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.io.RandomAccessFile
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.time.Duration
 import java.util.zip.ZipEntry
@@ -112,12 +113,16 @@ class XgrepInstallerTest {
      * Stands in for the case this message exists for: a running `xgrep.exe` that
      * Windows will not let the installer delete.
      *
-     * Two blocks, applied together, because the platforms disagree about which one
-     * bites. POSIX will not unlink from a directory it cannot write but is perfectly
-     * happy to delete an open file; Windows is the other way round. Applying only the
-     * permission change passed on a Mac and failed on the Windows runner — the first
-     * thing that job caught, and a fair warning about testing a Windows behaviour
-     * from a Mac.
+     * Making a delete fail is not portable and the platforms are opposites: POSIX
+     * refuses to unlink from a directory it cannot write but will happily delete an
+     * open file, while Windows refuses to delete an open file and ignores a read-only
+     * directory. Two guesses at this both passed on a Mac and failed on the Windows
+     * runner — first the permission change alone, then an NIO channel, which on
+     * Windows is opened with FILE_SHARE_DELETE and blocks nothing.
+     *
+     * So it stops guessing: apply both blocks, then *check* whether the file is
+     * actually undeletable here, and skip rather than fail where it is not. A test
+     * that cannot set up its own precondition should say so, not report a defect.
      */
     @Test
     fun `explains itself when the existing install cannot be replaced`(@TempDir root: Path) {
@@ -129,9 +134,16 @@ class XgrepInstallerTest {
         val held = target.resolve("held.txt")
         Files.writeString(held, "x")
 
-        val open = Files.newByteChannel(held, StandardOpenOption.READ, StandardOpenOption.WRITE)
+        // java.io, not java.nio: on Windows this opens without FILE_SHARE_DELETE,
+        // which is the handle that actually blocks a delete there.
+        val open = RandomAccessFile(held.toFile(), "rw")
         target.toFile().setWritable(false)
         try {
+            assumeTrue(
+                runCatching { Files.delete(held) }.isFailure,
+                "this platform allows deleting the held file, so the failure cannot be staged here",
+            )
+
             val error = assertThrows(XgrepInstallException::class.java) {
                 installer.install(release(url, zip), "0.57.0")
             }
