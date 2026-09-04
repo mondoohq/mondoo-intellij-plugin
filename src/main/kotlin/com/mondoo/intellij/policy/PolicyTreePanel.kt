@@ -4,6 +4,7 @@
 package com.mondoo.intellij.policy
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.util.treeView.TreeState
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -21,6 +22,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.ui.ColoredTreeCellRenderer
+import com.intellij.ui.PopupHandler
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.TreeSpeedSearch
 import com.intellij.ui.components.JBScrollPane
@@ -31,6 +33,7 @@ import com.mondoo.intellij.binary.CnspecBinaryService
 import com.mondoo.intellij.mql.MqlFiles
 import com.mondoo.intellij.target.CnspecRunService
 import com.mondoo.intellij.target.TargetChooser
+import com.mondoo.intellij.util.ProjectTrust
 import java.awt.BorderLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -82,6 +85,14 @@ internal class PolicyTreePanel(private val project: Project) :
             }
         })
 
+        // Right-click. A tree without one is not finished in this IDE, whatever the
+        // toolbar offers — and the toolbar is out of reach of where you are pointing.
+        PopupHandler.installPopupMenu(
+            tree,
+            DefaultActionGroup(JumpToSourceAction(), RunSelectionAction()),
+            "MondooPolicyTree",
+        )
+
         add(toolbar().component, BorderLayout.NORTH)
         add(JBScrollPane(tree), BorderLayout.CENTER)
         border = JBUI.Borders.empty()
@@ -98,7 +109,10 @@ internal class PolicyTreePanel(private val project: Project) :
             VirtualFileManager.VFS_CHANGES,
             object : BulkFileListener {
                 override fun after(events: List<VFileEvent>) {
-                    if (events.any { MqlFiles.isPolicyBundle(it.file?.name.orEmpty()) }) {
+                    // event.path rather than event.file: the path is already a string
+                    // on the event, while asking for the file resolves it in the VFS
+                    // for every event in every batch, most of which are not ours.
+                    if (events.any { MqlFiles.isPolicyBundle(it.path.substringAfterLast('/')) }) {
                         PolicyIndexService.getInstance(project).refresh()
                     }
                 }
@@ -141,11 +155,17 @@ internal class PolicyTreePanel(private val project: Project) :
 
         override fun update(e: AnActionEvent) {
             val node = selectedNode()
-            e.presentation.isEnabled = node != null && runnableDescription(node) != null
+            // Same gate as every other execution path in the plugin. Running a bundle
+            // executes policy content that came with the project, which is exactly
+            // what an untrusted project must not be allowed to do.
+            e.presentation.isEnabled = ProjectTrust.isTrusted(project) &&
+                node != null &&
+                runnableDescription(node) != null
             e.presentation.text = runnableDescription(node) ?: "Run"
         }
 
         override fun actionPerformed(e: AnActionEvent) {
+            if (!ProjectTrust.isTrusted(project)) return
             val node = selectedNode() ?: return
             if (CnspecBinaryService.getInstance().resolvedBinaryOrNull() == null) {
                 CnspecBinaryService.getInstance().notifyMissing(project)
@@ -174,18 +194,42 @@ internal class PolicyTreePanel(private val project: Project) :
         }
     }
 
+    /** What double-clicking does, as a named action so it can also be right-clicked. */
+    private inner class JumpToSourceAction :
+        AnAction(
+            "Jump to Source",
+            "Open the file where this is declared",
+            AllIcons.Actions.EditSource,
+        ) {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = selectedNode()?.target != null
+        }
+        override fun actionPerformed(e: AnActionEvent) = navigateToSelection()
+    }
+
     private fun selectedNode(): PolicyNode? =
         (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? PolicyNode
 
     private fun render(nodes: List<PolicyNode>) {
         ApplicationManager.getApplication().invokeLater {
             if (project.isDisposed) return@invokeLater
+
+            // Saving a bundle rebuilds the tree, and without this you would lose your
+            // place every time — the policy you had open would collapse under you.
+            val state = if (root.childCount > 0) TreeState.createOn(tree, root) else null
+
             root.removeAllChildren()
             nodes.forEach { root.add(it.toTreeNode()) }
             model.reload()
-            // Directories and files only. Expanding policies too would open every
-            // group and check in the project at once.
-            expandTo(depth = 2)
+
+            if (state != null) {
+                state.applyTo(tree, root)
+            } else {
+                // First render: directories and files only. Expanding policies too
+                // would open every group and check in the project at once.
+                expandTo(depth = 2)
+            }
         }
     }
 

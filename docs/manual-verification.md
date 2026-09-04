@@ -102,6 +102,9 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
 - [ ] **Run** is disabled with nothing selected, and offers Query / Policy / Bundle
       according to what is.
 - [ ] Running a query streams cnspec output into a console tab.
+- [ ] Right-clicking a node offers **Jump to Source** and **Run**.
+- [ ] Expanding a policy, then saving the bundle, leaves it expanded.
+- [ ] In an untrusted project the tree still lists bundles, but **Run** is disabled.
 
 ## Targets
 
