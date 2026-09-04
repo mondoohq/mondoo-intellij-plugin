@@ -48,6 +48,27 @@ class CnspecRunService(private val project: Project) : Disposable {
     fun runQuery(target: TargetConfiguration, mql: String) =
         run(target, listOf("run", "-c", mql), "Query: ${target.name}")
 
+    /**
+     * Scans [target] with a bundle from the project, optionally one policy from it.
+     *
+     * `--policy` names a policy inside the bundle and cnspec requires `--policy-bundle`
+     * alongside it, which is why both are passed together rather than the uid alone.
+     */
+    fun scanBundle(target: TargetConfiguration, bundle: Path, policyUid: String?, label: String) =
+        run(
+            target,
+            buildList {
+                add("scan")
+                add("--policy-bundle")
+                add(bundle.toString())
+                policyUid?.let {
+                    add("--policy")
+                    add(it)
+                }
+            },
+            "$label: ${target.name}",
+        )
+
     private fun run(target: TargetConfiguration, verb: List<String>, title: String) {
         // Before writing a new one, not on a startup hook: this is the moment we know
         // a sweep is wanted, and it does not add another activity to every project

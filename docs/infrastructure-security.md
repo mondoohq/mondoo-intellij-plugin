@@ -16,6 +16,36 @@ provides:
 Only files matching `*.mql.yaml`, `*.mql.yml` or `*.mql` are treated as Mondoo
 content. Ordinary YAML in your project is left alone.
 
+## Finding your way around a bundle
+
+The **Policies** tab in the Mondoo tool window lists every `*.mql.yaml` in the
+project, by directory:
+
+```
+policies/
+  linux/
+    ssh.mql.yaml            2 policies, 7 queries
+      Policies
+        SSH Baseline        ssh-baseline
+          Server hardening  3 checks
+            Disallow root login
+            sshd-protocol   not defined in this file
+      Queries
+        Disallow root login sshd-permit-root
+```
+
+A group lists the queries its checks name, resolved through the bundle, so you can
+read a policy as it will actually run rather than as a list of uids. A check naming a
+uid nothing defines is shown in red rather than dropped — that is a bug in the bundle,
+and this is where you would notice it.
+
+- **Double-click** anything to jump to where it is declared.
+- **Start typing** to filter the tree; there is no search box to clear afterwards.
+- **Run** executes what is selected against a target you pick: a single query on its
+  own, one policy from its bundle, or the whole bundle.
+- The tree follows the file you are editing, not the file on disk, and updates when
+  bundles are saved, added or removed.
+
 ## Linting a bundle
 
 **Tools** → **Mondoo Code Security** → **Lint Policy Bundle**, on an open bundle.

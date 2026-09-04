@@ -189,6 +189,17 @@ fi
 # its constructor, is invisible to the compiler and to the unit suite; this is where
 # it surfaces. See MondooSelfCheck.
 check "declared actions and services resolve" "Mondoo self-check PASS"
+
+# The policy tree reads the project rather than reacting to a server, so the only way
+# to know it works is to make it scan one. The probe project contains a bundle.
+check "policy index scans the project"        "Mondoo: policy index found"
+found_bundles=$(grep -oE "policy index found [0-9]+ bundle" "$LOG" | tail -1 | grep -oE "[0-9]+" || echo 0)
+if [ "${found_bundles:-0}" -gt 0 ]; then
+  echo "  ok   policy index found $found_bundles bundle(s)"
+else
+  echo "  FAIL policy index found no bundles, but the probe project has one"
+  fail=1
+fi
 if grep -q "Mondoo self-check FAIL" "$LOG"; then
   echo "  FAIL self-check reported problems:"
   grep "Mondoo self-check FAIL" "$LOG" | head -10 | sed 's/^/       /'

@@ -89,6 +89,20 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
 - [ ] **Format and Sort Policy Bundle** additionally sorts the queries.
 - [ ] All three are hidden when the focused file is not a policy bundle.
 
+## The Policies tab
+
+- [ ] Every `*.mql.yaml` in the project appears, nested by directory.
+- [ ] A file shows its policy and query counts; expanding reaches groups and checks.
+- [ ] A group's checks show the queries they name, in the order the file declares them.
+- [ ] A check naming an undefined uid appears in red as "not defined in this file".
+- [ ] Double-clicking a policy, group or query opens the file at that line.
+- [ ] Typing filters the tree.
+- [ ] Editing a bundle without saving updates the tree; so does saving, adding and
+      deleting one.
+- [ ] **Run** is disabled with nothing selected, and offers Query / Policy / Bundle
+      according to what is.
+- [ ] Running a query streams cnspec output into a console tab.
+
 ## Targets
 
 Needs `cnspec` on the PATH; the actions explain themselves when it is absent.

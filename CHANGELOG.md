@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A **Policies** tab listing every `*.mql.yaml` bundle in the project by directory,
+  down to the queries each group's checks name. Double-click navigates to the
+  declaration, typing filters the tree, and **Run** executes the selected query,
+  policy or bundle against a target. A check referring to a uid the bundle does not
+  define is shown rather than dropped.
+
 ### Changed
 
 ### Fixed

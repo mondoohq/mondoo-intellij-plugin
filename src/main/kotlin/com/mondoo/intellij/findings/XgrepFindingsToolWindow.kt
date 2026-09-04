@@ -69,6 +69,12 @@ internal class XgrepFindingsToolWindowFactory :
         toolWindow.contentManager.addContent(
             factory.createContent(dependencies, "Dependencies", false).also { it.isCloseable = false },
         )
+
+        val policies = com.mondoo.intellij.policy.PolicyTreePanel(project)
+        Disposer.register(toolWindow.disposable, policies)
+        toolWindow.contentManager.addContent(
+            factory.createContent(policies, "Policies", false).also { it.isCloseable = false },
+        )
     }
 }
 

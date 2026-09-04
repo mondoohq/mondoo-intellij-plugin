@@ -29,13 +29,21 @@ abstract class CnspecTargetAction : AnAction() {
         return false
     }
 
-    /**
-     * Asks which target to use.
-     *
-     * "This machine" is always offered and needs no configuration, so the feature is
-     * usable before anyone has set a target up.
-     */
-    protected fun chooseTarget(project: Project): TargetConfiguration? {
+    /** Asks which target to use. See [TargetChooser]. */
+    protected fun chooseTarget(project: Project): TargetConfiguration? = TargetChooser.choose(project)
+}
+
+/**
+ * Asks which target to run against.
+ *
+ * "This machine" is always offered and needs no configuration, so every cnspec
+ * feature is usable before anyone has set a target up. Shared rather than a method on
+ * the action base class because the policy tree asks the same question from a toolbar
+ * button, and two prompts that drifted apart would be two different features.
+ */
+object TargetChooser {
+
+    fun choose(project: Project): TargetConfiguration? {
         val configured = TargetStore.getInstance(project).targets()
         val choices = listOf(TargetConfiguration("This machine", TargetType.LOCAL)) + configured
 

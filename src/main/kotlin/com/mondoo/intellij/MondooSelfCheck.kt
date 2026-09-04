@@ -33,6 +33,12 @@ internal class MondooSelfCheck : ProjectActivity {
         checkActions(failures)
         checkServices(project, failures)
 
+        // Instantiating the policy index proves nothing about it: its job is to read
+        // the project, so the check makes it do that. Asynchronous, so its own line
+        // lands after this one.
+        runCatching { com.mondoo.intellij.policy.PolicyIndexService.getInstance(project).refresh() }
+            .onFailure { failures += "policy index refresh threw: ${it.javaClass.simpleName}" }
+
         if (failures.isEmpty()) {
             LOG.info("$MARKER PASS: ${DeclaredActions.CORE.size} actions, all services")
         } else {
@@ -78,6 +84,7 @@ internal class MondooSelfCheck : ProjectActivity {
             com.mondoo.intellij.deps.DependencyReachabilityService.getInstance(project)
         }
         check(failures, "PolicyLintService") { com.mondoo.intellij.policy.PolicyLintService.getInstance(project) }
+        check(failures, "PolicyIndexService") { com.mondoo.intellij.policy.PolicyIndexService.getInstance(project) }
         check(failures, "TargetStore") { com.mondoo.intellij.target.TargetStore.getInstance(project) }
         check(failures, "CnspecRunService") { com.mondoo.intellij.target.CnspecRunService.getInstance(project) }
     }
