@@ -67,15 +67,23 @@ class PolicyIndexService(private val project: Project) {
         }
         dirty.set(false)
 
+        // Every outcome says something. Three attempts at getting this scheduling
+        // right failed in CI and produced no log line at all, because the only path
+        // that was reached — cancellation — was the one being swallowed. An index
+        // that quietly does nothing is indistinguishable from an index with nothing
+        // to find, and that ambiguity cost more than the log lines do.
+        log.info("Mondoo: policy index scan requested")
+
         ReadAction.nonBlocking<List<PolicyTree.Source>> { collectSources() }
             .inSmartMode(project)
             .expireWhen { project.isDisposed }
             .submit(AppExecutorUtil.getAppExecutorService())
             .onSuccess { sources -> publish(sources) }
             .onError { error ->
-                // Cancellation is normal: the project closed, or indexing restarted.
-                if (error !is java.util.concurrent.CancellationException) {
-                    log.warn("could not build the policy tree", error)
+                if (error is java.util.concurrent.CancellationException) {
+                    log.info("Mondoo: policy index scan cancelled before it produced a result")
+                } else {
+                    log.warn("Mondoo: policy index scan failed", error)
                 }
             }
             .onProcessed {
