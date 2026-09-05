@@ -1,0 +1,19 @@
+<idea-plugin>
+  <!--
+    Loaded only where the Terminal plugin is present.
+
+    `cnspec shell` is interactive — you type MQL and read the answer — so it needs a
+    terminal rather than a ConsoleView, which renders output but has no input line.
+    Terminal is bundled in IntelliJ IDEA, GoLand and Android Studio, but it is a plugin
+    a user can disable, and this action should be absent rather than broken there.
+  -->
+  <actions>
+    <action id="Mondoo.Target.Shell"
+            class="com.mondoo.intellij.terminal.OpenCnspecShellAction"
+            text="Open cnspec Shell..."
+            description="Explore a target interactively with MQL">
+      <add-to-group group-id="Mondoo.CodeSecurity" anchor="after"
+                    relative-to-action="Mondoo.Target.RunQuery"/>
+    </action>
+  </actions>
+</idea-plugin>

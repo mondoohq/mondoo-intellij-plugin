@@ -117,6 +117,29 @@ adds others:
 cnspec supports many more providers than these. The rest remain available from its
 command line.
 
+## Exploring a target interactively
+
+**Open cnspec Shell…** opens `cnspec shell` against a target in the IDE's own
+terminal. It is the fastest way to answer "what does this resource actually return
+here?", which is most of policy authoring — you type MQL, read the answer, and type
+more.
+
+This is the one cnspec feature that uses the terminal rather than a console tab. The
+others stream output and a console renders that fine; a shell needs an input line,
+which a console does not have.
+
+`cnspec shell` accepts no inventory file, so unlike every other cnspec invocation here
+the target is expressed as arguments. Two consequences worth knowing:
+
+- Every value is quoted, because the command is typed into a real shell. A host name
+  containing a semicolon is a host name, not a second command.
+- **A stored password is never put on the command line.** It would be visible in the
+  process table and in your shell history. cnspec is asked to prompt for it instead
+  (`--ask-pass`), so you type it into the terminal. Key-based and agent-based targets
+  need nothing.
+
+Where the Terminal plugin is switched off the action is absent rather than broken.
+
 ## Managing targets
 
 **Manage Targets…** offers four things:

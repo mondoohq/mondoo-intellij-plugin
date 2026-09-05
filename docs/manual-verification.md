@@ -126,6 +126,16 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
 - [ ] Expanding a policy, then saving the bundle, leaves it expanded.
 - [ ] In an untrusted project the tree still lists bundles, but **Run** is disabled.
 
+## The cnspec shell
+
+- [ ] **Open cnspec Shell…** on "This machine" opens a terminal tab and lands at an
+      MQL prompt; `asset.platform` answers.
+- [ ] The tab is named after the target.
+- [ ] For an SSH target with a stored password, cnspec prompts for it — and the
+      password does not appear in the command line shown in the terminal.
+- [ ] For an SSH target with a key file, no prompt appears.
+- [ ] With the Terminal plugin disabled, the action is absent rather than failing.
+
 ## Targets
 
 Needs `cnspec` on the PATH; the actions explain themselves when it is absent.

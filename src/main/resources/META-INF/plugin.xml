@@ -21,6 +21,11 @@
        and silently exclude ours. See docs/adr/0001. -->
   <depends optional="true" config-file="mondoo-lsp.xml">com.intellij.modules.lsp</depends>
 
+  <!-- The interactive cnspec shell needs a terminal, which is a bundled plugin rather
+       than a platform module and can be switched off. Optional for the same reason as
+       the LSP module: the rest of the plugin must not care. -->
+  <depends optional="true" config-file="mondoo-terminal.xml">org.jetbrains.plugins.terminal</depends>
+
   <resource-bundle>messages.MondooBundle</resource-bundle>
 
   <extensions defaultExtensionNs="com.intellij">

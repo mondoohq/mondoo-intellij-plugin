@@ -64,10 +64,23 @@ internal class MondooSelfCheck : ProjectActivity {
         } else {
             LOG.info("$MARKER: LSP module not loaded here, skipping its actions")
         }
+
+        // Same reasoning for the terminal: absent where the Terminal plugin is
+        // disabled, which is a supported state rather than a failure.
+        if (moduleLoaded("org.jetbrains.plugins.terminal.TerminalToolWindowManager")) {
+            DeclaredActions.TERMINAL_MODULE.forEach { id ->
+                if (manager.getAction(id) == null) failures += "terminal action does not resolve: $id"
+            }
+        } else {
+            LOG.info("$MARKER: Terminal not present here, skipping its actions")
+        }
     }
 
     private fun lspModuleLoaded(): Boolean =
-        runCatching { Class.forName("com.intellij.platform.lsp.api.LspServerManager") }.isSuccess
+        moduleLoaded("com.intellij.platform.lsp.api.LspServerManager")
+
+    private fun moduleLoaded(className: String): Boolean =
+        runCatching { Class.forName(className, false, javaClass.classLoader) }.isSuccess
 
     private fun checkServices(project: Project, failures: MutableList<String>) {
         // A service that throws in its constructor takes its whole feature with it,

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Open cnspec Shell…** — an interactive MQL session against a target, in the IDE's
+  own terminal. A stored password is never placed on the command line; cnspec prompts
+  for it.
 - **Restart Language Servers** — restarts the code security, MQL and LR servers
   together, for when one stops responding and it is not obvious which.
 - **New Policy from Template…** — scaffolds a working example bundle with cnspec and

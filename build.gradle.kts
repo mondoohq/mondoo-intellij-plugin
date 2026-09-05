@@ -40,6 +40,11 @@ dependencies {
         // contents, so it must not run in a project the user has not trusted.
         bundledModule("intellij.platform.ide.impl")
 
+        // For the interactive cnspec shell. A bundled plugin rather than a platform
+        // module, so it is an optional <depends> at runtime; this is only to compile
+        // against it. Present in IntelliJ IDEA, GoLand and Android Studio.
+        bundledPlugin("org.jetbrains.plugins.terminal")
+
         pluginVerifier()
         zipSigner()
 

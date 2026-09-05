@@ -21,10 +21,11 @@ class PluginDescriptorTest {
 
     private val core = descriptor("/META-INF/plugin.xml")
     private val lspModule = descriptor("/META-INF/mondoo-lsp.xml")
+    private val terminalModule = descriptor("/META-INF/mondoo-terminal.xml")
 
     @Test
     fun `every class named in a descriptor exists`() {
-        val missing = (core + lspModule)
+        val missing = (core + lspModule + terminalModule)
             .let { CLASS_REF.findAll(it).toList() }
             .map { it.groupValues[1] }
             .distinct()
@@ -45,6 +46,11 @@ class PluginDescriptorTest {
             DeclaredActions.LSP_MODULE.sorted(),
             "DeclaredActions.LSP_MODULE has drifted from mondoo-lsp.xml",
         )
+        assertEquals(
+            actionIds(terminalModule).sorted(),
+            DeclaredActions.TERMINAL_MODULE.sorted(),
+            "DeclaredActions.TERMINAL_MODULE has drifted from mondoo-terminal.xml",
+        )
     }
 
     /**
@@ -53,7 +59,7 @@ class PluginDescriptorTest {
      */
     @Test
     fun `every action class on the classpath is registered`() {
-        val registered = CLASS_REF.findAll(core + lspModule).map { it.groupValues[1] }.toSet()
+        val registered = CLASS_REF.findAll(core + lspModule + terminalModule).map { it.groupValues[1] }.toSet()
         val unregistered = ACTION_CLASSES.filterNot { it in registered }
 
         assertTrue(
@@ -103,6 +109,7 @@ class PluginDescriptorTest {
             "com.mondoo.intellij.target.ManageTargetsAction",
             "com.mondoo.intellij.lsp.ReloadRulesAction",
             "com.mondoo.intellij.lsp.RestartLanguageServersAction",
+            "com.mondoo.intellij.terminal.OpenCnspecShellAction",
         )
     }
 }
