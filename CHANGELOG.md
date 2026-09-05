@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **New Policy from Template…** — scaffolds a working example bundle with cnspec and
+  opens it.
 - **Edit a target** and **Test a connection** in Manage Targets. Editing re-prompts
   each field with what is stored, keeping a secret unless you type a new one; the test
   asks cnspec whether it can reach the target before you commit to a scan.

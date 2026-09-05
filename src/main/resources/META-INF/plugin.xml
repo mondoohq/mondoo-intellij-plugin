@@ -120,6 +120,10 @@
       <separator/>
       <!-- Policy authoring. These stay hidden unless the focused file is a policy
            bundle, so they cost nothing in a project that has none. -->
+      <action id="Mondoo.Policy.New"
+              class="com.mondoo.intellij.policy.NewPolicyFromTemplateAction"
+              text="New Policy from Template..."
+              description="Scaffold a policy bundle with cnspec and open it"/>
       <action id="Mondoo.Policy.Lint"
               class="com.mondoo.intellij.policy.LintPolicyAction"
               text="Lint Policy Bundle"

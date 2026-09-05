@@ -25,6 +25,7 @@ object DeclaredActions {
         "Mondoo.Xgrep.SearchCode",
         "Mondoo.Xgrep.ReplaceCode",
         "Mondoo.Xgrep.ExportSearchRule",
+        "Mondoo.Policy.New",
         "Mondoo.Policy.Lint",
         "Mondoo.Policy.Format",
         "Mondoo.Policy.FormatSorted",

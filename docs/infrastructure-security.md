@@ -16,6 +16,21 @@ provides:
 Only files matching `*.mql.yaml`, `*.mql.yml` or `*.mql` are treated as Mondoo
 content. Ordinary YAML in your project is left alone.
 
+## Starting a policy
+
+**New Policy from Template…** asks for a file name, scaffolds it with cnspec, and
+opens it. The result is a working example policy rather than an empty file — the
+bundle format is a nested YAML shape nobody types from memory, and starting from
+something that already runs is faster than starting from the documentation.
+
+The name must end in `.mql.yaml` or `.mql.yml`, or neither the language server nor the
+Policies tab would recognise what you just made.
+
+If the file already exists the plugin says so and stops. It does not offer to
+overwrite, because cnspec refuses to: given an existing path it writes nothing and
+reports that the policy already exists, so an overwrite prompt would be offering
+something that cannot be honoured.
+
 ## Finding your way around a bundle
 
 The **Policies** tab in the Mondoo tool window lists every `*.mql.yaml` in the

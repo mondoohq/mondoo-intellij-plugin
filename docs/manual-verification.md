@@ -95,6 +95,16 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
 - [ ] **Format and Sort Policy Bundle** additionally sorts the queries.
 - [ ] All three are hidden when the focused file is not a policy bundle.
 
+## Creating a policy
+
+- [ ] **New Policy from Template…** offers `example-policy.mql.yaml` and creates it.
+- [ ] The created file opens, and appears in the Policies tab without a manual refresh.
+- [ ] A name not ending in `.mql.yaml`/`.mql.yml` is refused by the dialog itself.
+- [ ] A name containing a path separator is refused.
+- [ ] Running it twice with the same name reports that the file exists and offers no
+      overwrite — cnspec would refuse one.
+- [ ] With cnspec absent the action is disabled rather than failing when clicked.
+
 ## The Policies tab
 
 - [ ] Every `*.mql.yaml` in the project appears, nested by directory.

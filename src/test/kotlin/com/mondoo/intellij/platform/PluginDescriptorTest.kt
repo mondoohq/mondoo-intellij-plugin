@@ -94,6 +94,7 @@ class PluginDescriptorTest {
             "com.mondoo.intellij.actions.OpenDemoFileAction",
             "com.mondoo.intellij.actions.OpenDocumentationAction",
             "com.mondoo.intellij.actions.ShowXgrepPathAction",
+            "com.mondoo.intellij.policy.NewPolicyFromTemplateAction",
             "com.mondoo.intellij.policy.LintPolicyAction",
             "com.mondoo.intellij.policy.FormatPolicyAction",
             "com.mondoo.intellij.policy.FormatPolicySortedAction",
