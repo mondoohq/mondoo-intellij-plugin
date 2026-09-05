@@ -174,6 +174,17 @@ or run **Set Up Scanner**. A bar also appears at the top of any file the scanner
 have checked, offering the same thing; dismiss it for good with **Don't show again**.
 **Show xgrep Path** reports which binary is in use.
 
+## When something is wedged
+
+**Restart Language Servers** restarts all three — code security, MQL and LR. One action
+rather than three, because "something stopped responding, start it again" is a single
+intent and which server is at fault is usually the thing you cannot tell from outside.
+Restarting one that was not running does nothing, so it is safe whatever state you are
+in.
+
+That is separate from **Reload Rules**, which is also a restart underneath but answers
+a different question — "I edited a rule file, pick it up".
+
 ## Changing rules or settings
 
 The rules path, scan parallelism and scan scope are read when the scanner starts, so

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Restart Language Servers** — restarts the code security, MQL and LR servers
+  together, for when one stops responding and it is not obvious which.
 - **New Policy from Template…** — scaffolds a working example bundle with cnspec and
   opens it.
 - **Edit a target** and **Test a connection** in Manage Targets. Editing re-prompts

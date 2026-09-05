@@ -41,7 +41,7 @@ object DeclaredActions {
     )
 
     /** Registered in `META-INF/mondoo-lsp.xml`, so absent where LSP is. */
-    val LSP_MODULE = listOf("Mondoo.Xgrep.ReloadRules")
+    val LSP_MODULE = listOf("Mondoo.Xgrep.ReloadRules", "Mondoo.RestartLanguageServers")
 
     /** The group the core actions hang off, and the plugin's only menu entry point. */
     const val GROUP = "Mondoo.CodeSecurity"

@@ -102,6 +102,7 @@ class PluginDescriptorTest {
             "com.mondoo.intellij.target.RunQueryAction",
             "com.mondoo.intellij.target.ManageTargetsAction",
             "com.mondoo.intellij.lsp.ReloadRulesAction",
+            "com.mondoo.intellij.lsp.RestartLanguageServersAction",
         )
     }
 }

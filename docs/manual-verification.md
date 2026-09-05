@@ -40,6 +40,10 @@ printf 'import os\n\ndef run(cmd):\n    os.system(cmd)\n' > "$P/main.py"
 - [ ] **Suppress with reason…** prompts, and records the reason *before* the keyword.
 - [ ] On a rule that ships a fix, Alt+Enter offers to apply it and the edit is correct.
 
+- [ ] **Restart Language Servers** restarts whichever of the three are running, and
+      findings reappear afterwards without reopening the file.
+- [ ] It is harmless when none of them are running.
+
 ## Scans
 
 - [ ] **Scan Workspace** runs, shows progress, and reports a result notification.
