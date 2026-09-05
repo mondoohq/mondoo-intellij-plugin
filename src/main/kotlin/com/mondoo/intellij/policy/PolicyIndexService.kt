@@ -9,12 +9,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.Task
-import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.messages.Topic
 import com.mondoo.intellij.mql.MqlFiles
 import java.nio.file.Path
@@ -44,19 +42,22 @@ class PolicyIndexService(private val project: Project) {
     fun tree(): List<PolicyNode> = tree.get()
 
     /**
-     * Rescans in the background, then publishes.
+     * Rescans off the EDT, then publishes.
      *
      * Coalesced rather than dropped. A save touching several bundles should not start
      * a second walk over the same files — but it must not be discarded either: an edit
      * arriving while a scan is running is precisely the one whose results that scan
-     * will not contain, and dropping it leaves the tree stale until some unrelated
-     * event happens to refresh it. So it marks the index dirty and repeats afterwards.
+     * will not contain. So it marks the index dirty and repeats afterwards.
      *
-     * Deferred until indexing is done, and never run inline on the caller's thread.
-     * Walking the content roots needs the project model, so starting a walk while the
-     * IDE is still indexing means contending with the write actions doing the
-     * indexing — on a slow machine that showed up as a startup that stalled and a scan
-     * that never reported.
+     * Nothing here goes near the EDT, and that is the point. Scheduling this with
+     * `DumbService.smartInvokeLater` looked equivalent and was not: that posts an EDT
+     * runnable carrying the modality state it was created with, and on a machine
+     * showing anything modal the runnable simply never runs. It failed exactly that
+     * way in CI — indexing finished, the project went smart, and the scan never
+     * started for the remaining three minutes of the session.
+     *
+     * `inSmartMode` expresses the same "wait for indexes" requirement as a constraint
+     * on the read action instead, which the platform satisfies on a background thread.
      */
     fun refresh() {
         if (project.isDisposed) return
@@ -66,68 +67,58 @@ class PolicyIndexService(private val project: Project) {
         }
         dirty.set(false)
 
-        DumbService.getInstance(project).smartInvokeLater {
-            if (project.isDisposed) {
-                scanning.set(false)
-                return@smartInvokeLater
-            }
-            scanTask().queue()
-        }
-    }
-
-    private fun scanTask(): Task.Backgroundable =
-        object : Task.Backgroundable(project, "Reading Mondoo policy bundles", true) {
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = true
-                val built = runCatching {
-                    val sources = scan()
-                    // Doubles as the answer to "why is my policy not in the tree",
-                    // which is the first question in any report about this tab.
-                    log.info(
-                        "Mondoo: policy index found ${sources.size} bundle(s), " +
-                            "${sources.sumOf { it.bundle.policies.size }} policies, " +
-                            "${sources.sumOf { it.bundle.queries.size }} queries",
-                    )
-                    PolicyTree.build(sources)
-                }
-                    .onFailure { log.warn("could not build the policy tree", it) }
-                    .getOrDefault(emptyList())
-                tree.set(built)
-                if (!project.isDisposed) {
-                    project.messageBus.syncPublisher(TOPIC).policiesChanged(built)
+        ReadAction.nonBlocking<List<PolicyTree.Source>> { collectSources() }
+            .inSmartMode(project)
+            .expireWhen { project.isDisposed }
+            .submit(AppExecutorUtil.getAppExecutorService())
+            .onSuccess { sources -> publish(sources) }
+            .onError { error ->
+                // Cancellation is normal: the project closed, or indexing restarted.
+                if (error !is java.util.concurrent.CancellationException) {
+                    log.warn("could not build the policy tree", error)
                 }
             }
-
-            override fun onFinished() {
+            .onProcessed {
                 scanning.set(false)
                 // Something changed while this was running, and it is not in the
                 // result just published.
                 if (dirty.compareAndSet(true, false)) refresh()
             }
+    }
+
+    private fun publish(sources: List<PolicyTree.Source>) {
+        // Doubles as the answer to "why is my policy not in the tree", which is the
+        // first question in any report about this tab.
+        log.info(
+            "Mondoo: policy index found ${sources.size} bundle(s), " +
+                "${sources.sumOf { it.bundle.policies.size }} policies, " +
+                "${sources.sumOf { it.bundle.queries.size }} queries",
+        )
+        val built = PolicyTree.build(sources)
+        tree.set(built)
+        if (!project.isDisposed) {
+            project.messageBus.syncPublisher(TOPIC).policiesChanged(built)
         }
+    }
 
     /**
-     * Walks the content roots under a cancellable read action.
-     *
-     * nonBlocking rather than a plain read action: this holds the lock while it reads
-     * and parses every bundle, and a plain one would make a write action — anything
-     * the user types — wait for the whole walk. This yields instead.
+     * Collects and parses every bundle. Runs inside the read action above, so it
+     * must not block on anything but the filesystem.
      */
-    private fun scan(): List<PolicyTree.Source> =
-        ReadAction.nonBlocking<List<PolicyTree.Source>> {
-            if (project.isDisposed) return@nonBlocking emptyList()
-            val base = project.basePath?.let(Path::of)
-            val sources = mutableListOf<PolicyTree.Source>()
-            ProjectFileIndex.getInstance(project).iterateContent { file ->
-                if (!file.isDirectory && MqlFiles.isPolicyBundle(file.name) && file.length <= MAX_BUNDLE_BYTES) {
-                    textOf(file)?.let { text ->
-                        sources += PolicyTree.Source(relativePath(base, file), PolicyBundle.parse(text))
-                    }
+    private fun collectSources(): List<PolicyTree.Source> {
+        if (project.isDisposed) return emptyList()
+        val base = project.basePath?.let(Path::of)
+        val sources = mutableListOf<PolicyTree.Source>()
+        ProjectFileIndex.getInstance(project).iterateContent { file ->
+            if (!file.isDirectory && MqlFiles.isPolicyBundle(file.name) && file.length <= MAX_BUNDLE_BYTES) {
+                textOf(file)?.let { text ->
+                    sources += PolicyTree.Source(relativePath(base, file), PolicyBundle.parse(text))
                 }
-                true
             }
-            sources
-        }.expireWhen { project.isDisposed }.executeSynchronously()
+            true
+        }
+        return sources
+    }
 
     /** The open document's text when the file is being edited, else what is on disk. */
     private fun textOf(file: VirtualFile): String? =
