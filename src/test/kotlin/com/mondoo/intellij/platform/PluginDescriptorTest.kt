@@ -86,6 +86,7 @@ class PluginDescriptorTest {
             "com.mondoo.intellij.actions.AnalyzeDependenciesAction",
             "com.mondoo.intellij.actions.GenerateBomAction",
             "com.mondoo.intellij.actions.SearchCodeAction",
+            "com.mondoo.intellij.actions.ReplaceCodeAction",
             "com.mondoo.intellij.actions.ExportSearchRuleAction",
             "com.mondoo.intellij.actions.SetupScannerAction",
             "com.mondoo.intellij.actions.InstallAiSkillsAction",

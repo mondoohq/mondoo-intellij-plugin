@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Replace Code…** — structural search and replace. Matches are previewed in the Find
+  tool window and applied as a single undoable command; nested matches are skipped
+  rather than corrupted, and the count of skipped ones is shown.
+
 - A **Policies** tab listing every `*.mql.yaml` bundle in the project by directory,
   down to the queries each group's checks name. Double-click navigates to the
   declaration, typing filters the tree, and **Run** executes the selected query,

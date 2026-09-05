@@ -117,6 +117,24 @@ navigation. **Export Search as Rule** turns the pattern into a reusable
 xgrep rule, so a pattern worth finding once becomes a finding the scanner flags from
 then on — point the custom rules path at it to enforce it.
 
+
+### Replacing what you find
+
+**Replace Code…** asks for a pattern and a replacement, then shows every match in the
+Find tool window *before* anything is written. **Replace All** applies them as one
+undoable command — a multi-file replace that undoes file by file leaves a state nobody
+asked for.
+
+Two things it does quietly and should be trusted on:
+
+- Matches are applied last-first, because each edit shifts everything after it.
+- Where a pattern matches inside its own match — `f($X)` against `f(f(1))` — only the
+  outer one is rewritten. Applying both would splice one replacement into text the
+  other had already replaced. The button says how many were skipped.
+
+Ranges are recomputed against the file as it is when you press the button, not as it
+was when the search ran, so edits made while the preview is open cannot corrupt it.
+
 ## Bring xgrep to your AI agent
 
 - **Install AI Skills...** installs a skill from

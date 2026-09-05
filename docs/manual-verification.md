@@ -53,6 +53,12 @@ printf 'import os\n\ndef run(cmd):\n    os.system(cmd)\n' > "$P/main.py"
 - [ ] **Search Code…** with `os.system($X)` opens results in the **Find** tool window.
 - [ ] Results navigate to the right lines.
 - [ ] **Export Search as Rule** opens YAML that round-trips through the rules path.
+- [ ] **Replace Code…** with `eval($X)` → `safeEval($X)` previews matches before writing.
+- [ ] **Replace All** rewrites every match, and a single Undo reverts all of them across
+      every file.
+- [ ] On `f(f(1))` with pattern `f($X)`, only the outer call is rewritten and the button
+      says one was skipped.
+- [ ] Editing a matched file while the preview is open does not corrupt it on Replace All.
 
 ## Bill of materials
 

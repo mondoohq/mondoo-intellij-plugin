@@ -109,6 +109,10 @@
               class="com.mondoo.intellij.actions.SearchCodeAction"
               text="Search Code..."
               description="Structural code search"/>
+      <action id="Mondoo.Xgrep.ReplaceCode"
+              class="com.mondoo.intellij.actions.ReplaceCodeAction"
+              text="Replace Code..."
+              description="Structural search and replace, previewed before anything is written"/>
       <action id="Mondoo.Xgrep.ExportSearchRule"
               class="com.mondoo.intellij.actions.ExportSearchRuleAction"
               text="Export Search as Rule"

@@ -23,6 +23,7 @@ object DeclaredActions {
         "Mondoo.Deps.Analyze",
         "Mondoo.Bom.Generate",
         "Mondoo.Xgrep.SearchCode",
+        "Mondoo.Xgrep.ReplaceCode",
         "Mondoo.Xgrep.ExportSearchRule",
         "Mondoo.Policy.Lint",
         "Mondoo.Policy.Format",

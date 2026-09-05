@@ -5,19 +5,25 @@ package com.mondoo.intellij.actions
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.Document
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.ReadonlyStatusHandler
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
 import com.intellij.testFramework.LightVirtualFile
 import com.intellij.usageView.UsageInfo
 import com.intellij.usages.UsageInfo2UsageAdapter
+import com.intellij.usages.UsageView
 import com.intellij.usages.UsageViewManager
 import com.intellij.usages.UsageViewPresentation
+import com.mondoo.intellij.search.SearchOffsets
+import com.mondoo.intellij.search.StructuralReplace
 import com.mondoo.intellij.search.XgrepSearchMatch
 import com.mondoo.intellij.search.XgrepSearchService
 import com.mondoo.intellij.util.MondooDialogs
@@ -50,7 +56,7 @@ class SearchCodeAction : XgrepScanActionBase() {
         )?.trim().orEmpty()
         if (pattern.isEmpty()) return
 
-        val language = askLanguage(project) ?: return
+        val language = askLanguage(project, "Search Code") ?: return
 
         object : Task.Backgroundable(project, "Searching with xgrep", true) {
             override fun run(indicator: ProgressIndicator) {
@@ -74,63 +80,52 @@ class SearchCodeAction : XgrepScanActionBase() {
             }
         }.queue()
     }
+}
 
-    /** Only offers languages xgrep can actually parse. */
-    private fun askLanguage(project: Project): String? {
-        val languages = XgrepLanguages.supportedLanguageIds.sorted()
-        val current = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
-            ?.let { XgrepLanguages.languageIdFor(it.name) }
-            ?.takeIf { it.isNotEmpty() }
-        return MondooDialogs.choose(
-            project,
-            "Which language?",
-            "Search Code",
-            languages,
-            initial = current ?: languages.first(),
-        )?.let(languages::getOrNull)
+/** Only offers languages xgrep can actually parse. */
+private fun askLanguage(project: Project, title: String): String? {
+    val languages = XgrepLanguages.supportedLanguageIds.sorted()
+    val current = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
+        ?.let { XgrepLanguages.languageIdFor(it.name) }
+        ?.takeIf { it.isNotEmpty() }
+    return MondooDialogs.choose(
+        project,
+        "Which language?",
+        title,
+        languages,
+        initial = current ?: languages.first(),
+    )?.let(languages::getOrNull)
+}
+
+/**
+ * Renders matches in the Find tool window and returns the view, so a caller that has
+ * something to offer — Replace All — can put a button on it.
+ *
+ * Shared by search and replace on purpose: the preview a replace shows must be built
+ * the same way as the search it came from, or the ranges highlighted and the ranges
+ * rewritten could differ.
+ */
+private fun showUsages(
+    project: Project,
+    pattern: String,
+    matches: List<XgrepSearchMatch>,
+): UsageView? {
+    val usages = matches.mapNotNull { match ->
+        val file = LocalFileSystem.getInstance().findFileByNioFile(Path.of(match.path)) ?: return@mapNotNull null
+        val psi = PsiManager.getInstance(project).findFile(file) ?: return@mapNotNull null
+        val document = FileDocumentManager.getInstance().getDocument(file) ?: return@mapNotNull null
+        val range = SearchOffsets.rangeIn(document, match) ?: return@mapNotNull null
+        UsageInfo2UsageAdapter(UsageInfo(psi, range.first, range.last))
     }
 
-    private fun showUsages(project: Project, pattern: String, matches: List<XgrepSearchMatch>) {
-        val usages = matches.mapNotNull { match ->
-            val file = LocalFileSystem.getInstance().findFileByNioFile(Path.of(match.path)) ?: return@mapNotNull null
-            val psi = PsiManager.getInstance(project).findFile(file) ?: return@mapNotNull null
-            val document = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)
-                ?: return@mapNotNull null
-            val range = offsetsIn(document, match) ?: return@mapNotNull null
-            UsageInfo2UsageAdapter(UsageInfo(psi, range.first, range.last))
-        }
-
-        val presentation = UsageViewPresentation().apply {
-            tabText = "xgrep: $pattern"
-            toolwindowTitle = "xgrep Search"
-            isOpenInNewTab = true
-            codeUsagesString = "Structural matches"
-        }
-        UsageViewManager.getInstance(project)
-            .showUsages(emptyArray(), usages.toTypedArray(), presentation)
+    val presentation = UsageViewPresentation().apply {
+        tabText = "xgrep: $pattern"
+        toolwindowTitle = "xgrep Search"
+        isOpenInNewTab = true
+        codeUsagesString = "Structural matches"
     }
-
-    /**
-     * The match's span, clamped to the document, or null when it cannot land in one.
-     *
-     * The document is what the editor holds now; the match describes what the
-     * scanner read moments ago. A file edited or reverted in between can be shorter
-     * than the match claims, and the platform's offset methods throw rather than
-     * clamp — an unguarded `getLineStartOffset(endLine)` past the end takes down
-     * the whole result list, not just the one stale hit.
-     */
-    private fun offsetsIn(document: Document, match: XgrepSearchMatch): IntRange? {
-        if (match.line >= document.lineCount) return null
-
-        val lineStart = document.getLineStartOffset(match.line)
-        val start = (lineStart + match.column).coerceIn(lineStart, document.getLineEndOffset(match.line))
-
-        val endLine = match.endLine.coerceIn(match.line, document.lineCount - 1)
-        val endLimit = document.getLineEndOffset(endLine).coerceAtLeast(start)
-        val end = (document.getLineStartOffset(endLine) + match.endColumn).coerceIn(start, endLimit)
-
-        return start..end
-    }
+    return UsageViewManager.getInstance(project)
+        .showUsages(emptyArray(), usages.toTypedArray(), presentation)
 }
 
 /** Turns the current pattern into a reusable xgrep rule, opened as YAML. */
@@ -173,4 +168,138 @@ class ExportSearchRuleAction : XgrepScanActionBase() {
             }
         }.queue()
     }
+}
+
+/**
+ * Structural search and replace, previewed before anything is written.
+ *
+ * The pattern language is the scanner's, so `eval($X)` → `safeEval($X)` rewrites every
+ * call regardless of what `$X` is — which is the point, and also why this shows the
+ * matches first and puts Replace All behind a button rather than doing it on the way
+ * out of a dialog.
+ *
+ * The whole replace is one undoable command. Multi-file replaces that undo file by
+ * file are worse than no replace at all: the state after three undos is one nobody
+ * asked for and nobody can name.
+ */
+class ReplaceCodeAction : XgrepScanActionBase() {
+
+    override fun actionPerformed(e: AnActionEvent) {
+        if (!requireServer(e)) return
+        val project = e.project ?: return
+
+        val pattern = Messages.showInputDialog(
+            project,
+            "Structural pattern to find. \$X binds any expression, ... matches anything.",
+            "Replace Code",
+            null,
+            "eval(\$X)",
+            null,
+        )?.trim().orEmpty()
+        if (pattern.isEmpty()) return
+
+        val replacement = Messages.showInputDialog(
+            project,
+            "Replace matches with. Metavariables from the pattern may be reused.",
+            "Replace Code",
+            null,
+            "safeEval(\$X)",
+            null,
+        )?.trim().orEmpty()
+        if (replacement.isEmpty()) return
+
+        val language = askLanguage(project, "Replace Code") ?: return
+
+        object : Task.Backgroundable(project, "Searching with xgrep", true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                val matches = XgrepSearchService.getInstance(project).search(pattern, language, replacement)
+                ApplicationManager.getApplication().invokeLater {
+                    when {
+                        matches == null -> Messages.showWarningDialog(
+                            project,
+                            "The xgrep scanner did not answer. It may not be running.",
+                            "Replace Code",
+                        )
+                        matches.isEmpty() -> Messages.showInfoMessage(
+                            project,
+                            "No structural matches for $pattern",
+                            "Replace Code",
+                        )
+                        else -> previewReplacements(project, pattern, replacement, matches)
+                    }
+                }
+            }
+        }.queue()
+    }
+
+    private fun previewReplacements(
+        project: Project,
+        pattern: String,
+        replacement: String,
+        matches: List<XgrepSearchMatch>,
+    ) {
+        val plan = StructuralReplace.plan(matches)
+        if (plan.isEmpty()) {
+            Messages.showWarningDialog(
+                project,
+                "The scanner matched $pattern but returned no replacement text.",
+                "Replace Code",
+            )
+            return
+        }
+
+        val view = showUsages(project, "$pattern → $replacement", plan) ?: return
+        val skipped = StructuralReplace.skipped(matches)
+
+        view.addButtonToLowerPane(
+            { applyAll(project, plan, "$pattern → $replacement", skipped) },
+            if (skipped > 0) "Replace All (${plan.size}, $skipped nested skipped)" else "Replace All (${plan.size})",
+        )
+    }
+
+    /**
+     * Applies every replacement in one write command.
+     *
+     * The plan arrives last-first so that each edit leaves the offsets of the ones
+     * still to come untouched; see [StructuralReplace]. Ranges are recomputed against
+     * the live document rather than trusted from the scan, because the file may have
+     * been edited while the preview was open.
+     */
+    private fun applyAll(
+        project: Project,
+        plan: List<XgrepSearchMatch>,
+        commandName: String,
+        skipped: Int,
+    ) {
+        val files = plan.mapNotNull { virtualFile(it.path) }.distinct()
+        if (!ReadonlyStatusHandler.ensureFilesWritable(project, *files.toTypedArray())) return
+
+        var applied = 0
+        var stale = 0
+        WriteCommandAction.runWriteCommandAction(project, "Replace $commandName", null, {
+            val documents = FileDocumentManager.getInstance()
+            plan.forEach { match ->
+                val file = virtualFile(match.path) ?: return@forEach
+                val document = documents.getDocument(file) ?: return@forEach
+                val range = SearchOffsets.rangeIn(document, match)
+                if (range == null) {
+                    stale++
+                    return@forEach
+                }
+                document.replaceString(range.first, range.last, match.replacement.orEmpty())
+                applied++
+            }
+        })
+
+        val notes = listOfNotNull(
+            "$applied replacement(s) applied".takeIf { applied > 0 },
+            "$skipped nested match(es) skipped".takeIf { skipped > 0 },
+            "$stale match(es) no longer fit the file".takeIf { stale > 0 },
+        )
+        Messages.showInfoMessage(project, notes.joinToString("\n"), "Replace Code")
+    }
+
+    private fun virtualFile(path: String): VirtualFile? =
+        LocalFileSystem.getInstance().findFileByNioFile(Path.of(path))
 }
