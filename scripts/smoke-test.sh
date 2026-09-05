@@ -126,6 +126,15 @@ attempt() {
     [ $SECONDS -ge $deadline ] && return 1
     sleep 5
   done
+  # The policy index waits for indexing to finish before it walks the project, so on
+  # a cold CI runner it lands well after the IDE is otherwise ready. Wait for it
+  # rather than checking immediately and calling a slow machine a failure.
+  local index_deadline=$((SECONDS + 180))
+  until grep -q "Mondoo: policy index found" "$LOG" 2>/dev/null; do
+    [ $SECONDS -ge $index_deadline ] && break
+    sleep 3
+  done
+
   # The MQL server loads a resource schema first, so it lands later than the code
   # scanner. Give it its own window rather than assuming one implies the other.
   local mql_deadline=$((SECONDS + 60))

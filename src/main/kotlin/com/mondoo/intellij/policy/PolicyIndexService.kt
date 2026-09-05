@@ -11,6 +11,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.impl.LoadTextUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.VirtualFile
@@ -37,6 +38,7 @@ class PolicyIndexService(private val project: Project) {
     private val log = Logger.getInstance(PolicyIndexService::class.java)
     private val tree = AtomicReference<List<PolicyNode>>(emptyList())
     private val scanning = AtomicBoolean(false)
+    private val dirty = AtomicBoolean(false)
 
     /** The current tree. Empty until the first scan finishes. */
     fun tree(): List<PolicyNode> = tree.get()
@@ -44,12 +46,36 @@ class PolicyIndexService(private val project: Project) {
     /**
      * Rescans in the background, then publishes.
      *
-     * Coalesced: a save touching several bundles, or an impatient Refresh, should not
-     * start a second walk over the same files.
+     * Coalesced rather than dropped. A save touching several bundles should not start
+     * a second walk over the same files — but it must not be discarded either: an edit
+     * arriving while a scan is running is precisely the one whose results that scan
+     * will not contain, and dropping it leaves the tree stale until some unrelated
+     * event happens to refresh it. So it marks the index dirty and repeats afterwards.
+     *
+     * Deferred until indexing is done, and never run inline on the caller's thread.
+     * Walking the content roots needs the project model, so starting a walk while the
+     * IDE is still indexing means contending with the write actions doing the
+     * indexing — on a slow machine that showed up as a startup that stalled and a scan
+     * that never reported.
      */
     fun refresh() {
-        if (!scanning.compareAndSet(false, true)) return
+        if (project.isDisposed) return
+        if (!scanning.compareAndSet(false, true)) {
+            dirty.set(true)
+            return
+        }
+        dirty.set(false)
 
+        DumbService.getInstance(project).smartInvokeLater {
+            if (project.isDisposed) {
+                scanning.set(false)
+                return@smartInvokeLater
+            }
+            scanTask().queue()
+        }
+    }
+
+    private fun scanTask(): Task.Backgroundable =
         object : Task.Backgroundable(project, "Reading Mondoo policy bundles", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
@@ -74,9 +100,11 @@ class PolicyIndexService(private val project: Project) {
 
             override fun onFinished() {
                 scanning.set(false)
+                // Something changed while this was running, and it is not in the
+                // result just published.
+                if (dirty.compareAndSet(true, false)) refresh()
             }
-        }.queue()
-    }
+        }
 
     /**
      * Walks the content roots under a cancellable read action.
