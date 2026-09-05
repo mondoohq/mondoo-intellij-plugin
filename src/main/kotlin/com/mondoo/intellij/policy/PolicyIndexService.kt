@@ -56,8 +56,17 @@ class PolicyIndexService(private val project: Project) {
      * way in CI — indexing finished, the project went smart, and the scan never
      * started for the remaining three minutes of the session.
      *
-     * `inSmartMode` expresses the same "wait for indexes" requirement as a constraint
-     * on the read action instead, which the platform satisfies on a background thread.
+     * It has no smart-mode constraint either, and that is the same lesson learned a
+     * second time: `inSmartMode` schedules its constraint through
+     * `DumbService.runWhenSmart`, which posts to the EDT. Adding it reintroduced the
+     * exact dependency it was meant to remove, and the instrumentation caught it —
+     * on all three platforms the scan was requested and then never succeeded, failed
+     * or cancelled, because the promise was waiting on a runnable that would never run.
+     *
+     * Nothing here needs indexes. `ProjectFileIndex.iterateContent` walks content
+     * roots from the workspace model rather than querying an index, so it is available
+     * during indexing; a `FilenameIndex` lookup would not have been, which is why this
+     * walks instead.
      */
     fun refresh() {
         if (project.isDisposed) return
@@ -75,7 +84,6 @@ class PolicyIndexService(private val project: Project) {
         log.info("Mondoo: policy index scan requested")
 
         ReadAction.nonBlocking<List<PolicyTree.Source>> { collectSources() }
-            .inSmartMode(project)
             .expireWhen { project.isDisposed }
             .submit(AppExecutorUtil.getAppExecutorService())
             .onSuccess { sources -> publish(sources) }
