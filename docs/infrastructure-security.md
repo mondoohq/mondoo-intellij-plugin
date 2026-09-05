@@ -102,6 +102,26 @@ adds others:
 cnspec supports many more providers than these. The rest remain available from its
 command line.
 
+## Managing targets
+
+**Manage Targets…** offers four things:
+
+- **Add a target** — pick a kind, name it, fill in its fields. Secrets are prompted
+  masked and go straight to the IDE password safe.
+- **Edit a target** — every field comes back pre-filled with what is stored. Leave a
+  secret blank to keep the one already saved; changing a hostname should not cost you
+  a password. The name is fixed, because it is the key the password safe uses —
+  renaming means removing and adding.
+- **Test a connection** — asks cnspec whether it can actually reach the target, before
+  you commit to a scan. Without it, the first sign of a wrong host or a stale key is a
+  scan that fails minutes in, with no way to tell whether the fault is the target, the
+  credentials or the policy.
+- **Remove a target** — also forgets its secrets, so nothing is orphaned in the safe.
+
+Note that cnspec exits successfully even when it cannot reach an asset, so the
+connection test reads its output rather than its exit code. A test keyed on the exit
+code would call every failure a success.
+
 ## How credentials are handled
 
 Two rules, both enforced by the code rather than by convention:

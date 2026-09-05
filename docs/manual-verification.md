@@ -121,5 +121,11 @@ Needs `cnspec` on the PATH; the actions explain themselves when it is absent.
 - [ ] **Run MQL Query…** is seeded with the editor selection when one line is selected.
 - [ ] `asset.platform` against this machine returns a result.
 - [ ] **Manage Targets…** adds an SSH target; the password prompt is masked.
+- [ ] **Edit a target** pre-fills each field with the stored value.
+- [ ] Leaving the password blank on edit keeps the stored one; scanning still works.
+- [ ] Cancelling midway through an edit leaves the target unchanged.
+- [ ] **Test a connection** on "This machine" reports the platform it detected.
+- [ ] **Test a connection** on an unreachable host reports a failure, not a success —
+      cnspec exits 0 either way, so this is the one worth checking by hand.
 - [ ] The added target appears in the **Scan Target…** chooser and its secret is in the
       password safe, not in the project's persisted configuration.

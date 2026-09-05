@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Edit a target** and **Test a connection** in Manage Targets. Editing re-prompts
+  each field with what is stored, keeping a secret unless you type a new one; the test
+  asks cnspec whether it can reach the target before you commit to a scan.
 - **Replace Code…** — structural search and replace. Matches are previewed in the Find
   tool window and applied as a single undoable command; nested matches are skipped
   rather than corrupted, and the count of skipped ones is shown.

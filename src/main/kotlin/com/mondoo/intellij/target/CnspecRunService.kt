@@ -6,6 +6,7 @@ package com.mondoo.intellij.target
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.filters.TextConsoleBuilderFactory
+import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
@@ -23,6 +24,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.ContentFactory
 import com.mondoo.intellij.binary.CnspecBinaryService
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
@@ -68,6 +70,43 @@ class CnspecRunService(private val project: Project) : Disposable {
             },
             "$label: ${target.name}",
         )
+
+    /**
+     * Checks that cnspec can actually reach [target], without opening a console.
+     *
+     * A capturing run rather than a streaming one: the answer here is a verdict, not
+     * output to read, and the point is to find out before committing to a scan. See
+     * [ConnectionProbe] for why the exit code is not the signal.
+     *
+     * Blocking, and must not be called on the EDT.
+     */
+    fun testConnection(target: TargetConfiguration): ConnectionResult {
+        val binary = CnspecBinaryService.getInstance().resolvedBinaryOrNull()
+            ?: return ConnectionResult.Unreachable("cnspec is not installed")
+
+        val inventory = try {
+            writeInventory(target)
+        } catch (e: Exception) {
+            log.warn("could not write the inventory file", e)
+            return ConnectionResult.Unreachable("could not write a temporary inventory file")
+        }
+
+        return try {
+            val command = GeneralCommandLine(binary.toString())
+                .withParameters("run", "--inventory-file", inventory.toString(), "-c", ConnectionProbe.QUERY, "-j")
+                .withWorkDirectory(project.basePath)
+                .withCharset(StandardCharsets.UTF_8)
+            CredentialEnvironment.forTarget(target).forEach { (k, v) -> command.withEnvironment(k, v) }
+
+            val output = CapturingProcessHandler(command).runProcess(CONNECTION_TIMEOUT_MS, true)
+            ConnectionProbe.interpret(output.stdout, output.stderr, output.isTimeout)
+        } catch (e: ExecutionException) {
+            log.warn("could not start cnspec", e)
+            ConnectionResult.Unreachable("could not start cnspec: ${e.message}")
+        } finally {
+            deleteInventory(inventory)
+        }
+    }
 
     private fun run(target: TargetConfiguration, verb: List<String>, title: String) {
         // Before writing a new one, not on a startup hook: this is the moment we know
@@ -232,6 +271,12 @@ class CnspecRunService(private val project: Project) : Disposable {
 
         /** Enough to compare a couple of runs; beyond that they are just clutter. */
         private const val MAX_CONSOLE_TABS = 5
+
+        /**
+         * Long enough for a cold provider install and an SSH handshake, short enough
+         * that a wrong host does not look like a hang.
+         */
+        private const val CONNECTION_TIMEOUT_MS = 90_000
 
         @JvmStatic
         fun getInstance(project: Project): CnspecRunService = project.service()
