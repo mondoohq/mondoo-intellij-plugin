@@ -153,3 +153,21 @@ Inventory files left behind by a crash are swept on the next start.
 
 Scans are disabled in a project you have not trusted, since running one connects to
 infrastructure using the project's configuration.
+
+Secrets never reach a command line. They are written into a temporary inventory file
+— mode 0600, in a directory only you can enter, deleted when the process exits —
+because a command line is visible to every process on the machine through the process
+table.
+
+For SSH the credential depends on what you configured, in this order:
+
+| Configured | Credential sent |
+| --- | --- |
+| A key file | `private_key`, with the path; cnspec reads the key itself |
+| A password | `password`, from the IDE password safe |
+| Neither | `ssh_agent`, deferring to your agent |
+
+A passphrase-protected key is not supported: cnspec rejects a `private_key` credential
+carrying a passphrase with "no authentication method defined", so there is nothing
+useful to send. Use an agent for those.
+

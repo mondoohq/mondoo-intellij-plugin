@@ -73,6 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An SSH target configured with a password now authenticates with it. The password was
+  put in an `SSH_PASSWORD` environment variable that cnspec does not read, and the
+  inventory only ever described key or agent authentication — so the password was
+  silently discarded and the connection fell back to the SSH agent, failing wherever
+  the agent did not happen to hold the key. It now goes into the temporary inventory
+  file as a `password` credential.
+
 - The status-bar menu no longer renders most actions as disabled. The status bar's
   data context carries no project, so every action that consults it appeared greyed
   out.

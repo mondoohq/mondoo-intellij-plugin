@@ -181,7 +181,10 @@ class CnspecRunService(private val project: Project) : Disposable {
         val dir = Files.createTempDirectory(INVENTORY_DIR_PREFIX)
         restrictToOwner(dir)
         val file = dir.resolve("inventory.yml")
-        Files.writeString(file, InventoryBuilder.build(target))
+        // The secrets are read here, at the moment of writing, and go straight into a
+        // file that is about to be locked down and later deleted. They are never held
+        // on the configuration object, which refuses to carry them at all.
+        Files.writeString(file, InventoryBuilder.build(target, TargetCredentials.forTarget(target)))
         restrictToOwner(file)
         return file
     }

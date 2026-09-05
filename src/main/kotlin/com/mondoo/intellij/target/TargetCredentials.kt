@@ -29,6 +29,12 @@ object TargetCredentials {
         PasswordSafe.instance.setPassword(attributes(targetName, field), secret?.takeIf { it.isNotEmpty() })
     }
 
+    /** Every stored secret for a target, keyed by field. */
+    fun forTarget(target: TargetConfiguration): Map<String, String> =
+        target.type.fields.filter { it.secret }
+            .mapNotNull { field -> get(target.name, field.key)?.let { field.key to it } }
+            .toMap()
+
     /** Removes every secret for a target, for when its configuration is deleted. */
     fun forget(target: TargetConfiguration) {
         target.type.fields.filter { it.secret }.forEach { set(target.name, it.key, null) }
@@ -36,26 +42,34 @@ object TargetCredentials {
 }
 
 /**
- * Maps a target's secrets to the environment variables cnspec reads.
+ * Maps a target's secrets to environment variables, where cnspec reads them.
  *
- * Ported from `buildCredentialEnv` in the VS Code extension. The mapping is
- * per-provider and deliberately explicit: passing a secret in the wrong variable
- * either fails to authenticate or, worse, leaks it to a provider that logs it.
+ * Empty today, and that is the correct state rather than an unfinished one.
+ *
+ * It used to put an SSH password in `SSH_PASSWORD`, which cnspec never reads: its
+ * connection package reads only `DOCKER_CONTEXT`, `SSH_AUTH_SOCK`, `MONDOO_SSH_SCP`
+ * and `WINRM_DISABLE_HTTPS`. The password was therefore silently discarded and the
+ * connection fell back to the SSH agent. SSH passwords now go into the inventory file
+ * as a `password` credential — see [InventoryBuilder] — which is 0600, short-lived,
+ * and actually read.
+ *
+ * The seam stays because it is genuinely the right delivery path for the providers
+ * that do read the environment — AWS reads `AWS_ACCESS_KEY_ID` and friends, GitHub
+ * reads `GITHUB_TOKEN`, Azure reads the `AZURE_*` triple — and those targets are the
+ * obvious next ones to support. What it must not do again is invent a variable name
+ * by analogy and assume something reads it.
  *
  * Pure: the lookup is injected, so this is unit-tested without a keychain.
  */
 object CredentialEnvironment {
 
+    @Suppress("UNUSED_PARAMETER")
     fun forTarget(
         target: TargetConfiguration,
         lookup: (field: String) -> String? = { TargetCredentials.get(target.name, it) },
-    ): Map<String, String> = buildMap {
-        when (target.type) {
-            TargetType.SSH -> lookup("password")?.let { put("SSH_PASSWORD", it) }
-
-            // These carry no secret fields today. Listed rather than defaulted so
-            // that adding a secret to one is a deliberate change here.
-            TargetType.LOCAL, TargetType.DOCKER, TargetType.KUBERNETES -> Unit
-        }
+    ): Map<String, String> = when (target.type) {
+        // Listed rather than defaulted, so adding a provider that does read the
+        // environment is a deliberate edit here.
+        TargetType.LOCAL, TargetType.SSH, TargetType.DOCKER, TargetType.KUBERNETES -> emptyMap()
     }
 }

@@ -14,6 +14,68 @@ class InventoryBuilderTest {
     private fun build(type: TargetType, vararg values: Pair<String, String>) =
         InventoryBuilder.build(TargetConfiguration("t", type, values.toMap()))
 
+    private fun buildWithSecrets(
+        type: TargetType,
+        secrets: Map<String, String>,
+        vararg values: Pair<String, String>,
+    ) = InventoryBuilder.build(TargetConfiguration("t", type, values.toMap()), secrets)
+
+    /**
+     * The bug this covers: a password-authenticated SSH target never used its
+     * password. The inventory only ever emitted `private_key` or `ssh_agent`, and the
+     * password was put in an `SSH_PASSWORD` environment variable that cnspec does not
+     * read — so the connection silently fell back to the agent and failed wherever the
+     * agent did not happen to hold the key.
+     */
+    @Test
+    fun `an ssh password becomes a password credential`() {
+        val yaml = buildWithSecrets(
+            TargetType.SSH,
+            secrets = mapOf("password" to "s3cr3t"),
+            "host" to "example.test",
+            "user" to "deploy",
+        )
+        assertTrue(yaml.contains("- type: password"), yaml)
+        assertTrue(yaml.contains("""user: "deploy""""), yaml)
+        assertTrue(yaml.contains("""password: "s3cr3t""""), yaml)
+        assertFalse(yaml.contains("ssh_agent"), "the agent fallback must not also be emitted")
+    }
+
+    /** A key is the stronger credential, so it wins when both are configured. */
+    @Test
+    fun `a key file takes precedence over a password`() {
+        val yaml = buildWithSecrets(
+            TargetType.SSH,
+            secrets = mapOf("password" to "s3cr3t"),
+            "host" to "example.test",
+            "user" to "deploy",
+            "keyFile" to "/keys/id_ed25519",
+        )
+        assertTrue(yaml.contains("- type: private_key"), yaml)
+        assertFalse(yaml.contains("s3cr3t"), "the password must not be written when a key is used")
+    }
+
+    @Test
+    fun `no password still falls back to the agent`() {
+        val yaml = build(TargetType.SSH, "host" to "example.test", "user" to "deploy")
+        assertTrue(yaml.contains("- type: ssh_agent"), yaml)
+    }
+
+    /** A password with a quote or newline must not be able to restructure the file. */
+    @Test
+    fun `a hostile password is escaped, not injected`() {
+        val yaml = buildWithSecrets(
+            TargetType.SSH,
+            secrets = mapOf("password" to "a\"b\nuser: root"),
+            "host" to "example.test",
+            "user" to "deploy",
+        )
+        // One line, with the quote and the newline both neutralised, so the injected
+        // `user: root` stays inside the scalar instead of becoming a second field.
+        assertTrue(yaml.contains("""password: "a\"b\nuser: root""""), yaml)
+        assertEquals(1, yaml.lines().count { it.trim().startsWith("user:") }, yaml)
+    }
+
     @Test
     fun `local needs no connection detail`() {
         val yaml = build(TargetType.LOCAL)

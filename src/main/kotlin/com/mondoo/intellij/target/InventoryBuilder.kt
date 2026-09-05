@@ -9,8 +9,11 @@ package com.mondoo.intellij.target
  * Connection details go in a file rather than on the command line for one reason:
  * a command line is visible to every process on the machine through the process
  * table, and to any shell history or log that captures it. An inventory file can be
- * mode 0600 and short-lived. Secrets that cnspec accepts from the environment are
- * not written here at all — see [CredentialEnvironment].
+ * mode 0600 and short-lived — which is why an SSH password belongs here rather than
+ * in the environment. cnspec does not read one from the environment at all; its
+ * connection package reads only DOCKER_CONTEXT, SSH_AUTH_SOCK, MONDOO_SSH_SCP and
+ * WINRM_DISABLE_HTTPS, so a password handed over that way is silently ignored and the
+ * connection quietly falls back to the agent. Verified against cnspec, not assumed.
  *
  * Pure: builds a string, touches no filesystem, unit-tested without cnspec.
  */
@@ -23,8 +26,8 @@ object InventoryBuilder {
      * small and fixed in shape, and every value that reaches it is quoted here, so
      * a host name containing a quote or a newline cannot alter the structure.
      */
-    fun build(target: TargetConfiguration): String {
-        val connection = connectionLines(target).joinToString("\n") { "          $it" }
+    fun build(target: TargetConfiguration, secrets: Map<String, String> = emptyMap()): String {
+        val connection = connectionLines(target, secrets).joinToString("\n") { "          $it" }
         return buildString {
             appendLine("apiVersion: v7")
             appendLine("kind: Inventory")
@@ -38,7 +41,7 @@ object InventoryBuilder {
         }
     }
 
-    private fun connectionLines(target: TargetConfiguration): List<String> = buildList {
+    private fun connectionLines(target: TargetConfiguration, secrets: Map<String, String>): List<String> = buildList {
         add("- type: ${quote(target.type.id)}")
 
         when (target.type) {
@@ -53,18 +56,36 @@ object InventoryBuilder {
                 if (port.isNotBlank()) add("  port: ${port.toIntOrNull() ?: 22}")
 
                 val keyFile = target.value("keyFile")
+                val password = secrets["password"].orEmpty()
                 when {
                     keyFile.isNotBlank() -> {
                         // cnspec loads the key from this path itself, so the key
                         // material never passes through the plugin.
+                        //
+                        // A passphrase-protected key is not supported: cnspec rejects
+                        // a private_key credential carrying a `password` field with
+                        // "no authentication method defined", so there is nothing to
+                        // send. Checked against cnspec rather than guessed.
                         add("  credentials:")
                         add("    - type: private_key")
                         add("      private_key_path: ${quote(keyFile)}")
                         if (user.isNotBlank()) add("      user: ${quote(user)}")
                     }
+                    password.isNotEmpty() -> {
+                        // The password lives in the IDE password safe and reaches
+                        // cnspec only through this file, which is written 0600 in a
+                        // directory only this user can enter and deleted when the
+                        // process exits. It is never an argument and never an
+                        // environment variable.
+                        add("  credentials:")
+                        add("    - type: password")
+                        if (user.isNotBlank()) add("      user: ${quote(user)}")
+                        add("      password: ${quote(password)}")
+                    }
                     user.isNotBlank() -> {
-                        // No key: defer to the agent. A private_key credential with
-                        // no key would fail as "no authentication method defined".
+                        // No key and no password: defer to the agent. A private_key
+                        // credential with no key would fail as "no authentication
+                        // method defined".
                         add("  credentials:")
                         add("    - type: ssh_agent")
                         add("      user: ${quote(user)}")
