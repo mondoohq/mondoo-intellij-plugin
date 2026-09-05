@@ -75,6 +75,14 @@ class MondooState : BaseState() {
     /** mondoo.cnspecPath — empty means auto-discover. Never auto-installed. */
     var cnspecPath: String? by string("")
 
+    // --- LR resource definitions (mqlr) ---
+
+    /** mondoo.mqlrEnabled — language support for `.lr` and `.mqlr` files. */
+    var mqlrEnabled: Boolean by property(true)
+
+    /** mondoo.mqlrPath — empty means auto-discover. Never auto-installed. */
+    var mqlrPath: String? by string("")
+
     // --- Managed-install bookkeeping. Not user-editable; see XgrepBinaryService. ---
 
     /** Last version resolved from the release manifest. */

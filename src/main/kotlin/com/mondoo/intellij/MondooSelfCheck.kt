@@ -75,6 +75,7 @@ internal class MondooSelfCheck : ProjectActivity {
         check(failures, "MondooSettings") { com.mondoo.intellij.settings.MondooSettings.getInstance() }
         check(failures, "XgrepBinaryService") { com.mondoo.intellij.binary.XgrepBinaryService.getInstance() }
         check(failures, "CnspecBinaryService") { com.mondoo.intellij.binary.CnspecBinaryService.getInstance() }
+        check(failures, "MqlrBinaryService") { com.mondoo.intellij.binary.MqlrBinaryService.getInstance() }
         check(failures, "XgrepFindingsStore") { com.mondoo.intellij.findings.XgrepFindingsStore.getInstance(project) }
         check(failures, "XgrepScanCoordinator") { com.mondoo.intellij.lsp.XgrepScanCoordinator.getInstance(project) }
         check(failures, "XgrepScanNotifier") { com.mondoo.intellij.lsp.XgrepScanNotifier.getInstance(project) }

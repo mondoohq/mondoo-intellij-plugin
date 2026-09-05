@@ -166,8 +166,8 @@
       <separator/>
       <action id="Mondoo.Xgrep.ShowPath"
               class="com.mondoo.intellij.actions.ShowXgrepPathAction"
-              text="Show xgrep Path"
-              description="Show which xgrep binary this plugin resolves"/>
+              text="Show Tool Paths"
+              description="Show which xgrep, cnspec and mqlr binaries this plugin resolves"/>
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </group>
   </actions>

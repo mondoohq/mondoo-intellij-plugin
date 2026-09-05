@@ -64,6 +64,20 @@ queries:
     mql: sshd.config.params["PermitRootLogin"] == "no"
 EOF
 
+# An LR resource definition, for the third language server. Uses the new .mqlr
+# extension deliberately: .lr is the one with history and would pass on a stale
+# implementation, while .mqlr only works if the new extension is really wired up.
+cat > "$PROBE/smoke.mqlr" <<'EOF'
+option provider = "go.mondoo.com/mql/providers/smoke"
+option go_package = "go.mondoo.com/mql/providers/smoke/resources"
+
+// A resource, so the server has something to report symbols for.
+smoke @defaults("name") {
+  // What this is called
+  name() string
+}
+EOF
+
 # The built-in runIde task logs to the sandbox's default "log" directory; tasks
 # registered through intellijPlatformTesting get one named after the task. Guessing
 # wrong here reports "the language server never started" for a run that started fine,
@@ -105,7 +119,7 @@ trap cleanup EXIT
 # reports it as a plugin failure is worse than no run at all.
 attempt() {
   rm -rf "$LOG_DIR"
-  ./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py,$PROBE/example.mql.yaml" \
+  ./gradlew "$TASK" -PmondooProbeProject="$PROBE,$PROBE/main.py,$PROBE/example.mql.yaml,$PROBE/smoke.mqlr" \
     --console=plain >"$GRADLE_OUT" 2>&1 &
   GRADLE_PID=$!
 
@@ -240,6 +254,19 @@ if grep -q "starting cnspec lsp" "$LOG"; then
   fi
 else
   echo "  --   MQL server not started (cnspec not installed; not a failure)"
+fi
+
+# mqlr is a developer tool built from source, so a machine without it is a supported
+# state — the same policy as cnspec. Reported either way, never silently.
+if grep -q "starting mqlr lsp" "$LOG"; then
+  if grep -qE "MqlrLspServerDescriptor.*LSP server initialized" "$LOG"; then
+    echo "  ok   LR server runs for a .mqlr file"
+  else
+    echo "  FAIL LR server started but did not initialize"
+    fail=1
+  fi
+else
+  echo "  --   LR server not started (mqlr not installed; not a failure)"
 fi
 
 # Any ERROR in the log is a failure, with one exception, listed rather than pattern-

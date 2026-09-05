@@ -161,6 +161,24 @@ class MondooConfigurable :
                         "manager.",
                 )
             }
+            group("Resource Definitions (mqlr)") {
+                row {
+                    checkBox("Enable LR language support")
+                        .bindSelected(state::mqlrEnabled)
+                }
+                row("mqlr path:") {
+                    textFieldWithBrowseButton(
+                        FileChooserDescriptorFactory.createSingleFileOrExecutableAppDescriptor(),
+                    )
+                        .bindText(state::mqlrPath.toNonNullableProperty(""))
+                        .align(AlignX.FILL)
+                }.rowComment(
+                    "Hover, go-to-definition, find-usages and diagnostics for <code>.lr</code> " +
+                        "and <code>.mqlr</code> schema files. Resolved from PATH as " +
+                        "<code>mqlr</code> or <code>lr</code>; it is a developer tool built with " +
+                        "<code>go install</code> and is never downloaded automatically.",
+                )
+            }
             group("Scan scope") {
                 row("Exclude:") {
                     expandableTextField(

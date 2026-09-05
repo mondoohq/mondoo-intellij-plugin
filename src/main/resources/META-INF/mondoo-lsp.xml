@@ -42,6 +42,8 @@
          servers by provider class, so the two have independent lifecycles. -->
     <platform.lsp.serverSupportProvider
         implementation="com.mondoo.intellij.mql.CnspecLspServerSupportProvider"/>
+    <platform.lsp.serverSupportProvider
+        implementation="com.mondoo.intellij.mql.MqlrLspServerSupportProvider"/>
   </extensions>
 
   <actions>
