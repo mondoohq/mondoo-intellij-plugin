@@ -229,7 +229,14 @@ jobs:
           output-file: results.sarif
           # The demo asset is deliberately vulnerable — it exists so findings appear
           # on first run. Reporting it would train people to ignore this scan.
-          args: "--exclude 'src/main/resources/demo/**'"
+          #
+          # No inner quotes around the pattern. The action word-splits `args` with
+          # `read -ra`, which splits on whitespace without removing quotes, so
+          # `'…/demo/**'` reaches xgrep with the apostrophes still attached and
+          # matches nothing. That had been wrong since this was written and stayed
+          # invisible: the scan is diff-aware, so the demo file was only ever scanned
+          # once a pull request finally changed it.
+          args: "--exclude src/main/resources/demo/**"
           # Gated below rather than here. The action's own gate counts findings that
           # the scan has already marked suppressed, so an inline `nogrep:` comment
           # cannot get a triaged false positive past it — see the step after this one.
