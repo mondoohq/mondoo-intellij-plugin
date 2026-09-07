@@ -9,3 +9,8 @@ out/
 
 # Written by the Open Demo File action when testing in this repository.
 mondoo-welcome-demo.js
+
+# Scanner output. .xgrep/findings.json was committed once by accident; it is a
+# local artefact of a scan, not a record of anything.
+.xgrep/
+results.sarif

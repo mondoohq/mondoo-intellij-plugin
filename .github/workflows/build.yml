@@ -62,6 +62,11 @@ jobs:
             [ -z "$f" ] && continue
             case "$f" in
               *.md|docs/*|.github/images/*|.github/ISSUE_TEMPLATE/*|LICENSE|CODEOWNERS) ;;
+              # Dependabot's own configuration cannot change what the plugin does.
+              # Note that what Dependabot *opens* is not exempt: a version-catalog bump
+              # falls through to the catch-all and runs the full matrix, which is the
+              # whole point of having it open those pull requests.
+              .github/dependabot.yml) ;;
               # The release workflows run their own tests and verifier when they fire;
               # build.yml never validated them.
               .github/workflows/release-*.yml) ;;
@@ -225,10 +230,12 @@ jobs:
           # The demo asset is deliberately vulnerable — it exists so findings appear
           # on first run. Reporting it would train people to ignore this scan.
           args: "--exclude 'src/main/resources/demo/**'"
-          # Report only for now. Turn this to 'error' once the findings on this
-          # repository are triaged, so the gate starts from a clean baseline rather
-          # than blocking the first pull request that touches an existing finding.
-          fail-on: "off"
+          # The baseline is clean, so this gates. A new HIGH or CRITICAL finding fails
+          # the pull request that introduces it. A finding judged not to apply here is
+          # suppressed at the line with a `nogrep:` comment carrying the reason, the
+          # way release-2-publish.yml does — which keeps the argument in the diff where
+          # a reviewer sees it, rather than in a config file nobody reads.
+          fail-on: "error"
 
       # Code scanning needs GitHub Advanced Security, which a private repository
       # without it cannot use — the upload fails with "Resource not accessible by
