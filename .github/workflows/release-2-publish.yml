@@ -58,7 +58,7 @@ jobs:
       signed: ${{ steps.signing.outputs.available }}
       publishable: ${{ steps.publishable.outputs.value }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # tags, so an already-released version is left alone
 
@@ -66,11 +66,11 @@ jobs:
       # deliberately uncached, so it pays for the platform distribution too.
       - uses: ./.github/actions/free-disk-space
 
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           # Deliberately uncached. The Actions cache is shared across refs, so
           # restoring one in the job that signs and publishes would let anyone able
@@ -188,7 +188,7 @@ jobs:
           prerelease: ${{ contains(steps.decide.outputs.version, '-') }}
           make_latest: ${{ !contains(steps.decide.outputs.version, '-') }}
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: plugin-distribution
@@ -249,15 +249,15 @@ jobs:
       needs.build.outputs.release == 'true' 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: v${{ needs.build.outputs.version }}
 
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           cache-disabled: true # same reasoning as the build job
 
@@ -270,7 +270,7 @@ jobs:
       # producer is the `build` job of this same run, reached through `needs`, so no
       # other run can put bytes here.
       # not a workflow_run consumer; artifact comes from this run's own build job nogrep: actions-artifact-poisoning
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: plugin-distribution
           path: dist
