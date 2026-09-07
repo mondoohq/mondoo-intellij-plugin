@@ -1,0 +1,289 @@
+name: Release 2 - publish
+
+# Runs itself when a version bump reaches main. Tests, builds, signs, creates the tag
+# and the GitHub Release with the plugin attached, and uploads to the Marketplace when
+# the credentials for that exist.
+#
+# You do not run this one; you merge the PR that "Release 1 - prepare" opened. The
+# trigger is the same shape cnspec uses — a version file changing on main — so the two
+# repositories release the same way.
+#
+# The tag and the release are created here rather than by hand, and the version comes
+# from gradle.properties rather than from anything anyone types. A tag and a
+# pluginVersion that disagree is what broke the first v0.2.0 attempt; there is now only
+# one place the version exists.
+#
+# Everything happens in one workflow on purpose. The obvious split — one workflow tags
+# and releases, another reacts to `on: release` and builds — does not work with the
+# token this repository has: a release created with GITHUB_TOKEN does not trigger
+# another workflow, so the second would never run and the release would carry no
+# plugin. cnspec avoids that with a GitHub App token (mondoo-mergebot), which is not
+# granted to this repository. If it ever is, this can be split to match cnspec exactly.
+#
+# Two jobs, because they answer two different questions and only one needs credentials
+# Mondoo may not have yet:
+#
+#   build    — is there an installable plugin, and is it on the release?
+#   publish  — did it reach the JetBrains Marketplace?
+#
+# A release cut with no Marketplace secrets still gives people something to install:
+# the ZIP on the GitHub Release, via "Install Plugin from Disk…". Publishing is then
+# skipped and says so, rather than failing the release.
+on:
+  push:
+    branches: [main]
+    paths:
+      # Only a version change can start a release, so nothing else need wake this.
+      - gradle.properties
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Build, verify and sign, but do not tag, release or publish"
+        type: boolean
+        default: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, tag and release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.decide.outputs.version }}
+      release: ${{ steps.decide.outputs.release }}
+      signed: ${{ steps.signing.outputs.available }}
+      publishable: ${{ steps.publishable.outputs.value }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # tags, so an already-released version is left alone
+
+      # The Plugin Verifier downloads a full IDE — 1-2 GB — and this job is
+      # deliberately uncached, so it pays for the platform distribution too.
+      - uses: ./.github/actions/free-disk-space
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+        with:
+          # Deliberately uncached. The Actions cache is shared across refs, so
+          # restoring one in the job that signs and publishes would let anyone able
+          # to poison it from a lower-privileged run influence what ships. Releases
+          # are rare; paying the download each time is the right trade. build.yml
+          # keeps its cache.
+          cache-disabled: true
+
+      # gradle.properties changes for reasons that are not a release — a Gradle
+      # version, a JVM arg. Three conditions have to hold; any of them failing means
+      # this push was not a release and the job stops without doing anything.
+      - name: Decide whether this is a release
+        id: decide
+        run: |
+          version=$(grep '^pluginVersion' gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "pluginVersion is $version"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # A manual run proves the pipeline without releasing anything.
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "Manual run: will build and verify, but not tag or release."
+            exit 0
+          fi
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "::notice::v$version is already tagged; nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! grep -qE "^## \\[$version\\]" CHANGELOG.md; then
+            echo "::notice::CHANGELOG.md has no section for $version, so this is not a prepared release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "Will tag and release v$version"
+
+      # A release must not be able to ship something the normal pipeline would reject.
+      - name: Test
+        run: ./gradlew check --stacktrace
+
+      # A single IDE here. The full matrix runs on every push in build.yml, and the
+      # release job cannot hold several IDEs on one runner — it exhausted the disk and
+      # took the runner down with it.
+      - name: Verify plugin
+        run: ./gradlew verifyPlugin -PverifyIde=IU --stacktrace
+
+      # Signing needs credentials this repository may not have yet. An unsigned build
+      # still installs from disk, so its absence must not deny people the binary — it
+      # only stops the Marketplace upload, which is the publish job's business.
+      - name: Check for signing credentials
+        id: signing
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+        run: |
+          if [ -n "$CERTIFICATE_CHAIN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No signing credentials; building unsigned."
+          fi
+
+      - name: Build
+        run: ./gradlew buildPlugin --stacktrace
+
+      - name: Sign
+        if: steps.signing.outputs.available == 'true'
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin verifyPluginSignature --stacktrace
+
+      # The tag is created from the version that merged, and the release carries the
+      # ZIP from the moment it exists — so there is no window in which a release is
+      # public with nothing to install.
+      - name: Tag the release
+        if: steps.decide.outputs.release == 'true'
+        run: |
+          version="${{ steps.decide.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$version" -m "v$version"
+          git push origin "v$version"
+
+      - name: Write the release notes
+        if: steps.decide.outputs.release == 'true'
+        run: |
+          # From the changelog section this release closed, so the release and the
+          # repository cannot describe the version differently.
+          ./gradlew getChangelog --no-header --no-summary --quiet > /tmp/notes.md
+          {
+            echo "**Requires an IntelliJ-based IDE 2026.1.4 or newer.** Tested on IntelliJ IDEA, GoLand and Android Studio."
+            echo
+            echo "Not on the JetBrains Marketplace yet — download the ZIP below and install it with"
+            echo "**Settings → Plugins → ⚙ → Install Plugin from Disk…**, then restart."
+            echo
+            echo "---"
+            echo
+            cat /tmp/notes.md
+          } > /tmp/release-notes.md
+
+      # Same action cnspec uses, for consistency. A pre-release suffix in the version
+      # marks it as one, which is also what routes the Marketplace upload to a
+      # non-default channel.
+      - name: Create the GitHub Release
+        if: steps.decide.outputs.release == 'true'
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: v${{ steps.decide.outputs.version }}
+          name: v${{ steps.decide.outputs.version }}
+          body_path: /tmp/release-notes.md
+          files: build/distributions/*.zip
+          prerelease: ${{ contains(steps.decide.outputs.version, '-') }}
+          make_latest: ${{ !contains(steps.decide.outputs.version, '-') }}
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: plugin-distribution
+          path: build/distributions/*.zip
+
+      # Checked here because a job-level `if` cannot read a secret, so the publish job
+      # is gated on this output instead.
+      #
+      # PUBLISH_TOKEN alone is the requirement. Signing is *not*: the Marketplace
+      # accepts an unsigned plugin — its own web upload never asks for a certificate —
+      # and the SDK only says to "make sure it is signed", which is advice rather than
+      # a gate. This used to require signing too, which meant adding PUBLISH_TOKEN on
+      # its own bought nothing and the skip gave no hint why.
+      - name: Decide whether this can be published
+        id: publishable
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          if [ "${{ steps.decide.outputs.release }}" = "true" ] && [ -n "$PUBLISH_TOKEN" ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+            if [ "${{ steps.signing.outputs.available }}" != "true" ]; then
+              echo "::warning::Publishing unsigned. The Marketplace accepts this, but a \
+                signature is what lets JetBrains prove the plugin was not modified after \
+                you built it. See RELEASING.md."
+            fi
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Said plainly and where it is read, because a skipped job is easy to miss and
+      # "the release is green" must not be mistaken for "it is on the Marketplace".
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "## Release v${{ steps.decide.outputs.version }}"
+            echo
+            if [ "${{ steps.signing.outputs.available }}" = "true" ]; then
+              echo "- Signed: yes"
+            else
+              echo "- Signed: **no**. Optional — the Marketplace accepts unsigned plugins."
+              echo "  Set \`CERTIFICATE_CHAIN\`, \`PRIVATE_KEY\` and \`PRIVATE_KEY_PASSWORD\` to sign."
+            fi
+            if [ "${{ steps.publishable.outputs.value }}" = "true" ]; then
+              echo "- Marketplace: publishing in the next job."
+            else
+              echo "- Marketplace: **not published** — \`PUBLISH_TOKEN\` is not set."
+              echo "  The plugin is attached to the GitHub Release and installs with"
+              echo "  **Install Plugin from Disk…**. See RELEASING.md."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish to JetBrains Marketplace
+    needs: build
+    if: |
+      needs.build.outputs.publishable == 'true' &&
+      needs.build.outputs.release == 'true' 
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: v${{ needs.build.outputs.version }}
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+        with:
+          cache-disabled: true # same reasoning as the build job
+
+      # The exact file the previous job built, signed and attached to the release —
+      # not a rebuild of it. Two builds of one version could differ; this way what
+      # someone downloads from GitHub and what the Marketplace serves are the same
+      # bytes.
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: plugin-distribution
+          path: dist
+
+      - name: Publish
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          archive=$(ls dist/*.zip | head -1)
+          echo "Publishing $archive"
+          # -x excludes the build and signing tasks: publishPlugin depends on them by
+          # default, which would rebuild the very artifact this job exists to reuse.
+          # patchChangelog too — publishing must not rewrite the changelog.
+          ./gradlew publishPlugin \
+            -PpublishArchive="$PWD/$archive" \
+            -x buildPlugin -x signPlugin -x patchChangelog \
+            --stacktrace
+
+      - name: Summarise
+        if: always()
+        run: echo "Published to the JetBrains Marketplace." >> "$GITHUB_STEP_SUMMARY"
