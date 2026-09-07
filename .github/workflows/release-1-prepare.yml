@@ -1,0 +1,118 @@
+name: Release 1 - prepare
+
+# You run this. It opens a pull request that bumps the version and closes the
+# changelog; nothing is tagged or published here.
+#
+# The three release workflows are numbered because their names alone did not say which
+# one to run:
+#
+#   Release 1 - prepare   you run this, with a version. Opens a PR.
+#   Release 2 - tag       runs itself once that PR merges. Tags and drafts a release.
+#   Release 3 - publish   runs itself when you publish that draft. Builds and attaches.
+#
+# It exists because doing this by hand went wrong. Tagging v0.2.0 while
+# gradle.properties still said 0.1.0 failed the publish gate — correctly, since
+# publishing 0.1.0 under a v0.2.0 tag is silent and hard to undo — but only after a
+# public release already existed.
+#
+# Splitting prepare from tag fixes that: the tag is created by "Release 2 - tag" from
+# whatever version is on main *after* this PR merges, so the tag and pluginVersion
+# cannot disagree. Nobody types the version twice.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "New version, e.g. 0.3.0 or 1.0.0-beta.1"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark as a pre-release (routes to a non-default Marketplace channel)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: cut-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Open the version-bump PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 0 # tags, so the already-released check can see them
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+
+      # Before anything is written. Re-preparing a released version would produce a
+      # PR that conflicts with history rather than a useful diff.
+      - name: Check this version is not already released
+        run: |
+          tag="v${{ inputs.version }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "::error::$tag already exists. Pick a new version, or delete the tag and its release first."
+            exit 1
+          fi
+
+      # Validates the version, bumps gradle.properties, closes the changelog, and
+      # verifies both landed. The same script a human can run locally.
+      - name: Bump the version
+        run: scripts/bump-version.sh "${{ inputs.version }}"
+
+      # A release must not ship something the normal pipeline would reject, and finding
+      # that out after a tag exists is how this went wrong before.
+      - name: Test
+        run: ./gradlew check --stacktrace
+
+      - name: Open the pull request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ inputs.version }}"
+          branch="release/v$version"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git commit -am "chore: release v$version"
+          git push --set-upstream origin "$branch"
+
+          prerelease_note=""
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            prerelease_note="
+
+          Requested as a **pre-release**, so tick pre-release on the draft to route it
+          to a non-default Marketplace channel."
+          fi
+
+          gh pr create \
+            --title "chore: release v$version" \
+            --body "Bumps \`pluginVersion\` to \`$version\` and closes the changelog's
+          Unreleased section into a \`$version\` section.
+
+          Merging this is what starts the release. **Release 2 - tag** then runs on its
+          own, creates the \`v$version\` tag from the version on main, and opens a draft
+          release whose notes come from the changelog. Publishing that draft runs
+          **Release 3 - publish**, which builds the plugin and attaches it.
+
+          Read the changelog diff below as a user would before merging.$prerelease_note" \
+            --base main --head "$branch"
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "## Prepared v${{ inputs.version }}"
+            echo
+            echo "A pull request is open with the version bump and the closed changelog."
+            echo "Merging it starts **Release 2 - tag**, which tags and drafts."
+            echo
+            echo "Nothing has been tagged or published yet."
+          } >> "$GITHUB_STEP_SUMMARY"

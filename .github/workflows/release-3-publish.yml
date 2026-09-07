@@ -1,5 +1,11 @@
-name: Release
+name: Release 3 - publish
 
+# Runs itself when you publish the draft that "Release 2 - tag" opened. Builds the
+# plugin, attaches it to the release, and uploads to the Marketplace when the
+# credentials for that exist.
+#
+# You do not run this one. See "Release 1 - prepare" for the sequence.
+#
 # Publishing is driven by a GitHub Release. Creating one as a pre-release routes the
 # upload to a non-default Marketplace channel, so a beta reaches only people who opted
 # into it.

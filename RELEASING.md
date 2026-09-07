@@ -66,23 +66,40 @@ Also needed before the first publish, and both have lead time:
 
 ## Cutting a release
 
-1. **Run the *Cut release* workflow** with the new version, e.g. `0.3.0` or
-   `1.0.0-beta.1`, ticking **pre-release** if it should reach only the beta channel.
-   It bumps `pluginVersion`, closes the changelog's `Unreleased` section, runs the
-   tests, commits to `main`, creates the tag, and opens a **draft** release whose notes
-   come from the changelog.
-2. **Read the draft's notes**, then **publish it**.
+Three workflows, numbered because their names alone did not say which one to run. You
+run the first; the other two run themselves.
 
-   Publishing is deliberately yours. It is the last point at which the notes can be
-   changed before anything is public — and a release created by a workflow's own token
-   cannot trigger another workflow, so if *Cut release* published it itself, the build
-   that attaches the plugin ZIP would never run and the release would sit there empty.
+| | Trigger | What it does |
+| --- | --- | --- |
+| **Release 1 - prepare** | you run it, with a version | Opens a PR bumping the version and closing the changelog |
+| **Release 2 - tag** | that PR merging | Tags the version on main and opens a **draft** release |
+| **Release 3 - publish** | you publishing the draft | Builds, attaches the ZIP, uploads to the Marketplace |
 
-   The bump is committed *before* the tag is created, so the tag and `pluginVersion`
-   cannot disagree. That mismatch is what failed the first v0.2.0 attempt.
-3. The **Release** workflow then runs. The build job, in this order:
-   - the tag matches `pluginVersion` — publishing 0.1.0 from a tag that says v0.2.0 is
-     silent and hard to undo, so this fails the job rather than guessing;
+1. **Run *Release 1 - prepare*** with the new version, e.g. `0.3.0` or `1.0.0-beta.1`.
+   It validates the version, bumps `gradle.properties`, closes the changelog, runs the
+   tests, and opens a pull request. Nothing is tagged or published.
+
+2. **Review and merge that PR.** This is the point to read the changelog as a user
+   would — those words become the release notes and the Marketplace "What's new".
+
+3. ***Release 2 - tag*** then runs on its own. It reads the version from
+   `gradle.properties` on main, tags it, and opens a draft release.
+
+   The version is typed once, in step 1, and the tag is derived from what merged. A tag
+   and a `pluginVersion` that disagree is what broke the first v0.2.0 attempt; there is
+   no longer a second place to get it wrong.
+
+4. **Publish the draft.** Tick pre-release first if it should reach only the beta
+   channel.
+
+   Publishing is deliberately yours, for two reasons. It is the last point at which the
+   notes can change before anything is public. And a release created by a workflow's own
+   token cannot trigger another workflow — if *Release 2* published it, *Release 3*
+   would never run and the release would sit there with no plugin attached, which is
+   the failure this whole sequence exists to prevent.
+
+5. ***Release 3 - publish*** then runs. The build job, in this order:
+   - the tag matches `pluginVersion` — belt and braces now that step 3 derives it;
    - the changelog has a section for the version;
    - `check` (tests) and `verifyPlugin`;
    - `buildPlugin`, then `signPlugin` and `verifyPluginSignature` when the signing
@@ -112,7 +129,7 @@ The channel is derived from the version's pre-release suffix:
 
 ## Bumping the version by hand
 
-`scripts/bump-version.sh <version>` is what *Cut release* calls, and it can be run
+`scripts/bump-version.sh <version>` is what *Release 1 - prepare* calls, and it can be run
 locally — useful for seeing the changelog diff before committing to anything. It
 refuses a version that is not semantic, one that is already set, and an empty
 `Unreleased` section, and it verifies both files afterwards rather than trusting its

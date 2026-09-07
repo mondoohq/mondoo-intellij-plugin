@@ -1,0 +1,119 @@
+name: Release 2 - tag
+
+# Runs itself when a version bump reaches main, tags it, and opens a draft release.
+# You do not run this one; you merge the PR that "Release 1 - prepare" opened.
+#
+# The tag is derived from gradle.properties on main rather than from anything anyone
+# types, which is the whole point: a tag and a pluginVersion that disagree is what
+# broke the first v0.2.0 attempt, and here there is no second place to type it.
+#
+# It stops at a draft deliberately. A release created with GITHUB_TOKEN does not
+# trigger other workflows, so if this published the release itself, "Release 3 -
+# publish" would never run and the release would sit there with no plugin attached —
+# the exact failure this sequence exists to prevent. Publishing is yours, and doubles
+# as the last chance to read the notes.
+on:
+  push:
+    branches: [main]
+    paths:
+      # Only a version change can start a release, so nothing else needs to wake this.
+      - gradle.properties
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag and draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # tags, so an already-released version is left alone
+
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+
+      # gradle.properties can change for reasons that are not a release — a Gradle
+      # version, a JVM arg. Three conditions have to hold, and any of them failing
+      # means this push was not a release and the job simply stops.
+      - name: Decide whether this is a release
+        id: decide
+        run: |
+          version=$(grep '^pluginVersion' gradle.properties | cut -d'=' -f2 | tr -d ' ')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "v$version is already tagged; nothing to do."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! grep -qE "^## \[$version\]" CHANGELOG.md; then
+            echo "CHANGELOG.md has no section for $version, so this is not a prepared release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "Will tag v$version"
+
+      - name: Tag it
+        if: steps.decide.outputs.release == 'true'
+        run: |
+          version="${{ steps.decide.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$version" -m "v$version"
+          git push origin "v$version"
+
+      - name: Open a draft release
+        if: steps.decide.outputs.release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${{ steps.decide.outputs.version }}"
+          # Notes come from the changelog section this release just closed, so the
+          # release and the repository cannot describe the version differently.
+          ./gradlew getChangelog --no-header --no-summary --quiet > /tmp/notes.md
+          {
+            echo "**Requires an IntelliJ-based IDE 2026.1.4 or newer.** Tested on IntelliJ IDEA, GoLand and Android Studio."
+            echo
+            echo "Not on the JetBrains Marketplace yet — download the ZIP below and install it with"
+            echo "**Settings → Plugins → ⚙ → Install Plugin from Disk…**, then restart."
+            echo
+            echo "---"
+            echo
+            cat /tmp/notes.md
+          } > /tmp/release-notes.md
+
+          gh release create "v$version" \
+            --title "v$version" \
+            --notes-file /tmp/release-notes.md \
+            --draft \
+            --target main
+
+      - name: Summarise
+        if: always()
+        run: |
+          if [ "${{ steps.decide.outputs.release }}" != "true" ]; then
+            echo "No release: gradle.properties changed but the version is already tagged, or has no changelog section." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "## Draft release v${{ steps.decide.outputs.version }}"
+            echo
+            echo "Tagged, and a draft release is open with notes from CHANGELOG.md."
+            echo
+            echo "**Publish the draft to finish.** Publishing runs *Release 3 - publish*,"
+            echo "which builds the plugin and attaches the ZIP. This workflow cannot do"
+            echo "that itself: a release created by its own token does not trigger"
+            echo "another workflow, so the release would end up empty."
+            echo
+            echo "If this should reach only the beta channel, tick pre-release before publishing."
+          } >> "$GITHUB_STEP_SUMMARY"
