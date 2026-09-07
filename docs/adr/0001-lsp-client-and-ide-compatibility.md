@@ -446,3 +446,37 @@ replacement — `showEditableChooseDialog` answers a different question. Confine
 
 **`(failed) (optional) com.intellij.jetbrains.client: Unavailable`** in the dependency
 tree belongs to `Git4Idea`, not to this plugin.
+
+## Appendix: what an open `untilBuild` costs, and how it is paid
+
+`untilBuild` is open, so the plugin claims compatibility with IDE builds that do not
+exist yet. That is the right trade — the alternative is a release every time JetBrains
+ships one — but it has a price, and 2026.3 EAP collected it.
+
+`DefaultTerminalRunnerFactory.createLocalRunner()` was removed in 263. The plugin called
+it directly, so the Marketplace reported a **critical** binary incompatibility and
+blocked the release. `create()` does the same job and is present and non-deprecated in
+both 262 and 263; the fix was one word.
+
+Two lessons, both learned the hard way in the same afternoon.
+
+**A deprecated-but-present API beats a clean one that turns out to be unstable.** That
+call site moved *off* `createShellWidget` precisely because it was deprecated, and landed
+on a method that was then deleted outright. Deprecation is a promise to keep something
+working for a while; absence of an annotation promises nothing.
+
+**Do not "fix" a warning without checking the replacement exists at the floor.**
+`PathEnvironmentVariableUtil.findInPath` is flagged as scheduled for removal in 263, and
+the obvious moves are both wrong: `findExecutableInPathOnAnyOS` is deprecated there too,
+and `findFirst` — the genuinely clean replacement — does not exist in 262 at all. Using
+it would trade a warning on the newest build for a critical failure on the oldest one
+this plugin supports. `findInPath` stays until the floor rises.
+
+CI now verifies against the EAP as well, allowed to fail. An EAP breaks for reasons
+outside this repository, so a red there means "look before their GA", not "this pull
+request is wrong". `-PverifyVersion=<build>` targets any build locally, which is how the
+above was established rather than guessed:
+
+```
+./gradlew verifyPlugin -PverifyIde=IU -PverifyVersion=263.3889.65
+```

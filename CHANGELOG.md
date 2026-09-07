@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The plugin no longer breaks on IntelliJ IDEA 2026.3. It called a terminal API that
+  build removed, so opening the cnspec shell would have failed with a
+  `NoSuchMethodError` — and the Marketplace refused the release over it.
+
 ### Added
 
 ### Changed

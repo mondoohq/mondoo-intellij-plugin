@@ -274,7 +274,7 @@ jobs:
           path: results.sarif
 
   verify:
-    name: Verify (${{ matrix.ide }})
+    name: Verify (${{ matrix.ide }}${{ matrix.eap && ' EAP' || '' }})
     needs: changes
     if: needs.changes.outputs.plugin == 'true'
     runs-on: ubuntu-latest
@@ -291,7 +291,22 @@ jobs:
         # or Kotlin plugin, so it is where a product-specific dependency surfaces.
         # Android Studio is the third supported host but is not a resolvable
         # artifact, so it is verified locally — see DEVELOPMENT.md — not here.
-        ide: [IU, GO]
+        include:
+          - ide: IU
+          - ide: GO
+          # The next IDE, before it ships. untilBuild is open, so the plugin claims
+          # compatibility with releases that do not exist yet, and an EAP is the only
+          # warning before one of them removes an API. 2026.3 EAP dropped a terminal
+          # method this plugin called; nothing here noticed, and the Marketplace found
+          # it and blocked the release.
+          #
+          # Allowed to fail. An EAP breaks for reasons outside this repository, so a red
+          # here means "look before their GA", not "this pull request is wrong".
+          - ide: IU
+            version: "263.3889.65"
+            eap: true
+    # An EAP failure is information, not a broken pull request.
+    continue-on-error: ${{ matrix.eap == true }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -306,13 +321,17 @@ jobs:
       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ~/.pluginVerifier
-          key: plugin-verifier-${{ matrix.ide }}-${{ hashFiles('build.gradle.kts', 'gradle.properties') }}
+          key: plugin-verifier-${{ matrix.ide }}-${{ matrix.version || 'default' }}-${{ hashFiles('build.gradle.kts', 'gradle.properties') }}
 
       - name: Verify
-        run: ./gradlew verifyPlugin -PverifyIde=${{ matrix.ide }} --stacktrace
+        run: |
+          ./gradlew verifyPlugin \
+            -PverifyIde=${{ matrix.ide }} \
+            ${{ matrix.version && format('-PverifyVersion={0}', matrix.version) || '' }} \
+            --stacktrace
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: verifier-report-${{ matrix.ide }}
+          name: verifier-report-${{ matrix.ide }}-${{ matrix.version || 'default' }}
           path: build/reports/pluginVerifier

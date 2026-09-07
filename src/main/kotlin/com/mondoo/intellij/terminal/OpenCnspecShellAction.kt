@@ -94,7 +94,16 @@ internal class OpenCnspecShellAction : AnAction() {
                 myWorkingDirectory = project.basePath
                 myShellCommand = command
             }
-            val runner = DefaultTerminalRunnerFactory.getInstance().createLocalRunner(project)
+            // create(), not createLocalRunner(). The latter is gone in 2026.3, and calling
+            // it made the plugin binary-incompatible with that build — the Marketplace
+            // reported it as a critical problem and blocked the release. create() is
+            // present and non-deprecated in both 2026.1 and 2026.3.
+            //
+            // The wider lesson, since this is the second time: a deprecated-but-present
+            // API is safer than a clean one that turns out to be unstable. This call site
+            // moved off createShellWidget *because* it was deprecated, and landed on a
+            // method that was then removed outright.
+            val runner = DefaultTerminalRunnerFactory.getInstance().create(project)
             TerminalToolWindowManager.getInstance(project).createNewSession(runner, tabState)
         }.onFailure {
             LOG.warn("could not open a terminal for ${target.name}", it)
