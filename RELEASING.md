@@ -34,7 +34,7 @@ someone downloads from GitHub and what the Marketplace serves are the same bytes
 That is the whole requirement. With it set, a release publishes; without it, the release
 still builds, tags and attaches the ZIP, and the summary says publishing was skipped.
 
-### Optional: signing
+### Optional, and deliberately deferred: signing
 
 | Secret | What it is |
 | --- | --- |
@@ -42,13 +42,19 @@ still builds, tags and attaches the ZIP, and the summary says publishing was ski
 | `PRIVATE_KEY` | The signing private key, PEM, unencrypted. |
 | `PRIVATE_KEY_PASSWORD` | The passphrase used when the key was generated. |
 
+**None of these are set yet, on purpose.** Getting the plugin published came first;
+signing is the next step, once it is live on the Marketplace. Until then every release
+publishes unsigned and logs a warning saying so — that warning is the reminder, and it
+disappears once the three secrets exist.
+
 Signing is **not** required to publish. The Marketplace accepts unsigned plugins — its
 own web upload never asks for a certificate — and the SDK only advises to "make sure it
 is signed". What a signature buys is JetBrains being able to prove the plugin was not
 modified after you built it, which is worth having but is not a gate.
 
 Set all three or none. When they are absent the build is unsigned and says so; when
-they are present it signs and verifies the signature before publishing.
+they are present it signs and verifies the signature before publishing. No workflow
+change is needed to switch it on.
 
 Generating the signing key pair is described in
 [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html).
