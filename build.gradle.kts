@@ -16,6 +16,18 @@ kotlin {
     jvmToolchain(providers.gradleProperty("javaVersion").get().toInt())
     compilerOptions {
         jvmTarget = JvmTarget.JVM_21
+
+        // The tree compiles with no warnings today, so this costs nothing now and
+        // keeps it that way. Kotlin warns about the things worth knowing here --
+        // an unreachable branch, a redundant nullable, a when that stopped being
+        // exhaustive -- and in a build that prints hundreds of lines those scroll
+        // past unread. A warning that never fails anything is a warning nobody fixes.
+        //
+        // The one predictable cost: a Kotlin upgrade can introduce new warnings and
+        // turn a Dependabot pull request red. That is the mechanism working -- the
+        // upgrade did change something -- but it does mean the bump needs a look
+        // rather than a rubber stamp.
+        allWarningsAsErrors = true
     }
 }
 
