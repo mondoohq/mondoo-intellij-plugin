@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The demo file now produces the hardcoded-credential finding its own comment
+  promises. `welcome.js` is what the plugin opens on first run to show findings
+  appearing, and the line labelled "Hardcoded credential" never reported anything —
+  a bare assignment is not matched, by design, because flagging every string in a
+  password-shaped variable is how a rule becomes noise. The demo now passes the same
+  secret to a database client, which does report.
+
 ### Removed
 
 ## [0.3.1] - 2026-09-07
