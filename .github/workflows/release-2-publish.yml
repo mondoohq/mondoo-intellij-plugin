@@ -279,7 +279,15 @@ jobs:
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
-          archive=$(ls dist/*.zip | head -1)
+          # A glob that matches nothing expands to itself, so an empty download would
+          # otherwise reach Gradle as a path that does not exist.
+          shopt -s nullglob
+          archives=(dist/*.zip)
+          if [ ${#archives[@]} -eq 0 ]; then
+            echo "::error::No plugin archive in the downloaded artifact." >&2
+            exit 1
+          fi
+          archive="${archives[0]}"
           echo "Publishing $archive"
           # -x excludes the build and signing tasks: publishPlugin depends on them by
           # default, which would rebuild the very artifact this job exists to reuse.
@@ -292,3 +300,151 @@ jobs:
       - name: Summarise
         if: always()
         run: echo "Published to the JetBrains Marketplace." >> "$GITHUB_STEP_SUMMARY"
+
+  # One message per release, when the release is over. The other repositories post at
+  # the start and edit that message as jobs finish; here the whole thing is two jobs
+  # and a few minutes, so a single terminal message says the same thing without the
+  # bookkeeping of carrying a channel and timestamp between jobs.
+  #
+  # `always()` because a failed release is the one people most need told. On failure it
+  # pings @platform; on success it stays quiet enough to skim.
+  notify:
+    name: Notify Slack
+    needs: [build, publish]
+    # Nothing to announce for a dry run, or for a push that turned out not to be a new
+    # version — those are the common case and would be noise.
+    if: always() && needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # C07QZDJFF89 == #release-coordination
+      SLACK_BOT_CHANNEL_ID: "C07QZDJFF89"
+      # S095M0P5XF1 == @platform
+      SLACK_PLATFORM_SUBTEAM_ID: "S095M0P5XF1"
+      # A secret cannot be read from an `if:`, so it is lifted into the environment
+      # here and tested below. Until SLACK_BOT_TOKEN is granted to this repository the
+      # step skips, which must not colour the release red.
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    steps:
+      - name: Work out what to say
+        id: meta
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          PUBLISHABLE: ${{ needs.build.outputs.publishable }}
+          SIGNED: ${{ needs.build.outputs.signed }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          case "$BUILD_RESULT" in
+            success) build_status=':white_check_mark: Released' ;;
+            skipped) build_status=':double_vertical_bar: Not started' ;;
+            *)       build_status=':x: Failed' ;;
+          esac
+
+          # A skipped publish is two different things and the difference matters: no
+          # Marketplace token yet is expected and fine, whereas a skip after a failed
+          # build is a consequence of that failure.
+          case "$PUBLISH_RESULT" in
+            success) publish_status=':white_check_mark: Live on the Marketplace' ;;
+            failure) publish_status=':x: Failed' ;;
+            *)
+              if [ "$PUBLISHABLE" = 'true' ]; then
+                publish_status=':double_vertical_bar: Not started'
+              else
+                publish_status=':double_vertical_bar: Skipped (no Marketplace token)'
+              fi
+              ;;
+          esac
+
+          if [ "$SIGNED" = 'true' ]; then
+            signing_status=':white_check_mark: Signed'
+          else
+            signing_status=':warning: Unsigned'
+          fi
+
+          # Success means the release exists and publishing either worked or was
+          # deliberately not attempted.
+          if [ "$BUILD_RESULT" = 'success' ] && [ "$PUBLISH_RESULT" != 'failure' ]; then
+            failed=false
+            header=":rocket: Mondoo plugin v${VERSION} released"
+            if [ "$PUBLISH_RESULT" = 'success' ]; then
+              summary="Published to the JetBrains Marketplace. It takes a little while to appear while JetBrains reviews the upload."
+            else
+              summary="On the GitHub release and installable with *Install Plugin from Disk…*. Not sent to the Marketplace."
+            fi
+          else
+            failed=true
+            header=":x: Mondoo plugin v${VERSION} release failed"
+            summary="The release did not complete. The workflow run below has the failure."
+          fi
+
+          {
+            echo "failed=${failed}"
+            echo "header=${header}"
+            echo "summary=${summary}"
+            echo "build_status=${build_status}"
+            echo "publish_status=${publish_status}"
+            echo "signing_status=${signing_status}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post release message
+        if: env.SLACK_BOT_TOKEN != ''
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            channel: "${{ env.SLACK_BOT_CHANNEL_ID }}"
+            unfurl_links: false
+            unfurl_media: false
+            text: "${{ steps.meta.outputs.failed == 'true' && format('<!subteam^{0}> ', env.SLACK_PLATFORM_SUBTEAM_ID) || '' }}${{ steps.meta.outputs.header }}"
+            blocks:
+              - type: "header"
+                text:
+                  type: "plain_text"
+                  text: "${{ steps.meta.outputs.header }}"
+                  emoji: true
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "${{ steps.meta.outputs.failed == 'true' && format('<!subteam^{0}> ', env.SLACK_PLATFORM_SUBTEAM_ID) || '' }}${{ steps.meta.outputs.summary }}"
+              - type: "section"
+                fields:
+                  - type: "mrkdwn"
+                    text: "*Repository:*\n`${{ github.repository }}`"
+                  - type: "mrkdwn"
+                    text: "*Version:*\n`v${{ needs.build.outputs.version }}`"
+                  - type: "mrkdwn"
+                    text: "*Triggered by:*\n${{ github.actor }}"
+                  - type: "mrkdwn"
+                    text: "*Trigger:*\n${{ github.event_name }}"
+              - type: "section"
+                fields:
+                  - type: "mrkdwn"
+                    text: "*GitHub release:*\n${{ steps.meta.outputs.build_status }}"
+                  - type: "mrkdwn"
+                    text: "*Marketplace:*\n${{ steps.meta.outputs.publish_status }}"
+                  - type: "mrkdwn"
+                    text: "*Plugin signing:*\n${{ steps.meta.outputs.signing_status }}"
+              - type: "context"
+                elements:
+                  - type: "mrkdwn"
+                    # No Marketplace link yet: a listing only gets its permanent URL
+                    # once JetBrains has approved it, and /plugin/<plugin-id> is not a
+                    # working substitute — it 404s. Add it here once the listing is
+                    # public and has a numeric id.
+                    text: "<https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build.outputs.version }}|Release notes> · <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>"
+
+      - name: Note when the notification was skipped
+        if: env.SLACK_BOT_TOKEN == ''
+        run: |
+          {
+            echo "### Slack notification skipped"
+            echo
+            echo "\`SLACK_BOT_TOKEN\` is not available to this repository. Grant the"
+            echo "organisation secret to it to have releases announced in"
+            echo "#release-coordination."
+          } >> "$GITHUB_STEP_SUMMARY"
