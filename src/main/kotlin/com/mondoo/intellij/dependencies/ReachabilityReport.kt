@@ -1,7 +1,7 @@
 // Copyright Mondoo, Inc. 2026
 // SPDX-License-Identifier: Apache-2.0
 
-package com.mondoo.intellij.deps
+package com.mondoo.intellij.dependencies
 
 import com.google.gson.JsonParser
 
