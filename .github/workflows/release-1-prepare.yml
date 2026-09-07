@@ -82,7 +82,12 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
           git commit -am "chore: release v$version"
-          git push --set-upstream origin "$branch"
+
+          # Force, because this branch is disposable automation output and the first
+          # thing anyone does after a failed release attempt is run this again. A
+          # leftover release/vX from a closed PR would otherwise make the re-run fail
+          # on a push that cannot fast-forward — which is exactly what #2 left behind.
+          git push --force origin "$branch"
 
           prerelease_note=""
           if [ "${{ inputs.prerelease }}" = "true" ]; then
@@ -90,6 +95,16 @@ jobs:
 
           Requested as a **pre-release**, so tick pre-release on the draft to route it
           to a non-default Marketplace channel."
+          fi
+
+          # A PR may already be open for this branch from an earlier attempt. Reusing
+          # it beats failing: the branch has just been force-pushed, so the open PR
+          # already shows the current diff.
+          existing=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')
+          if [ -n "$existing" ]; then
+            echo "::notice::Reusing the pull request already open for $branch: $existing"
+            echo "PR_URL=$existing" >> "$GITHUB_ENV"
+            exit 0
           fi
 
           gh pr create \
