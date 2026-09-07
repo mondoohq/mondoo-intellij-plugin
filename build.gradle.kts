@@ -16,6 +16,18 @@ kotlin {
     jvmToolchain(providers.gradleProperty("javaVersion").get().toInt())
     compilerOptions {
         jvmTarget = JvmTarget.JVM_21
+
+        // The tree compiles with no warnings today, so this costs nothing now and
+        // keeps it that way. Kotlin warns about the things worth knowing here --
+        // an unreachable branch, a redundant nullable, a when that stopped being
+        // exhaustive -- and in a build that prints hundreds of lines those scroll
+        // past unread. A warning that never fails anything is a warning nobody fixes.
+        //
+        // The one predictable cost: a Kotlin upgrade can introduce new warnings and
+        // turn a Dependabot pull request red. That is the mechanism working -- the
+        // upgrade did change something -- but it does mean the bump needs a look
+        // rather than a rubber stamp.
+        allWarningsAsErrors = true
     }
 }
 
@@ -140,10 +152,42 @@ intellijPlatform {
     }
 
     pluginVerification {
+        // Everything the verifier can fail on, except the two categories this plugin
+        // knowingly and permanently trips. Each of these is currently zero, so they
+        // are gates on new mistakes rather than a backlog to work off.
         failureLevel = listOf(
             VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_WARNINGS,
             VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+            // Reaching into a class marked @ApiStatus.Internal. The platform gives no
+            // warning before changing those, so a use of one is a future breakage.
+            VerifyPluginTask.FailureLevel.INTERNAL_API_USAGES,
+            // Extending a class marked @ApiStatus.NonExtendable, or overriding a
+            // method marked @ApiStatus.OverrideOnly the wrong way round. Both are
+            // contracts the platform states and then relies on.
+            VerifyPluginTask.FailureLevel.NON_EXTENDABLE_API_USAGES,
+            VerifyPluginTask.FailureLevel.OVERRIDE_ONLY_API_USAGES,
+            // A dependency declared in plugin.xml that the target IDE does not have.
+            // The optional LSP and terminal modules are the shape most at risk here.
+            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
+            VerifyPluginTask.FailureLevel.PLUGIN_STRUCTURE_WARNINGS,
+            // The plugin installs and updates without an IDE restart today. That is a
+            // user-visible property worth keeping, and easy to lose by accident.
+            VerifyPluginTask.FailureLevel.NOT_DYNAMIC,
         )
+        // Deliberately absent:
+        //
+        //   DEPRECATED_API_USAGES   — 53 of them, and ~48 are the LspServer* names.
+        //     docs/adr/0001 explains why: the deprecated names are the ones present
+        //     across the whole compatibility range, and the replacements are not.
+        //     Deprecated-but-present beats clean-but-unstable, so this cannot gate.
+        //   EXPERIMENTAL_API_USAGES — 10, and they are choices already argued for:
+        //     PlatformHttpClient (which honours the IDE proxy and SSL settings, and
+        //     has a plain java.net.http fallback) and ToolWindowFactory's icon and
+        //     anchor.
+        //
+        // Both stay visible in the report artefact each verify job uploads; they are
+        // just not build failures.
         ides {
             // -PverifyLocal=true verifies only against IDEs already on this machine.
             // The full matrix downloads ~1 GB per IDE, which is a CI job, not
