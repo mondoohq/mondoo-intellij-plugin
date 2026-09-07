@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.3.0] - 2026-09-07
+
+### Added
+
 - **Upload Policy to Mondoo…** — publishes a policy bundle to your connected space,
   after confirming and saving the file.
 - **Open cnspec Shell…** — an interactive MQL session against a target, in the IDE's
@@ -24,28 +34,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Replace Code…** — structural search and replace. Matches are previewed in the Find
   tool window and applied as a single undoable command; nested matches are skipped
   rather than corrupted, and the count of skipped ones is shown.
+- **LR resource-definition support**, for the `.lr` and `.mqlr` files that declare MQL's
+  schema: hover, go-to-definition, find-usages and diagnostics from the `mqlr` language
+  server. Both extensions are recognised, so a repository part-way through the rename to
+  `.mqlr` is not half-supported. `mqlr` is discovered, never downloaded — it is built
+  from source with `go install`, and the plugin offers the command once per project.
 - A **Policies** tab listing every `*.mql.yaml` bundle in the project by directory,
   down to the queries each group's checks name. Double-click navigates to the
   declaration, typing filters the tree, and **Run** executes the selected query,
   policy or bundle against a target. A check referring to a uid the bundle does not
   define is shown rather than dropped.
 
+### Changed
+
+- **Show xgrep Path** is now **Show Tool Paths** and reports all three binaries — xgrep,
+  cnspec and mqlr — plus whether live scanning is available at all. "Which xgrep am I
+  running" and "why is there no MQL support" are the same question about different
+  tools, and a machine with two cnspecs on the `PATH` is what this exists to expose.
+
 ### Fixed
+
+- The plugin icon is legible on dark themes. The brand purple measures 2.99:1 against
+  the dark editor background, just under the 3:1 contrast floor for graphical elements,
+  so there is now a dark variant of the same hue.
 
 - The plugin can be enabled and disabled without restarting the IDE. It declared a
   non-dynamic extension point — an `applicationInitializedListener`, used only to write
   one diagnostic line to the log — which forced a restart on everyone who toggled the
   plugin. The same signal now comes from a dynamic startup activity, and **Show Tool
   Paths** reports whether live scanning is available without needing a log at all.
-
 - No internal IntelliJ API is used any more. The Marketplace plugin checker reported
   seven usages; all are replaced with supported equivalents. Internal API can change
   without notice, so this was a latent break on every IDE upgrade.
-
 - The Marketplace description no longer claims your code never leaves your machine.
   That was true when written and stopped being true when policy upload shipped;
   scanning is still local, and the description now says which part is which.
-
 - An SSH target configured with a password now authenticates with it. The password was
   put in an `SSH_PASSWORD` environment variable that cnspec does not read, and the
   inventory only ever described key or agent authentication — so the password was
@@ -118,5 +141,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...v0.3.0
 [0.1.0]: https://github.com/mondoohq/mondoo-intellij-plugin/commits/v0.1.0
