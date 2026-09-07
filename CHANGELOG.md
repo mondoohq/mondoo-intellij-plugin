@@ -7,12 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- The plugin no longer breaks on IntelliJ IDEA 2026.3. It called a terminal API that
-  build removed, so opening the cnspec shell would have failed with a
-  `NoSuchMethodError` — and the Marketplace refused the release over it.
-
 ### Added
 
 ### Changed
@@ -20,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+
+## [0.3.1] - 2026-09-07
+
+### Fixed
+
+- The plugin no longer breaks on IntelliJ IDEA 2026.3. It called a terminal API that
+  build removed, so opening the cnspec shell would have failed with a
+  `NoSuchMethodError` — and the Marketplace refused the release over it.
 
 ## [0.3.0] - 2026-09-07
 
@@ -63,7 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The plugin icon is legible on dark themes. The brand purple measures 2.99:1 against
   the dark editor background, just under the 3:1 contrast floor for graphical elements,
   so there is now a dark variant of the same hue.
-
 - The plugin can be enabled and disabled without restarting the IDE. It declared a
   non-dynamic extension point — an `applicationInitializedListener`, used only to write
   one diagnostic line to the log — which forced a restart on everyone who toggled the
@@ -153,6 +154,8 @@ went out in 0.3.0 instead, which is why the versions jump.
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...v0.3.0
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mondoohq/mondoo-intellij-plugin/commits/v0.1.0
