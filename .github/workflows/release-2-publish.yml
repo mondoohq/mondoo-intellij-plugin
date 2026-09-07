@@ -70,7 +70,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           # Deliberately uncached. The Actions cache is shared across refs, so
           # restoring one in the job that signs and publishes would let anyone able
@@ -257,7 +257,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4.4.1
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           cache-disabled: true # same reasoning as the build job
 
