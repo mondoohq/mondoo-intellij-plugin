@@ -230,12 +230,45 @@ jobs:
           # The demo asset is deliberately vulnerable — it exists so findings appear
           # on first run. Reporting it would train people to ignore this scan.
           args: "--exclude 'src/main/resources/demo/**'"
-          # The baseline is clean, so this gates. A new HIGH or CRITICAL finding fails
-          # the pull request that introduces it. A finding judged not to apply here is
-          # suppressed at the line with a `nogrep:` comment carrying the reason, the
-          # way release-2-publish.yml does — which keeps the argument in the diff where
-          # a reviewer sees it, rather than in a config file nobody reads.
-          fail-on: "error"
+          # Gated below rather than here. The action's own gate counts findings that
+          # the scan has already marked suppressed, so an inline `nogrep:` comment
+          # cannot get a triaged false positive past it — see the step after this one.
+          fail-on: "off"
+
+      # The gate the action's `fail-on` should be. SARIF records a suppressed finding
+      # with a `suppressions` array — the scan does mark ours, `kind: "inSource"` —
+      # and the action's gate counts every error-level result without looking at it.
+      # The effect is that turning `fail-on` on removes the only escape hatch for a
+      # false positive, which is how this repository's first gated run went red on a
+      # finding that had been triaged and suppressed a day earlier.
+      #
+      # Reported upstream. Delete this step and restore `fail-on: error` once the
+      # action's gate reads `suppressions`.
+      - name: Gate on unsuppressed findings
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ ! -f results.sarif ]; then
+            echo "::warning::No SARIF file; nothing to gate on."
+            exit 0
+          fi
+
+          total=$(jq '[.runs[].results[]?] | length' results.sarif)
+          suppressed=$(jq '[.runs[].results[]? | select((.suppressions // []) | length > 0)] | length' results.sarif)
+          blocking=$(jq '[.runs[].results[]?
+            | select(.level == "error")
+            | select((.suppressions // []) | length == 0)] | length' results.sarif)
+
+          echo "findings: $total total, $suppressed suppressed, $blocking blocking"
+
+          if [ "$blocking" -gt 0 ]; then
+            jq -r '.runs[].results[]?
+              | select(.level == "error")
+              | select((.suppressions // []) | length == 0)
+              | "  \(.ruleId): \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"' results.sarif
+            echo "::error::xgrep found $blocking unsuppressed error-level finding(s)"
+            exit 1
+          fi
 
       # Code scanning needs GitHub Advanced Security, which a private repository
       # without it cannot use — the upload fails with "Resource not accessible by
