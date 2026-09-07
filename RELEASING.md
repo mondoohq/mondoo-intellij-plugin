@@ -66,13 +66,21 @@ Also needed before the first publish, and both have lead time:
 
 ## Cutting a release
 
-1. **Prepare.** Run the **Prepare release** workflow with the new version, e.g. `0.2.0`
-   or `1.0.0-beta.1`. It bumps `pluginVersion`, closes the changelog's `Unreleased`
-   section into a version section, and opens a PR.
-2. **Review and merge** that PR. This is the point to read the changelog as a user would.
-3. **Create a GitHub Release** tagged `v<version>` against `main`. Mark it as a
-   **pre-release** to route the upload to a non-default Marketplace channel.
-4. The **Release** workflow then runs. The build job, in this order:
+1. **Run the *Cut release* workflow** with the new version, e.g. `0.3.0` or
+   `1.0.0-beta.1`, ticking **pre-release** if it should reach only the beta channel.
+   It bumps `pluginVersion`, closes the changelog's `Unreleased` section, runs the
+   tests, commits to `main`, creates the tag, and opens a **draft** release whose notes
+   come from the changelog.
+2. **Read the draft's notes**, then **publish it**.
+
+   Publishing is deliberately yours. It is the last point at which the notes can be
+   changed before anything is public — and a release created by a workflow's own token
+   cannot trigger another workflow, so if *Cut release* published it itself, the build
+   that attaches the plugin ZIP would never run and the release would sit there empty.
+
+   The bump is committed *before* the tag is created, so the tag and `pluginVersion`
+   cannot disagree. That mismatch is what failed the first v0.2.0 attempt.
+3. The **Release** workflow then runs. The build job, in this order:
    - the tag matches `pluginVersion` — publishing 0.1.0 from a tag that says v0.2.0 is
      silent and hard to undo, so this fails the job rather than guessing;
    - the changelog has a section for the version;
@@ -101,6 +109,18 @@ The channel is derived from the version's pre-release suffix:
 | `1.2.0` | `default` | Everyone |
 | `1.2.0-beta.1` | `beta` | People who added the beta repository URL |
 | `1.2.0-eap.1` | `eap` | People who added the EAP repository URL |
+
+## Bumping the version by hand
+
+`scripts/bump-version.sh <version>` is what *Cut release* calls, and it can be run
+locally — useful for seeing the changelog diff before committing to anything. It
+refuses a version that is not semantic, one that is already set, and an empty
+`Unreleased` section, and it verifies both files afterwards rather than trusting its
+own edits.
+
+Only two files carry the version: `gradle.properties` and `CHANGELOG.md`. Documentation
+that once showed a version in example output now says `<version>`, because example
+output that must be bumped every release is example output that will be wrong.
 
 ## Dry run
 

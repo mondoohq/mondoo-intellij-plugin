@@ -43,7 +43,7 @@ to hand a build to someone else.
 
 ```bash
 ./gradlew buildPlugin
-# -> build/distributions/mondoo-intellij-plugin-0.1.0.zip
+# -> build/distributions/mondoo-intellij-plugin-<version>.zip
 ```
 
 **2. Install it.** In the IDE:
@@ -91,7 +91,7 @@ Nothing there? Check the log: **Help** → **Show Log in Finder/Explorer**, and 
 `Mondoo`. These lines are the ones that matter:
 
 ```
-Loaded custom plugins: Mondoo (0.1.0)
+Loaded custom plugins: Mondoo (<version>)
 Mondoo: LSP module loaded (com.intellij.modules.lsp is available)
 Mondoo: starting xgrep lsp for <file> using <path>
 LSP server initialized ... name = xgrep
