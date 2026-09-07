@@ -11,11 +11,23 @@ import org.junit.jupiter.api.Test
 
 class CnspecShellCommandTest {
 
+    /** The argv the terminal actually runs. */
+    private fun argv(
+        type: TargetType,
+        vararg values: Pair<String, String>,
+        hasStoredPassword: Boolean = false,
+    ) = CnspecShellCommand.arguments(
+        "cnspec",
+        TargetConfiguration("t", type, values.toMap()),
+        hasStoredPassword,
+    )
+
+    /** The quoted line shown to a person. */
     private fun build(
         type: TargetType,
         vararg values: Pair<String, String>,
         hasStoredPassword: Boolean = false,
-    ) = CnspecShellCommand.build(
+    ) = CnspecShellCommand.display(
         "cnspec",
         TargetConfiguration("t", type, values.toMap()),
         hasStoredPassword,
@@ -74,10 +86,7 @@ class CnspecShellCommandTest {
         assertFalse(command.contains("--ask-pass"), command)
     }
 
-    /**
-     * This string is typed into a real shell, unlike every other cnspec invocation in
-     * the plugin, which uses an argv array no shell parses.
-     */
+    /** The displayed line must still be paste-able and safe if pasted. */
     @Test
     fun `a hostile host name cannot run a second command`() {
         val command = build(TargetType.SSH, "host" to "example.test; rm -rf /", "user" to "deploy")!!
@@ -117,11 +126,33 @@ class CnspecShellCommandTest {
     fun `a target with nothing to connect to has no command`() {
         assertNull(build(TargetType.SSH))
         assertNull(build(TargetType.DOCKER))
+        assertNull(argv(TargetType.SSH))
+        assertNull(argv(TargetType.DOCKER))
+    }
+
+    /**
+     * What the terminal runs is an argv list, so a semicolon in a host name is a
+     * character in one argument rather than something a shell could act on. This is
+     * the assertion that actually establishes the safety; the quoting tests below are
+     * about the line shown to a person.
+     */
+    @Test
+    fun `the argv keeps a hostile host name in a single argument`() {
+        val args = argv(TargetType.SSH, "host" to "example.test; rm -rf /", "user" to "deploy")!!
+        assertEquals(listOf("cnspec", "shell", "ssh", "deploy@example.test; rm -rf /"), args)
+    }
+
+    @Test
+    fun `the argv carries the flags unquoted`() {
+        assertEquals(
+            listOf("cnspec", "shell", "ssh", "deploy@example.test", "--ask-pass"),
+            argv(TargetType.SSH, "host" to "example.test", "user" to "deploy", hasStoredPassword = true),
+        )
     }
 
     @Test
     fun `a binary path with a space is quoted too`() {
-        val command = CnspecShellCommand.build(
+        val command = CnspecShellCommand.display(
             "/Applications/My Tools/cnspec",
             TargetConfiguration("t", TargetType.LOCAL),
             false,

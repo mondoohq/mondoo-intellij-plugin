@@ -117,6 +117,24 @@ adds others:
 cnspec supports many more providers than these. The rest remain available from its
 command line.
 
+## Publishing a policy
+
+**Upload Policy to Mondoo…** publishes the focused bundle to your connected Mondoo
+space. It asks first, naming the file — this is the one action in the plugin that sends
+anything off your machine, and which space it lands in comes from your cnspec
+configuration rather than from anything the plugin decides.
+
+The bundle is saved before it is sent, because cnspec reads it from disk; an unsaved
+editor would otherwise publish the previous version.
+
+cnspec lints before publishing, so lint warnings can appear on a successful upload.
+They do not block it. The notification says how many there were, and **Lint Policy
+Bundle** shows them.
+
+You need a Mondoo space and credentials for it — a service account, or `cnspec login`.
+Without them the upload fails with "agent credentials must be set" rather than
+appearing to work.
+
 ## Exploring a target interactively
 
 **Open cnspec Shell…** opens `cnspec shell` against a target in the IDE's own

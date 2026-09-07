@@ -102,6 +102,7 @@ class PluginDescriptorTest {
             "com.mondoo.intellij.actions.ShowXgrepPathAction",
             "com.mondoo.intellij.policy.NewPolicyFromTemplateAction",
             "com.mondoo.intellij.policy.LintPolicyAction",
+            "com.mondoo.intellij.policy.UploadPolicyAction",
             "com.mondoo.intellij.policy.FormatPolicyAction",
             "com.mondoo.intellij.policy.FormatPolicySortedAction",
             "com.mondoo.intellij.target.ScanTargetAction",

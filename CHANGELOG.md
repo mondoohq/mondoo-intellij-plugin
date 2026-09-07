@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Upload Policy to Mondoo…** — publishes a policy bundle to your connected space,
+  after confirming and saving the file.
 - **Open cnspec Shell…** — an interactive MQL session against a target, in the IDE's
   own terminal. A stored password is never placed on the command line; cnspec prompts
   for it.

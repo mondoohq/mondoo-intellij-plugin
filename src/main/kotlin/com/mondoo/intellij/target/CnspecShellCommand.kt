@@ -4,26 +4,21 @@
 package com.mondoo.intellij.target
 
 /**
- * The `cnspec shell` command line for a target, as text to type into a shell.
+ * The `cnspec shell` invocation for a target.
  *
- * A different shape from every other cnspec invocation in this plugin, and worth
- * saying why. Everything else builds a `GeneralCommandLine` — an argv array that no
- * shell ever parses — and passes credentials in an inventory file. `cnspec shell`
- * accepts no `--inventory-file`, so the target has to be expressed as a subcommand
- * and arguments instead, and those are typed into a real interactive shell.
+ * `cnspec shell` accepts no `--inventory-file` — see mondoohq/cnspec#3614 — so unlike
+ * every other cnspec call in this plugin the target is expressed as a subcommand and
+ * arguments rather than a file.
  *
- * Two consequences follow, and both are the reason this is a tested unit rather than
- * string concatenation at a call site:
+ * [arguments] is what the terminal runs: an argv list, which the terminal launches as
+ * the tab's process without a shell parsing it. So a host name containing a semicolon
+ * is one argument containing a semicolon, and quoting is not what makes that safe.
+ * [display] renders the same thing as a paste-able line, where the quoting does matter.
  *
- * **Everything is quoted.** This string reaches a shell, so a host name containing a
- * space, a semicolon or a backtick would otherwise run as a command. Every value is
- * wrapped in single quotes with embedded quotes escaped, which no POSIX shell
- * interprets further.
- *
- * **No password is ever placed on it.** `cnspec shell ssh` offers `-p <password>`,
- * and using it would put the secret in the process table and the shell's history.
- * `--ask-pass` makes cnspec prompt inside the terminal instead, so the password is
- * typed by the person who owns it and stored nowhere.
+ * **No password is ever placed on it.** `cnspec shell ssh` offers `-p <password>`, and
+ * using it would put the secret in the process table. `--ask-pass` makes cnspec prompt
+ * inside the terminal instead, so the password is typed by the person who owns it and
+ * stored nowhere.
  *
  * Pure: no platform types, unit-tested without cnspec.
  */
@@ -36,10 +31,21 @@ object CnspecShellCommand {
      *   target. Only its existence is used — the value is deliberately not a
      *   parameter, because there is nowhere on this command line it could safely go.
      */
-    fun build(binary: String, target: TargetConfiguration, hasStoredPassword: Boolean): String? {
+    fun arguments(binary: String, target: TargetConfiguration, hasStoredPassword: Boolean): List<String>? {
         val arguments = argumentsFor(target, hasStoredPassword) ?: return null
-        return (listOf(binary, "shell") + arguments).joinToString(" ") { quote(it) }
+        return listOf(binary, "shell") + arguments
     }
+
+    /**
+     * The same command as one line, for showing a person.
+     *
+     * Only for display — notifications, documentation, a copy-to-clipboard. The
+     * terminal is handed [arguments] directly, so this quoting is a readability
+     * concern rather than a safety one. It is still correct quoting, because a string
+     * shown as "the command that ran" should be one somebody can paste.
+     */
+    fun display(binary: String, target: TargetConfiguration, hasStoredPassword: Boolean): String? =
+        arguments(binary, target, hasStoredPassword)?.joinToString(" ") { quote(it) }
 
     private fun argumentsFor(target: TargetConfiguration, hasStoredPassword: Boolean): List<String>? =
         when (target.type) {

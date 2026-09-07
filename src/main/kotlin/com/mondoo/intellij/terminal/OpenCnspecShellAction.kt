@@ -63,7 +63,7 @@ internal class OpenCnspecShellAction : AnAction() {
         // Only whether a password exists, never the password itself: there is nowhere
         // on a shell command line it could safely go, so cnspec is asked to prompt.
         val hasPassword = TargetCredentials.forTarget(target).containsKey("password")
-        val command = CnspecShellCommand.build(binary.toString(), target, hasPassword) ?: run {
+        val command = CnspecShellCommand.arguments(binary.toString(), target, hasPassword) ?: run {
             Messages.showWarningDialog(
                 project,
                 "${target.name} cannot be opened as a shell — it has no host or target to connect to.",
@@ -73,9 +73,23 @@ internal class OpenCnspecShellAction : AnAction() {
         }
 
         runCatching {
-            TerminalToolWindowManager.getInstance(project)
-                .createLocalShellWidget(project.basePath, "cnspec: ${target.name}")
-                .executeCommand(command)
+            // createNewSession(tabName, workingDirectory, shellCommand, requestFocus,
+            // deferSessionStartUntilUiShown) — the only creation method on this class
+            // that is not deprecated. Every createShellWidget and
+            // createLocalShellWidget overload is; I checked the bytecode's Deprecated
+            // attribute per method rather than trusting the compiler on one of them.
+            //
+            // It is also the better shape. `shellCommand` becomes the tab's process,
+            // so cnspec is launched as an argv list and no shell ever parses it —
+            // which means the quoting exists only for what we show the user, not for
+            // safety. The tab dies with cnspec instead of dropping to a prompt.
+            TerminalToolWindowManager.getInstance(project).createNewSession(
+                "cnspec: ${target.name}",
+                project.basePath,
+                command,
+                true,
+                false,
+            )
         }.onFailure {
             LOG.warn("could not open a terminal for ${target.name}", it)
             Messages.showErrorDialog(project, "Could not open a terminal: ${it.message}", TITLE)

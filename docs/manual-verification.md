@@ -126,6 +126,18 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
 - [ ] Expanding a policy, then saving the bundle, leaves it expanded.
 - [ ] In an untrusted project the tree still lists bundles, but **Run** is disabled.
 
+## Uploading a policy
+
+Needs a Mondoo space; the upload is real and visible to everyone with access to it.
+
+- [ ] **Upload Policy to Mondoo…** asks before sending, and names the file.
+- [ ] Cancelling sends nothing.
+- [ ] A successful upload reports the policy count and the space name.
+- [ ] Editing the bundle without saving, then uploading, publishes the edit.
+- [ ] With no credentials configured it reports "agent credentials must be set" rather
+      than reporting success — cnspec exits 0 either way, so this is worth checking.
+- [ ] The action is hidden unless the focused file is a policy bundle.
+
 ## The cnspec shell
 
 - [ ] **Open cnspec Shell…** on "This machine" opens a terminal tab and lands at an

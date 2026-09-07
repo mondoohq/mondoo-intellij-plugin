@@ -133,6 +133,10 @@
               class="com.mondoo.intellij.policy.LintPolicyAction"
               text="Lint Policy Bundle"
               description="Check policy hygiene: tags, asset filters, unused queries"/>
+      <action id="Mondoo.Policy.Upload"
+              class="com.mondoo.intellij.policy.UploadPolicyAction"
+              text="Upload Policy to Mondoo..."
+              description="Publish this policy bundle to your connected Mondoo space"/>
       <action id="Mondoo.Policy.Format"
               class="com.mondoo.intellij.policy.FormatPolicyAction"
               text="Format Policy Bundle"

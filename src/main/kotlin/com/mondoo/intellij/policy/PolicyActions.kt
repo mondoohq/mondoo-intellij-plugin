@@ -276,3 +276,90 @@ class NewPolicyFromTemplateAction : AnAction() {
         const val INIT_TIMEOUT_MS = 60_000
     }
 }
+
+/**
+ * Uploads the focused bundle to the connected Mondoo space.
+ *
+ * The one action in the plugin that publishes something outside this machine, so it
+ * confirms first — naming the file, because "upload" says nothing about which policy
+ * or which space, and the space comes from whatever config cnspec resolves rather than
+ * from anything the plugin controls.
+ *
+ * cnspec lints before publishing, which is why lint findings can appear on success.
+ * Warnings do not block an upload and are reported rather than hidden.
+ */
+class UploadPolicyAction : PolicyBundleAction() {
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val file = bundle(e) ?: return
+        val binary = CnspecBinaryService.getInstance().resolvedBinaryOrNull() ?: run {
+            CnspecBinaryService.getInstance().notifyMissing(project)
+            return
+        }
+
+        // Publishing to a shared space is not undoable from here, so it is asked
+        // rather than assumed. The file is named because the action is invoked from a
+        // menu that does not show which bundle has focus.
+        val confirmed = Messages.showYesNoDialog(
+            project,
+            "Upload ${file.name} to your connected Mondoo space?\n\n" +
+                "This publishes the policy for everyone with access to that space.",
+            TITLE,
+            "Upload",
+            "Cancel",
+            null,
+        )
+        if (confirmed != Messages.YES) return
+
+        // Saved first: cnspec reads the file from disk, so an unsaved editor would
+        // publish the previous version — silently, and to a shared space.
+        ApplicationManager.getApplication().invokeAndWait {
+            FileDocumentManager.getInstance().getDocument(file)?.let {
+                FileDocumentManager.getInstance().saveDocument(it)
+            }
+        }
+
+        object : Task.Backgroundable(project, "Uploading ${file.name}", true) {
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = true
+                val command = GeneralCommandLine(binary.toString())
+                    .withParameters("policy", "upload", file.name)
+                    .withWorkDirectory(file.parent?.path)
+                    .withCharset(StandardCharsets.UTF_8)
+
+                val output = CapturingProcessHandler(command).runProcess(UPLOAD_TIMEOUT_MS, true)
+                // Not the exit code: cnspec exits 0 whether it published or not.
+                val result = PolicyUpload.interpret(output.stdout, output.stderr)
+
+                ApplicationManager.getApplication().invokeLater {
+                    when (result) {
+                        is UploadResult.Uploaded -> notify(
+                            project,
+                            buildString {
+                                append("Uploaded ${result.summary}.")
+                                if (result.lintWarnings > 0) {
+                                    append(" ${result.lintWarnings} lint warning(s) — run ")
+                                    append("Lint Policy Bundle to see them.")
+                                }
+                            },
+                            NotificationType.INFORMATION,
+                        )
+                        is UploadResult.Failed -> notify(
+                            project,
+                            "Could not upload ${file.name}: ${result.reason}",
+                            NotificationType.ERROR,
+                        )
+                    }
+                }
+            }
+        }.queue()
+    }
+
+    private companion object {
+        const val TITLE = "Upload Policy"
+
+        /** Lints, then talks to the Platform; both can be slow on a first run. */
+        const val UPLOAD_TIMEOUT_MS = 120_000
+    }
+}
