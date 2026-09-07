@@ -393,3 +393,56 @@ We do not. On platform 261/262 the capability is **true**, verified by logging i
 save-triggered rescan works unaided.
 
 Re-check only if the supported floor ever moves backwards, which it should not.
+
+## Appendix: what the Marketplace plugin checker reports, and why
+
+Run against IntelliJ IDEA 2026.2.2 on 2026-09-07. The verdict is **Compatible**; the
+counts below are advisory. Three categories were fixed and two are deliberate, and the
+distinction matters because a future reader will otherwise try to "fix" the second set.
+
+### Fixed
+
+**Internal API: 7 → 0.**
+
+- `ApplicationInitializedListener` (interface, `execute`, `componentsInitialized`) — five
+  usages, all for one diagnostic log line, and the extension point is **non-dynamic**,
+  so declaring it meant the whole plugin needed an IDE restart to enable or disable.
+  Replaced with a `backgroundPostStartupActivity`. `AppLifecycleListener` was checked as
+  an alternative and is also `@ApiStatus.Internal`.
+- `BaseState.intIncrementModificationCount()` — two usages. The public method is
+  internal; the non-internal `incrementModificationCount()` is `protected`, so
+  `TargetStoreState` exposes it through a `markChanged()` wrapper.
+- `TerminalToolWindowManager.createNewSession(String, String, List, ...)` — the
+  convenience overload is internal. Replaced with the runner-and-tab-state form, which
+  is what that overload does anyway.
+
+Fixing the first of those also removed the "cannot be enabled or disabled without an
+IDE restart" limitation, which was the only user-visible item in the whole report.
+
+### Deliberate
+
+**The LSP deprecations, roughly 29 of the deprecated usages.** `LspServerSupportProvider`,
+`LspServer`, `LspServerManager`, `LspServerDescriptor` and
+`ProjectWideLspServerDescriptor` were all renamed to `LspClient*` in 2026.1.4. The old
+names are the ones present in every build in this plugin's compatibility range, and
+`untilBuild` is open — see the body of this ADR. Suppressed per file with the reason
+stated. Revisit when the floor rises past the branches that lack the new names.
+
+**`PlatformHttpClient`, four experimental usages.** It is the only HTTP client that
+honours the IDE's proxy and SSL configuration, which a plugin that downloads a binary
+must do. A `java.net.http` fallback exists for if it is withdrawn.
+
+### Not ours to fix
+
+**`ToolWindowFactory.isApplicable`, `isDoNotActivateOnStart`, `getAnchor`, `getIcon`,
+`manage`** — six usages across deprecated and experimental. We override none of them:
+the Kotlin compiler emits a bridge method for every default method on the interface,
+and `javap` on our own class confirms it. Avoiding them would mean not implementing
+`ToolWindowFactory`, which is the only API for a tool window.
+
+**`Messages.showChooseDialog`, two usages.** Deprecated in both overloads with no
+replacement — `showEditableChooseDialog` answers a different question. Confined to
+`MondooDialogs` so there is one suppression rather than eight.
+
+**`(failed) (optional) com.intellij.jetbrains.client: Unavailable`** in the dependency
+tree belongs to `Git4Idea`, not to this plugin.

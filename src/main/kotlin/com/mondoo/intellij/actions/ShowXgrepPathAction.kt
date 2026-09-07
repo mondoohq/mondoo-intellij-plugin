@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.Messages
 import com.mondoo.intellij.binary.CnspecBinaryService
 import com.mondoo.intellij.binary.MqlrBinaryService
 import com.mondoo.intellij.binary.XgrepBinaryService
+import com.mondoo.intellij.lsp.LspAvailability
 
 /**
  * Reports which binary each feature resolved to.
@@ -35,9 +36,21 @@ class ShowXgrepPathAction : AnAction() {
             "$tool: ${path ?: "not found"}"
         }
 
+        // Whether live scanning is possible at all, which is a different question from
+        // whether a binary exists: the LSP client API is an optional platform module,
+        // and where it is absent the scanners still run on demand but nothing appears
+        // as you type. This is the first thing worth knowing in a "no findings" report,
+        // and asking here beats asking someone for a log file.
+        val liveScanning = if (LspAvailability.isPresent()) {
+            "available"
+        } else {
+            "unavailable — this IDE has no LSP client, so findings appear only on an explicit scan"
+        }
+
         Messages.showInfoMessage(
             e.project,
-            "$lines\n\nSet any of these explicitly in Settings | Tools | Mondoo.",
+            "$lines\n\nLive scanning: $liveScanning" +
+                "\n\nSet any of these explicitly in Settings | Tools | Mondoo.",
             "Mondoo Tool Paths",
         )
     }

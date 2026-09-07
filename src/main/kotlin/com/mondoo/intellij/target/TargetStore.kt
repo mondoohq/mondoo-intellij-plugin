@@ -27,14 +27,14 @@ class TargetStore : SimplePersistentStateComponent<TargetStoreState>(TargetStore
     fun save(target: TargetConfiguration) {
         state.targets.removeAll { it.name == target.name }
         state.targets.add(StoredTarget.from(target))
-        state.intIncrementModificationCount()
+        state.markChanged()
     }
 
     /** Removes a target and forgets its secrets, so nothing is orphaned in the safe. */
     fun delete(name: String) {
         find(name)?.let(TargetCredentials::forget)
         state.targets.removeAll { it.name == name }
-        state.intIncrementModificationCount()
+        state.markChanged()
     }
 
     companion object {
@@ -45,6 +45,20 @@ class TargetStore : SimplePersistentStateComponent<TargetStoreState>(TargetStore
 
 class TargetStoreState : BaseState() {
     val targets: MutableList<StoredTarget> by list()
+
+    /**
+     * Marks the state dirty so the change is written to disk.
+     *
+     * Mutating the list in place does not bump the modification count, so without
+     * this a saved target can be lost when the IDE closes.
+     *
+     * `incrementModificationCount()` is protected rather than public, which is why
+     * this wrapper exists: a subclass may call it, an outside caller may not. The
+     * public alternative, `intIncrementModificationCount()`, is annotated
+     * `@ApiStatus.Internal` — the Marketplace plugin checker flags it, and internal
+     * API can change without notice.
+     */
+    fun markChanged() = incrementModificationCount()
 }
 
 /** The persisted shape. Flat, because that is what serialises predictably. */

@@ -12,13 +12,15 @@
 -->
 <idea-plugin>
   <extensions defaultExtensionNs="com.intellij">
-    <!-- Announces in idea.log that this optional module actually loaded.
-         <depends optional> is otherwise completely silent. Application-level so
-         it fires even with no project open. -->
-    <applicationInitializedListener
-        implementation="com.mondoo.intellij.lsp.XgrepLspModuleProbe"/>
+    <!-- Announces in idea.log that this optional module actually loaded, since
+         <depends optional> is otherwise completely silent.
+
+         A project activity, not an applicationInitializedListener. That extension
+         point is non-dynamic, so declaring it meant the whole plugin needed an IDE
+         restart to enable or disable — and its interface is @ApiStatus.Internal.
+         Both costs, for a log line. See XgrepLspModuleProbe. -->
     <backgroundPostStartupActivity
-        implementation="com.mondoo.intellij.lsp.XgrepLspProjectProbe"/>
+        implementation="com.mondoo.intellij.lsp.XgrepLspModuleProbe"/>
 
     <!-- Suppression is ours, not the server's: xgrep publishes fixes for rules
          that have one, but nogrep comments are built client-side. No `language`

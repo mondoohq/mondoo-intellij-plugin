@@ -13,6 +13,8 @@ import com.mondoo.intellij.target.CnspecShellCommand
 import com.mondoo.intellij.target.TargetChooser
 import com.mondoo.intellij.target.TargetCredentials
 import com.mondoo.intellij.util.ProjectTrust
+import org.jetbrains.plugins.terminal.DefaultTerminalRunnerFactory
+import org.jetbrains.plugins.terminal.TerminalTabState
 import org.jetbrains.plugins.terminal.TerminalToolWindowManager
 
 /**
@@ -73,23 +75,27 @@ internal class OpenCnspecShellAction : AnAction() {
         }
 
         runCatching {
-            // createNewSession(tabName, workingDirectory, shellCommand, requestFocus,
-            // deferSessionStartUntilUiShown) — the only creation method on this class
-            // that is not deprecated. Every createShellWidget and
-            // createLocalShellWidget overload is; I checked the bytecode's Deprecated
-            // attribute per method rather than trusting the compiler on one of them.
+            // Public API only, and it took three attempts to find it. Every
+            // createShellWidget and createLocalShellWidget overload is deprecated, and
+            // the createNewSession(String, String, List, ...) convenience — which is
+            // what I reached for next — is @ApiStatus.Internal, so the Marketplace
+            // checker flags it. The runner-and-tab-state form is neither.
             //
-            // It is also the better shape. `shellCommand` becomes the tab's process,
-            // so cnspec is launched as an argv list and no shell ever parses it —
-            // which means the quoting exists only for what we show the user, not for
-            // safety. The tab dies with cnspec instead of dropping to a prompt.
-            TerminalToolWindowManager.getInstance(project).createNewSession(
-                "cnspec: ${target.name}",
-                project.basePath,
-                command,
-                true,
-                false,
-            )
+            // It is also exactly what that internal convenience does: build a
+            // TerminalTabState, then hand it to the runner. Doing it here costs four
+            // lines and depends only on API JetBrains supports.
+            //
+            // myShellCommand becomes the tab's process, so cnspec is launched from an
+            // argv list that no shell parses. A host name containing a semicolon is
+            // one argument containing a semicolon.
+            val tabState = TerminalTabState().apply {
+                myTabName = "cnspec: ${target.name}"
+                myIsUserDefinedTabTitle = true
+                myWorkingDirectory = project.basePath
+                myShellCommand = command
+            }
+            val runner = DefaultTerminalRunnerFactory.getInstance().createLocalRunner(project)
+            TerminalToolWindowManager.getInstance(project).createNewSession(runner, tabState)
         }.onFailure {
             LOG.warn("could not open a terminal for ${target.name}", it)
             Messages.showErrorDialog(project, "Could not open a terminal: ${it.message}", TITLE)

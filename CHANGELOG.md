@@ -78,6 +78,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The plugin can be enabled and disabled without restarting the IDE. It declared a
+  non-dynamic extension point — an `applicationInitializedListener`, used only to write
+  one diagnostic line to the log — which forced a restart on everyone who toggled the
+  plugin. The same signal now comes from a dynamic startup activity, and **Show Tool
+  Paths** reports whether live scanning is available without needing a log at all.
+
+- No internal IntelliJ API is used any more. The Marketplace plugin checker reported
+  seven usages; all are replaced with supported equivalents. Internal API can change
+  without notice, so this was a latent break on every IDE upgrade.
+
 - The Marketplace description no longer claims your code never leaves your machine.
   That was true when written and stopped being true when policy upload shipped;
   scanning is still local, and the description now says which part is which.
