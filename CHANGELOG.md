@@ -76,6 +76,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the agent did not happen to hold the key. It now goes into the temporary inventory
   file as a `password` credential.
 
+## [0.2.0]
+
+Never released. The tag was created before the version bump had merged, so the release
+failed its own version check and no build was ever published. Everything intended for it
+went out in 0.3.0 instead, which is why the versions jump.
+
 ## [0.1.0] - 2026-09-03
 
 ### Added
