@@ -194,17 +194,26 @@ jobs:
           name: plugin-distribution
           path: build/distributions/*.zip
 
-      # Both secrets, both checked here: a job-level `if` cannot read a secret, so the
-      # publish job is gated on this instead.
+      # Checked here because a job-level `if` cannot read a secret, so the publish job
+      # is gated on this output instead.
+      #
+      # PUBLISH_TOKEN alone is the requirement. Signing is *not*: the Marketplace
+      # accepts an unsigned plugin — its own web upload never asks for a certificate —
+      # and the SDK only says to "make sure it is signed", which is advice rather than
+      # a gate. This used to require signing too, which meant adding PUBLISH_TOKEN on
+      # its own bought nothing and the skip gave no hint why.
       - name: Decide whether this can be published
         id: publishable
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
-          if [ "${{ steps.decide.outputs.release }}" = "true" ] \
-             && [ "${{ steps.signing.outputs.available }}" = "true" ] \
-             && [ -n "$PUBLISH_TOKEN" ]; then
+          if [ "${{ steps.decide.outputs.release }}" = "true" ] && [ -n "$PUBLISH_TOKEN" ]; then
             echo "value=true" >> "$GITHUB_OUTPUT"
+            if [ "${{ steps.signing.outputs.available }}" != "true" ]; then
+              echo "::warning::Publishing unsigned. The Marketplace accepts this, but a \
+                signature is what lets JetBrains prove the plugin was not modified after \
+                you built it. See RELEASING.md."
+            fi
           else
             echo "value=false" >> "$GITHUB_OUTPUT"
           fi
@@ -220,14 +229,15 @@ jobs:
             if [ "${{ steps.signing.outputs.available }}" = "true" ]; then
               echo "- Signed: yes"
             else
-              echo "- Signed: **no** — \`CERTIFICATE_CHAIN\`, \`PRIVATE_KEY\` and \`PRIVATE_KEY_PASSWORD\` are not set."
+              echo "- Signed: **no**. Optional — the Marketplace accepts unsigned plugins."
+              echo "  Set \`CERTIFICATE_CHAIN\`, \`PRIVATE_KEY\` and \`PRIVATE_KEY_PASSWORD\` to sign."
             fi
             if [ "${{ steps.publishable.outputs.value }}" = "true" ]; then
               echo "- Marketplace: publishing in the next job."
             else
-              echo "- Marketplace: **not published**. The plugin is attached to the GitHub"
-              echo "  Release and installs with **Install Plugin from Disk…**. See RELEASING.md"
-              echo "  for the secrets and the Marketplace listing a publish needs."
+              echo "- Marketplace: **not published** — \`PUBLISH_TOKEN\` is not set."
+              echo "  The plugin is attached to the GitHub Release and installs with"
+              echo "  **Install Plugin from Disk…**. See RELEASING.md."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 

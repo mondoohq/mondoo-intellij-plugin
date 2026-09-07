@@ -25,19 +25,36 @@ someone downloads from GitHub and what the Marketplace serves are the same bytes
 
 ## One-time setup
 
-Four repository secrets are required **to publish to the Marketplace**. Without them a
-release still builds and attaches its binary; only the publish job is skipped.
+### Required to publish to the Marketplace
 
 | Secret | What it is |
 | --- | --- |
 | `PUBLISH_TOKEN` | A JetBrains Marketplace permanent token, from your profile's **Tokens** tab. Scoped to the Mondoo vendor account. |
+
+That is the whole requirement. With it set, a release publishes; without it, the release
+still builds, tags and attaches the ZIP, and the summary says publishing was skipped.
+
+### Optional: signing
+
+| Secret | What it is |
+| --- | --- |
 | `CERTIFICATE_CHAIN` | The signing certificate chain, PEM. |
-| `PRIVATE_KEY` | The signing private key, PEM. |
-| `PRIVATE_KEY_PASSWORD` | The private key's passphrase. |
+| `PRIVATE_KEY` | The signing private key, PEM, unencrypted. |
+| `PRIVATE_KEY_PASSWORD` | The passphrase used when the key was generated. |
+
+Signing is **not** required to publish. The Marketplace accepts unsigned plugins — its
+own web upload never asks for a certificate — and the SDK only advises to "make sure it
+is signed". What a signature buys is JetBrains being able to prove the plugin was not
+modified after you built it, which is worth having but is not a gate.
+
+Set all three or none. When they are absent the build is unsigned and says so; when
+they are present it signs and verifies the signature before publishing.
 
 Generating the signing key pair is described in
 [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html).
-An unsigned upload is accepted but flagged, so it is worth doing properly the first time.
+A self-signed certificate is fine — the SDK says "using a self-signed certificate is an
+option if no internal CAs exist". Note the `-days` argument: the certificate expires,
+and an expired one breaks signing rather than falling back to unsigned.
 
 ### Listing details set through the web UI
 
@@ -57,6 +74,12 @@ What is already set in the repository and needs no web-UI work: the name, the
 description (extracted from README.md between the plugin-description markers), the
 change notes (from CHANGELOG.md), the vendor details, the plugin URL, and both light
 and dark icons.
+
+### The first upload has to be manual
+
+JetBrains moderates a brand-new plugin's first submission, and `publishPlugin` cannot
+create a listing that does not exist — it can only update one. So the first ZIP goes up
+through the web UI; every release after that is automatic.
 
 Also needed before the first publish, and both have lead time:
 
