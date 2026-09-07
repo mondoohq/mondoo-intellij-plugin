@@ -62,6 +62,11 @@ jobs:
             [ -z "$f" ] && continue
             case "$f" in
               *.md|docs/*|.github/images/*|.github/ISSUE_TEMPLATE/*|LICENSE|CODEOWNERS) ;;
+              # Dependabot's own configuration cannot change what the plugin does.
+              # Note that what Dependabot *opens* is not exempt: a version-catalog bump
+              # falls through to the catch-all and runs the full matrix, which is the
+              # whole point of having it open those pull requests.
+              .github/dependabot.yml) ;;
               # The release workflows run their own tests and verifier when they fire;
               # build.yml never validated them.
               .github/workflows/release-*.yml) ;;

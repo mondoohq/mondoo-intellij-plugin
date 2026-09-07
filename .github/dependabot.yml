@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Actions are pinned to commit SHAs, which is right for supply-chain safety and
+  # means nothing tells you when one moves. Dependabot rewrites the SHA and the
+  # trailing version comment together, so the pin stays a pin.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    labels: [dependencies]
+    groups:
+      # One PR for routine action bumps. Reviewing five near-identical SHA changes
+      # separately is how they stop being read at all.
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Kotlin, the IntelliJ Platform Gradle Plugin, JUnit and ktlint, all through the
+  # version catalog in gradle/libs.versions.toml.
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build"
+    labels: [dependencies]
+    # Note what this cannot reach: the IDE we compile against is `platformVersion` in
+    # gradle.properties, a plain property rather than a dependency coordinate, so
+    # Dependabot never proposes it. That suits us — the sinceBuild floor moves with it,
+    # making it a decision about which IDEs the plugin supports (docs/adr/0001) rather
+    # than a chore. It has to be raised by hand, on purpose.
+    groups:
+      test-libraries:
+        patterns: ["org.junit*", "org.opentest4j*"]
