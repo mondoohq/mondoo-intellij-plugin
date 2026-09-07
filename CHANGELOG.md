@@ -1,7 +1,6 @@
 # Changelog
 
 All notable changes to the Mondoo plugin for JetBrains IDEs.
-
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
@@ -47,15 +46,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one diagnostic line to the log — which forced a restart on everyone who toggled the
   plugin. The same signal now comes from a dynamic startup activity, and **Show Tool
   Paths** reports whether live scanning is available without needing a log at all.
-
 - No internal IntelliJ API is used any more. The Marketplace plugin checker reported
   seven usages; all are replaced with supported equivalents. Internal API can change
   without notice, so this was a latent break on every IDE upgrade.
-
 - The Marketplace description no longer claims your code never leaves your machine.
   That was true when written and stopped being true when policy upload shipped;
   scanning is still local, and the description now says which part is which.
-
 - An SSH target configured with a password now authenticates with it. The password was
   put in an `SSH_PASSWORD` environment variable that cnspec does not read, and the
   inventory only ever described key or agent authentication — so the password was
