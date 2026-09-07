@@ -9,16 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-### Changed
-
-### Fixed
-
-### Removed
-
-## [0.2.0] - 2026-09-07
-
-### Added
-
 - **Upload Policy to Mondoo…** — publishes a policy bundle to your connected space,
   after confirming and saving the file.
 - **Open cnspec Shell…** — an interactive MQL session against a target, in the IDE's
@@ -128,6 +118,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/mondoohq/mondoo-intellij-plugin/commits/v0.1.0
