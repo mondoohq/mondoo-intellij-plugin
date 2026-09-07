@@ -13,14 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Removed
+
+## [0.3.2] - 2026-09-07
+
+### Fixed
+
 - The demo file now produces the hardcoded-credential finding its own comment
   promises. `welcome.js` is what the plugin opens on first run to show findings
   appearing, and the line labelled "Hardcoded credential" never reported anything —
   a bare assignment is not matched, by design, because flagging every string in a
   password-shaped variable is how a rule becomes noise. The demo now passes the same
   secret to a database client, which does report.
-
-### Removed
 
 ## [0.3.1] - 2026-09-07
 
@@ -161,7 +165,8 @@ went out in 0.3.0 instead, which is why the versions jump.
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...v0.2.0
