@@ -265,11 +265,17 @@ jobs:
       # not a rebuild of it. Two builds of one version could differ; this way what
       # someone downloads from GitHub and what the Marketplace serves are the same
       # bytes.
-      # The artifact-poisoning rule is about a `workflow_run` job downloading an
-      # artifact that an untrusted `pull_request` run produced. This is not that: the
-      # producer is the `build` job of this same run, reached through `needs`, so no
-      # other run can put bytes here.
-      # not a workflow_run consumer; artifact comes from this run's own build job nogrep: actions-artifact-poisoning
+      # The artifact-poisoning rule asks whether attacker-controlled code could have
+      # produced this artifact. Here nothing untrusted is ever involved: the workflow
+      # runs on a push to main, and the `build` job that produced the artifact checked
+      # out a tag on main, so every line that ran to create it was already merged.
+      #
+      # Note the reason is the trigger and the provenance, NOT that the producer is a
+      # job of this same run. Same-run is not by itself safe -- a `pull_request` job
+      # that checks out the PR head, runs it, and uploads the result hands the next
+      # job a poisoned artifact through `needs` exactly as a cross-run download would.
+      # It is the absence of any untrusted input that makes this one safe.
+      # push-triggered release; the artifact is built from a merged tag, never from untrusted input nogrep: actions-artifact-poisoning
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: plugin-distribution
