@@ -69,7 +69,14 @@ jobs:
           tag="${{ github.event.release.tag_name }}"
           echo "pluginVersion=$version  tag=$tag"
           if [ "v$version" != "$tag" ] && [ "$version" != "$tag" ]; then
-            echo "::error::Tag $tag does not match pluginVersion $version"
+            # The remedy, not just the diagnosis: this fires only after a release
+            # already exists, so whoever sees it needs to know the way out.
+            echo "::error::Tag $tag does not match pluginVersion $version. \
+              The version bump was not merged before tagging. Fix it by setting \
+              pluginVersion=${tag#v} in gradle.properties and closing the changelog \
+              (./gradlew patchChangelog), pushing that to main, then re-pointing the \
+              $tag tag at it and re-running this workflow. The 'Prepare release' \
+              workflow does the bump for you and avoids this."
             exit 1
           fi
 

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.2.0] - 2026-09-07
+
+### Added
+
 - **Upload Policy to Mondoo…** — publishes a policy bundle to your connected space,
   after confirming and saving the file.
 - **Open cnspec Shell…** — an interactive MQL session against a target, in the IDE's
@@ -24,18 +34,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Replace Code…** — structural search and replace. Matches are previewed in the Find
   tool window and applied as a single undoable command; nested matches are skipped
   rather than corrupted, and the count of skipped ones is shown.
-
 - A **Policies** tab listing every `*.mql.yaml` bundle in the project by directory,
   down to the queries each group's checks name. Double-click navigates to the
   declaration, typing filters the tree, and **Run** executes the selected query,
   policy or bundle against a target. A check referring to a uid the bundle does not
   define is shown rather than dropped.
 
-### Changed
-
 ### Fixed
 
-### Removed
+- The plugin can be enabled and disabled without restarting the IDE. It declared a
+  non-dynamic extension point — an `applicationInitializedListener`, used only to write
+  one diagnostic line to the log — which forced a restart on everyone who toggled the
+  plugin. The same signal now comes from a dynamic startup activity, and **Show Tool
+  Paths** reports whether live scanning is available without needing a log at all.
+
+- No internal IntelliJ API is used any more. The Marketplace plugin checker reported
+  seven usages; all are replaced with supported equivalents. Internal API can change
+  without notice, so this was a latent break on every IDE upgrade.
+
+- The Marketplace description no longer claims your code never leaves your machine.
+  That was true when written and stopped being true when policy upload shipped;
+  scanning is still local, and the description now says which part is which.
+
+- An SSH target configured with a password now authenticates with it. The password was
+  put in an `SSH_PASSWORD` environment variable that cnspec does not read, and the
+  inventory only ever described key or agent authentication — so the password was
+  silently discarded and the connection fell back to the SSH agent, failing wherever
+  the agent did not happen to hold the key. It now goes into the temporary inventory
+  file as a `password` credential.
 
 ## [0.1.0] - 2026-09-03
 
@@ -78,27 +104,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The plugin can be enabled and disabled without restarting the IDE. It declared a
-  non-dynamic extension point — an `applicationInitializedListener`, used only to write
-  one diagnostic line to the log — which forced a restart on everyone who toggled the
-  plugin. The same signal now comes from a dynamic startup activity, and **Show Tool
-  Paths** reports whether live scanning is available without needing a log at all.
-
-- No internal IntelliJ API is used any more. The Marketplace plugin checker reported
-  seven usages; all are replaced with supported equivalents. Internal API can change
-  without notice, so this was a latent break on every IDE upgrade.
-
-- The Marketplace description no longer claims your code never leaves your machine.
-  That was true when written and stopped being true when policy upload shipped;
-  scanning is still local, and the description now says which part is which.
-
-- An SSH target configured with a password now authenticates with it. The password was
-  put in an `SSH_PASSWORD` environment variable that cnspec does not read, and the
-  inventory only ever described key or agent authentication — so the password was
-  silently discarded and the connection fell back to the SSH agent, failing wherever
-  the agent did not happen to hold the key. It now goes into the temporary inventory
-  file as a `password` credential.
-
 - The status-bar menu no longer renders most actions as disabled. The status bar's
   data context carries no project, so every action that consults it appeared greyed
   out.
@@ -123,5 +128,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mondoohq/mondoo-intellij-plugin/commits/v0.1.0
