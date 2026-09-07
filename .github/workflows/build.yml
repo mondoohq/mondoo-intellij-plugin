@@ -11,6 +11,69 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A full run is nine jobs and about 27 wall-clock minutes, but the bill is weighted:
+  # macOS runners cost 10x and Windows 2x, so it is nearer 90 billable minutes, two
+  # thirds of it macOS. None of that tells you anything about a change to a README or a
+  # release workflow, and PR #6 — one line of YAML permissions — paid all of it.
+  #
+  # So the expensive jobs are gated on whether the change can affect the plugin. The
+  # list below is an allowlist of things that cannot; everything else, including
+  # build.yml itself and the composite action, counts as code. Defaulting to "run
+  # everything" means a path nobody thought about gets tested rather than silently
+  # skipped.
+  #
+  # Gated with `if:` rather than a workflow-level paths filter on purpose: a skipped job
+  # still reports a status, so branch protection is satisfied, whereas a filtered-out
+  # workflow never reports at all and a required check would wait forever.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      plugin: ${{ steps.filter.outputs.plugin }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # both sides of the comparison
+
+      - name: Decide whether this touches the plugin
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+
+          # A new branch, a force push, or a manual run leaves no usable base. Test
+          # everything rather than guess.
+          if [ -z "$base" ] || ! git cat-file -e "$base" 2>/dev/null; then
+            echo "No usable base commit; running everything."
+            echo "plugin=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$base" "$head")
+          echo "Changed files:"; echo "$changed" | sed 's/^/  /'
+
+          plugin=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              *.md|docs/*|.github/images/*|.github/ISSUE_TEMPLATE/*|LICENSE|CODEOWNERS) ;;
+              # The release workflows run their own tests and verifier when they fire;
+              # build.yml never validated them.
+              .github/workflows/release-*.yml) ;;
+              *) plugin=true; echo "  -> $f affects the plugin"; break ;;
+            esac
+          done <<< "$changed"
+
+          echo "plugin=$plugin" >> "$GITHUB_OUTPUT"
+          if [ "$plugin" = "false" ]; then
+            echo "::notice::No plugin sources changed; skipping the build, smoke and verify jobs."
+          fi
+
   # The plugin is built and installed on all three desktop platforms, so it is built
   # and tested on all three. Linux alone would miss what actually differs: resolving
   # xgrep.exe rather than xgrep, unpacking a .zip rather than a .tar.gz, looking in
@@ -18,6 +81,8 @@ jobs:
   # YAML escaping.
   build:
     name: Build and test (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.plugin == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -91,6 +156,8 @@ jobs:
   # platform: whether the plugin loads and initialises at all.
   smoke:
     name: IDE smoke test (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.plugin == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     strategy:
@@ -208,6 +275,8 @@ jobs:
 
   verify:
     name: Verify (${{ matrix.ide }})
+    needs: changes
+    if: needs.changes.outputs.plugin == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
