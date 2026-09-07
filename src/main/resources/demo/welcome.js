@@ -7,11 +7,13 @@
 const express = require('express');
 const { exec } = require('child_process');
 const fs = require('fs');
+const { Client } = require('pg');
 
 const app = express();
 
-// Hardcoded credential.
-const DB_PASSWORD = 'hunter2-super-secret';
+// Hardcoded credential: a secret written into the source instead of read from
+// the environment or a secret store.
+const db = new Client({ host: 'localhost', password: 'hunter2-super-secret' });
 
 app.get('/ping', (req, res) => {
   // Command injection: user input reaches a shell.
@@ -28,4 +30,4 @@ app.post('/calc', (req, res) => {
   res.send(String(eval(req.body.expression)));
 });
 
-module.exports = { app, DB_PASSWORD };
+module.exports = { app, db };
