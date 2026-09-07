@@ -64,7 +64,7 @@ internal class XgrepFindingsToolWindowFactory :
             factory.createContent(findings, "Code Security", false).also { it.isCloseable = false },
         )
 
-        val dependencies = com.mondoo.intellij.deps.DependenciesPanel(project)
+        val dependencies = com.mondoo.intellij.dependencies.DependenciesPanel(project)
         Disposer.register(toolWindow.disposable, dependencies)
         toolWindow.contentManager.addContent(
             factory.createContent(dependencies, "Dependencies", false).also { it.isCloseable = false },

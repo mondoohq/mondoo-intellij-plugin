@@ -58,7 +58,7 @@
     <projectService serviceImplementation="com.mondoo.intellij.policy.PolicyIndexService"/>
     <projectService serviceImplementation="com.mondoo.intellij.target.TargetStore"/>
     <projectService serviceImplementation="com.mondoo.intellij.target.CnspecRunService"/>
-    <projectService serviceImplementation="com.mondoo.intellij.deps.DependencyReachabilityService"/>
+    <projectService serviceImplementation="com.mondoo.intellij.dependencies.DependencyReachabilityService"/>
 
     <toolWindow id="Mondoo"
                 anchor="bottom"

@@ -8,7 +8,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.wm.ToolWindowManager
 import com.mondoo.intellij.binary.XgrepBinaryService
-import com.mondoo.intellij.deps.DependencyReachabilityService
+import com.mondoo.intellij.dependencies.DependencyReachabilityService
 import com.mondoo.intellij.util.ProjectTrust
 
 /**

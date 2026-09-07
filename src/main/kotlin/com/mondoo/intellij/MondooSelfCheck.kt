@@ -95,7 +95,7 @@ internal class MondooSelfCheck : ProjectActivity {
         check(failures, "XgrepSearchService") { com.mondoo.intellij.search.XgrepSearchService.getInstance(project) }
         check(failures, "BomService") { com.mondoo.intellij.bom.BomService.getInstance(project) }
         check(failures, "DependencyReachabilityService") {
-            com.mondoo.intellij.deps.DependencyReachabilityService.getInstance(project)
+            com.mondoo.intellij.dependencies.DependencyReachabilityService.getInstance(project)
         }
         check(failures, "PolicyLintService") { com.mondoo.intellij.policy.PolicyLintService.getInstance(project) }
         check(failures, "PolicyIndexService") { com.mondoo.intellij.policy.PolicyIndexService.getInstance(project) }
