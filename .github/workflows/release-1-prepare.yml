@@ -39,7 +39,11 @@ jobs:
     name: Open the version-bump PR
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # commit the bump and push the branch
+      # gh pr create needs this. It was dropped when this workflow briefly pushed
+      # straight to main, and not restored when it went back to opening a PR — which
+      # would have failed on the first run with "Resource not accessible by integration".
+      pull-requests: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
