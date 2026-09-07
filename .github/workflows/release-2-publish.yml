@@ -1,53 +1,66 @@
-name: Release 3 - publish
+name: Release 2 - publish
 
-# Runs itself when you publish the draft that "Release 2 - tag" opened. Builds the
-# plugin, attaches it to the release, and uploads to the Marketplace when the
-# credentials for that exist.
+# Runs itself when a version bump reaches main. Tests, builds, signs, creates the tag
+# and the GitHub Release with the plugin attached, and uploads to the Marketplace when
+# the credentials for that exist.
 #
-# You do not run this one. See "Release 1 - prepare" for the sequence.
+# You do not run this one; you merge the PR that "Release 1 - prepare" opened. The
+# trigger is the same shape cnspec uses — a version file changing on main — so the two
+# repositories release the same way.
 #
-# Publishing is driven by a GitHub Release. Creating one as a pre-release routes the
-# upload to a non-default Marketplace channel, so a beta reaches only people who opted
-# into it.
+# The tag and the release are created here rather than by hand, and the version comes
+# from gradle.properties rather than from anything anyone types. A tag and a
+# pluginVersion that disagree is what broke the first v0.2.0 attempt; there is now only
+# one place the version exists.
 #
-# Two jobs, because they answer two different questions and only one of them needs
-# credentials Mondoo may not have yet:
+# Everything happens in one workflow on purpose. The obvious split — one workflow tags
+# and releases, another reacts to `on: release` and builds — does not work with the
+# token this repository has: a release created with GITHUB_TOKEN does not trigger
+# another workflow, so the second would never run and the release would carry no
+# plugin. cnspec avoids that with a GitHub App token (mondoo-mergebot), which is not
+# granted to this repository. If it ever is, this can be split to match cnspec exactly.
 #
-#   build    — is there an installable plugin, and is it attached to the release?
+# Two jobs, because they answer two different questions and only one needs credentials
+# Mondoo may not have yet:
+#
+#   build    — is there an installable plugin, and is it on the release?
 #   publish  — did it reach the JetBrains Marketplace?
 #
-# A release with no Marketplace secrets still produces a ZIP on the GitHub Release
-# that people install with "Install Plugin from Disk…", which is how this plugin is
-# distributed until the Marketplace listing exists. Publishing is then simply skipped,
-# and says so in the job summary rather than failing the release.
+# A release cut with no Marketplace secrets still gives people something to install:
+# the ZIP on the GitHub Release, via "Install Plugin from Disk…". Publishing is then
+# skipped and says so, rather than failing the release.
 on:
-  release:
-    types: [prereleased, released]
+  push:
+    branches: [main]
+    paths:
+      # Only a version change can start a release, so nothing else need wake this.
+      - gradle.properties
   workflow_dispatch:
     inputs:
       dryRun:
-        description: "Build, verify and sign, but do not publish"
+        description: "Build, verify and sign, but do not tag, release or publish"
         type: boolean
         default: true
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   build:
-    name: Build and attach to the release
+    name: Build, tag and release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
+      version: ${{ steps.decide.outputs.version }}
+      release: ${{ steps.decide.outputs.release }}
       signed: ${{ steps.signing.outputs.available }}
       publishable: ${{ steps.publishable.outputs.value }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
-          fetch-depth: 0
+          fetch-depth: 0 # tags, so an already-released version is left alone
 
       # The Plugin Verifier downloads a full IDE — 1-2 GB — and this job is
       # deliberately uncached, so it pays for the platform distribution too.
@@ -66,34 +79,35 @@ jobs:
           # keeps its cache.
           cache-disabled: true
 
-      # Nothing below is worth doing if the tag and the version disagree: publishing
-      # 0.1.0 from a tag that says v0.2.0 is silent and very hard to undo.
-      - name: Check the tag matches pluginVersion
-        if: github.event_name == 'release'
+      # gradle.properties changes for reasons that are not a release — a Gradle
+      # version, a JVM arg. Three conditions have to hold; any of them failing means
+      # this push was not a release and the job stops without doing anything.
+      - name: Decide whether this is a release
+        id: decide
         run: |
           version=$(grep '^pluginVersion' gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          tag="${{ github.event.release.tag_name }}"
-          echo "pluginVersion=$version  tag=$tag"
-          if [ "v$version" != "$tag" ] && [ "$version" != "$tag" ]; then
-            # The remedy, not just the diagnosis: this fires only after a release
-            # already exists, so whoever sees it needs to know the way out.
-            echo "::error::Tag $tag does not match pluginVersion $version. \
-              The version bump was not merged before tagging. Fix it by setting \
-              pluginVersion=${tag#v} in gradle.properties and closing the changelog \
-              (./gradlew patchChangelog), pushing that to main, then re-pointing the \
-              $tag tag at it and re-running this workflow. The 'Prepare release' \
-              workflow does the bump for you and avoids this."
-            exit 1
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "pluginVersion is $version"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # A manual run proves the pipeline without releasing anything.
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "Manual run: will build and verify, but not tag or release."
+            exit 0
+          fi
+          if git rev-parse "v$version" >/dev/null 2>&1; then
+            echo "::notice::v$version is already tagged; nothing to release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! grep -qE "^## \\[$version\\]" CHANGELOG.md; then
+            echo "::notice::CHANGELOG.md has no section for $version, so this is not a prepared release."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-      - name: Check the changelog has an entry for this version
-        if: github.event_name == 'release'
-        run: |
-          version=$(grep '^pluginVersion' gradle.properties | cut -d'=' -f2 | tr -d ' ')
-          if ! grep -qE "^## \[($version|Unreleased)\]" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no section for $version"
-            exit 1
-          fi
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "Will tag and release v$version"
 
       # A release must not be able to ship something the normal pipeline would reject.
       - name: Test
@@ -131,14 +145,48 @@ jobs:
           PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
         run: ./gradlew signPlugin verifyPluginSignature --stacktrace
 
-      # The point of the split: the binary reaches the GitHub Release whether or not
-      # anything can be published, because that download is how the plugin is
-      # installed until the Marketplace listing exists.
-      - name: Attach the plugin to the release
-        if: github.event_name == 'release'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" ./build/distributions/*.zip --clobber
+      # The tag is created from the version that merged, and the release carries the
+      # ZIP from the moment it exists — so there is no window in which a release is
+      # public with nothing to install.
+      - name: Tag the release
+        if: steps.decide.outputs.release == 'true'
+        run: |
+          version="${{ steps.decide.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$version" -m "v$version"
+          git push origin "v$version"
+
+      - name: Write the release notes
+        if: steps.decide.outputs.release == 'true'
+        run: |
+          # From the changelog section this release closed, so the release and the
+          # repository cannot describe the version differently.
+          ./gradlew getChangelog --no-header --no-summary --quiet > /tmp/notes.md
+          {
+            echo "**Requires an IntelliJ-based IDE 2026.1.4 or newer.** Tested on IntelliJ IDEA, GoLand and Android Studio."
+            echo
+            echo "Not on the JetBrains Marketplace yet — download the ZIP below and install it with"
+            echo "**Settings → Plugins → ⚙ → Install Plugin from Disk…**, then restart."
+            echo
+            echo "---"
+            echo
+            cat /tmp/notes.md
+          } > /tmp/release-notes.md
+
+      # Same action cnspec uses, for consistency. A pre-release suffix in the version
+      # marks it as one, which is also what routes the Marketplace upload to a
+      # non-default channel.
+      - name: Create the GitHub Release
+        if: steps.decide.outputs.release == 'true'
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: v${{ steps.decide.outputs.version }}
+          name: v${{ steps.decide.outputs.version }}
+          body_path: /tmp/release-notes.md
+          files: build/distributions/*.zip
+          prerelease: ${{ contains(steps.decide.outputs.version, '-') }}
+          make_latest: ${{ !contains(steps.decide.outputs.version, '-') }}
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
@@ -153,7 +201,9 @@ jobs:
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
-          if [ "${{ steps.signing.outputs.available }}" = "true" ] && [ -n "$PUBLISH_TOKEN" ]; then
+          if [ "${{ steps.decide.outputs.release }}" = "true" ] \
+             && [ "${{ steps.signing.outputs.available }}" = "true" ] \
+             && [ -n "$PUBLISH_TOKEN" ]; then
             echo "value=true" >> "$GITHUB_OUTPUT"
           else
             echo "value=false" >> "$GITHUB_OUTPUT"
@@ -165,7 +215,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## Release ${{ github.event.release.tag_name || github.ref_name }}"
+            echo "## Release v${{ steps.decide.outputs.version }}"
             echo
             if [ "${{ steps.signing.outputs.available }}" = "true" ]; then
               echo "- Signed: yes"
@@ -186,12 +236,12 @@ jobs:
     needs: build
     if: |
       needs.build.outputs.publishable == 'true' &&
-      (github.event_name == 'release' || inputs.dryRun == false)
+      needs.build.outputs.release == 'true' 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ github.event.release.tag_name || github.ref }}
+          ref: v${{ needs.build.outputs.version }}
 
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:

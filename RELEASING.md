@@ -66,48 +66,62 @@ Also needed before the first publish, and both have lead time:
 
 ## Cutting a release
 
-Three workflows, numbered because their names alone did not say which one to run. You
-run the first; the other two run themselves.
+Two workflows. You run the first; the second runs itself.
 
 | | Trigger | What it does |
 | --- | --- | --- |
 | **Release 1 - prepare** | you run it, with a version | Opens a PR bumping the version and closing the changelog |
-| **Release 2 - tag** | that PR merging | Tags the version on main and opens a **draft** release |
-| **Release 3 - publish** | you publishing the draft | Builds, attaches the ZIP, uploads to the Marketplace |
+| **Release 2 - publish** | that PR merging | Tests, builds, signs, tags, creates the GitHub Release with the ZIP, uploads to the Marketplace |
 
 1. **Run *Release 1 - prepare*** with the new version, e.g. `0.3.0` or `1.0.0-beta.1`.
    It validates the version, bumps `gradle.properties`, closes the changelog, runs the
-   tests, and opens a pull request. Nothing is tagged or published.
+   tests, and opens a pull request. Nothing is tagged or released.
 
-2. **Review and merge that PR.** This is the point to read the changelog as a user
-   would — those words become the release notes and the Marketplace "What's new".
+2. **Review and merge that PR.** This is the release decision, and the only human
+   checkpoint — read the changelog diff as a user would, because those words become
+   both the release notes and the Marketplace "What's new".
 
-3. ***Release 2 - tag*** then runs on its own. It reads the version from
-   `gradle.properties` on main, tags it, and opens a draft release.
+3. ***Release 2 - publish*** then runs on its own, and does everything else.
 
-   The version is typed once, in step 1, and the tag is derived from what merged. A tag
-   and a `pluginVersion` that disagree is what broke the first v0.2.0 attempt; there is
-   no longer a second place to get it wrong.
+That is the same trigger shape cnspec uses — a version file changing on `main` — so the
+two repositories release the same way.
 
-4. **Publish the draft.** Tick pre-release first if it should reach only the beta
-   channel.
+### Why one workflow rather than two
 
-   Publishing is deliberately yours, for two reasons. It is the last point at which the
-   notes can change before anything is public. And a release created by a workflow's own
-   token cannot trigger another workflow — if *Release 2* published it, *Release 3*
-   would never run and the release would sit there with no plugin attached, which is
-   the failure this whole sequence exists to prevent.
+The obvious split is one workflow that tags and releases, and another reacting to
+`on: release` that builds and attaches. It does not work here: **a release created with
+`GITHUB_TOKEN` does not trigger another workflow**, so the second would never run and
+the release would sit there with nothing to install. That is exactly how the first
+v0.2.0 attempt ended.
 
-5. ***Release 3 - publish*** then runs. The build job, in this order:
-   - the tag matches `pluginVersion` — belt and braces now that step 3 derives it;
-   - the changelog has a section for the version;
-   - `check` (tests) and `verifyPlugin`;
-   - `buildPlugin`, then `signPlugin` and `verifyPluginSignature` when the signing
-     secrets exist;
-   - the ZIP is attached to the GitHub Release, signed or not.
+cnspec avoids this with a GitHub App token (`mondoo-mergebot`), whose secrets are not
+granted to this repository — only eight org secrets are, and those two are not among
+them. If they are ever granted, this can be split to match cnspec exactly.
 
-   Then the publish job, only when both the signing secrets and `PUBLISH_TOKEN` are
-   set: `publishPlugin`, uploading the artifact the build job produced.
+### Where the version comes from
+
+`gradle.properties`, and nowhere else. It is typed once, in step 1, and the tag is
+derived from whatever merged. A tag and a `pluginVersion` that disagree is what broke
+the first v0.2.0 attempt; there is no second place left to get it wrong.
+
+*Release 2* only acts when all three hold: `gradle.properties` changed, the version has
+no tag yet, and the changelog has a section for it. That file changes for other reasons
+— a Gradle version, a JVM arg — and none of those should release anything.
+
+A pre-release suffix carries through on its own: `1.0.0-beta.1` marks the GitHub Release
+as a pre-release, and routes the Marketplace upload to the beta channel.
+
+### What *Release 2* does, in order
+
+- the version is releasable — untagged, and present in the changelog;
+- `check` (tests) and `verifyPlugin`;
+- `buildPlugin`, then `signPlugin` and `verifyPluginSignature` when the signing secrets
+  exist;
+- the tag is created and pushed;
+- the GitHub Release is created **with the ZIP already attached**, so there is no window
+  in which a release is public with nothing to install;
+- then the publish job, only when the signing secrets and `PUBLISH_TOKEN` are both set:
+  `publishPlugin`, uploading the artifact the build job produced.
 
 The attached ZIP is what people install with **Install Plugin from Disk…** until the
 plugin is on the Marketplace, so its name and contents are user-facing. The README
