@@ -4,7 +4,12 @@
 **Find and fix security issues while you write code.** Vulnerabilities and leaked
 secrets appear in the editor as you type, with one-click fixes.
 
-No account, no configuration, and your code never leaves your machine.
+Scanning runs on your machine: no account is needed and your code is not uploaded.
+Write and lint Mondoo policies in MQL, run them against your infrastructure, and
+generate software, cryptography and AI bills of materials.
+
+Connecting to Mondoo Platform is optional, and only used if you publish a policy to a
+space.
 <!-- Plugin description end -->
 
 ![Security findings highlighted in the editor, grouped by severity and rule in the Mondoo tool window, and counted in the status bar](.github/images/plugin-overview.png)

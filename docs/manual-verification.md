@@ -24,6 +24,17 @@ printf 'import os\n\ndef run(cmd):\n    os.system(cmd)\n' > "$P/main.py"
 ./gradlew runGoLand -PmondooProbeProject="$P,$P/main.py"
 ```
 
+## The Marketplace listing
+
+Only worth checking when the description, icons or change notes have changed.
+
+- [ ] `./gradlew buildPlugin`, then open `build/tmp/patchPluginXml/plugin.xml` and read
+      the `<description>` as a user would. It comes from README.md, so a README edit
+      can change the store listing without anyone noticing.
+- [ ] The description claims nothing the plugin does not do. It has been wrong once:
+      it said your code never leaves your machine, after Upload Policy shipped.
+- [ ] The plugin icon is legible in both a light and a dark IDE theme.
+
 ## Findings
 
 - [ ] Highlights appear on the vulnerable lines, with the rule id in the message.

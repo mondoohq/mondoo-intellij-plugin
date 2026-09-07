@@ -78,6 +78,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Marketplace description no longer claims your code never leaves your machine.
+  That was true when written and stopped being true when policy upload shipped;
+  scanning is still local, and the description now says which part is which.
+
 - An SSH target configured with a password now authenticates with it. The password was
   put in an `SSH_PASSWORD` environment variable that cnspec does not read, and the
   inventory only ever described key or agent authentication — so the password was

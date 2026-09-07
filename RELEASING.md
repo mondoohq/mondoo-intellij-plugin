@@ -39,6 +39,25 @@ Generating the signing key pair is described in
 [Plugin Signing](https://plugins.jetbrains.com/docs/intellij/plugin-signing.html).
 An unsigned upload is accepted but flagged, so it is worth doing properly the first time.
 
+### Listing details set through the web UI
+
+These cannot be set from `plugin.xml` and are only done once, at first publish. They
+come from the Marketplace's
+[listing guidelines](https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html):
+
+- **At least one tag.** Mandatory at upload. "Security" is the fitting one.
+- **Screenshots**, minimum 1200 × 760, showing the plugin inside a JetBrains IDE, all
+  at the same aspect ratio. `.github/images/plugin-overview.png` (1600 × 995) qualifies
+  and is the obvious first one — note it is referenced from the README *after* the
+  plugin-description markers, so it is deliberately not part of the extracted
+  description and has to be uploaded separately.
+- **No desktop backgrounds or personal information** in any screenshot.
+
+What is already set in the repository and needs no web-UI work: the name, the
+description (extracted from README.md between the plugin-description markers), the
+change notes (from CHANGELOG.md), the vendor details, the plugin URL, and both light
+and dark icons.
+
 Also needed before the first publish, and both have lead time:
 
 - The plugin ID **`com.mondoo.security`** reserved on the Marketplace. Note it does not

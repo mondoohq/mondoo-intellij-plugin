@@ -1,4 +1,7 @@
-<idea-plugin>
+<!-- url is the plugin's own page, which the Marketplace links from the listing.
+     Distinct from the vendor url below: that one goes to Mondoo, this one to what
+     this plugin is. -->
+<idea-plugin url="https://github.com/mondoohq/mondoo-intellij-plugin">
   <id>com.mondoo.security</id>
   <name>Mondoo</name>
   <vendor email="hello@mondoo.com" url="https://mondoo.com">Mondoo, Inc.</vendor>
