@@ -153,7 +153,15 @@ intellijPlatform {
                 // One IDE per invocation. The verifier downloads a full IDE per
                 // target — 1-2 GB each — and a runner cannot hold the whole matrix,
                 // so CI fans these out one per job instead of looping here.
-                create(IntelliJPlatformType.fromCode(single), "2026.1.4")
+                //
+                // -PverifyVersion=<version> targets a build other than the compile
+                // target, which is how an EAP gets checked. untilBuild is open, so the
+                // plugin claims compatibility with releases that do not exist yet, and
+                // an EAP is the only warning before one of them removes an API. That
+                // is not hypothetical: 2026.3 EAP dropped a terminal method this plugin
+                // was calling, and the Marketplace reported it as a critical problem.
+                val version = providers.gradleProperty("verifyVersion").getOrElse("2026.1.4")
+                create(IntelliJPlatformType.fromCode(single), version)
             } else if (providers.gradleProperty("verifyLocal").isPresent) {
                 // Only IDEs at or above the declared floor. An older install
                 // (e.g. a 2025.2 left on disk) has no LSP module and would report a
