@@ -13,14 +13,22 @@ updates:
       prefix: "ci"
     labels: [dependencies]
     groups:
-      # One PR for routine action bumps. Reviewing five near-identical SHA changes
-      # separately is how they stop being read at all.
+      # Every action update in one pull request, majors included.
+      #
+      # The first run of the earlier, narrower config opened five separate action
+      # pull requests in one go, because it grouped only minor and patch updates and
+      # every one of those bumps happened to be a major. That is the failure mode
+      # worth designing against: a wall of near-identical SHA changes is a wall
+      # nobody reads, and an unread bump is worse than an ungrouped one.
+      #
+      # The cost is that one bad member blocks the rest of the group. That is
+      # acceptable here -- the diff names which action moved, and a single member can
+      # always be pinned back or ignored.
       actions:
         patterns: ["*"]
-        update-types: [minor, patch]
 
-  # Kotlin, the IntelliJ Platform Gradle Plugin, JUnit and ktlint, all through the
-  # version catalog in gradle/libs.versions.toml.
+  # Kotlin, the IntelliJ Platform Gradle Plugin, JUnit, ktlint and the Gradle
+  # wrapper, all through the version catalog in gradle/libs.versions.toml.
   - package-ecosystem: gradle
     directory: /
     schedule:
@@ -36,5 +44,17 @@ updates:
     # making it a decision about which IDEs the plugin supports (docs/adr/0001) rather
     # than a chore. It has to be raised by hand, on purpose.
     groups:
-      test-libraries:
-        patterns: ["org.junit*", "org.opentest4j*"]
+      # Everything that is not a major version, in one pull request. These are the
+      # bumps that should be routine, and a group is how they stay routine.
+      build-dependencies:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+      # Majors separately, and deliberately so -- this is the one place the grouping
+      # is worth less than the isolation. A Kotlin or Gradle-plugin major can change
+      # what compiles, and with warnings treated as errors it can turn the build red
+      # for reasons that need reading rather than merging. Bundling those with a
+      # routine ktlint bump would mean the whole group waits on the hard one.
+      build-dependencies-major:
+        patterns: ["*"]
+        update-types: [major]
