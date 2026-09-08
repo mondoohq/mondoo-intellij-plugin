@@ -397,9 +397,19 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Post release message
+        id: post
         if: env.SLACK_BOT_TOKEN != ''
         uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         with:
+          # The action's default is `errors: false`, described in its own inputs as
+          # "if the step exits with an error on errors or continues". It continues:
+          # a rejected call -- a bad channel, a bot that was never invited, an
+          # expired token -- gives a green step and no message.
+          #
+          # That is how v0.3.2 was released with this job reporting success and
+          # nothing arriving in Slack. A notification that cannot fail cannot be
+          # trusted to have worked, which makes it worse than no notification.
+          errors: true
           method: chat.postMessage
           token: ${{ secrets.SLACK_BOT_TOKEN }}
           payload: |
@@ -443,6 +453,28 @@ jobs:
                     # working substitute — it 404s. Add it here once the listing is
                     # public and has a numeric id.
                     text: "<https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build.outputs.version }}|Release notes> · <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>"
+
+      # Proof, in the log, that Slack accepted it. `errors: true` above turns a
+      # rejection into a failed step, and this turns a silent no-op into one too:
+      # chat.postMessage returns the channel and the message timestamp, so their
+      # absence means nothing was posted however green the step looked.
+      - name: Confirm the message was posted
+        if: env.SLACK_BOT_TOKEN != ''
+        env:
+          POSTED_CHANNEL: ${{ steps.post.outputs.channel_id }}
+          POSTED_TS: ${{ steps.post.outputs.ts }}
+        run: |
+          set -euo pipefail
+          if [ -z "$POSTED_TS" ]; then
+            echo "::error::Slack accepted no message: chat.postMessage returned no timestamp."
+            exit 1
+          fi
+          echo "Posted to channel ${POSTED_CHANNEL} at ts ${POSTED_TS}"
+          {
+            echo "### Slack"
+            echo
+            echo "Release announced in \`${POSTED_CHANNEL}\` (ts \`${POSTED_TS}\`)."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Note when the notification was skipped
         if: env.SLACK_BOT_TOKEN == ''
