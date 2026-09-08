@@ -448,11 +448,10 @@ jobs:
               - type: "context"
                 elements:
                   - type: "mrkdwn"
-                    # No Marketplace link yet: a listing only gets its permanent URL
-                    # once JetBrains has approved it, and /plugin/<plugin-id> is not a
-                    # working substitute — it 404s. Add it here once the listing is
-                    # public and has a numeric id.
-                    text: "<https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build.outputs.version }}|Release notes> · <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>"
+                    # 34142 is the Marketplace's own id for this plugin, assigned when
+                    # the listing was approved. The plugin id (com.mondoo.security) is
+                    # not a substitute in this URL — /plugin/<plugin-id> 404s.
+                    text: "<https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build.outputs.version }}|Release notes> · <https://plugins.jetbrains.com/plugin/34142-mondoo|Marketplace listing> · <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>"
 
       # Proof, in the log, that Slack accepted it. `errors: true` above turns a
       # rejection into a failed step, and this turns a silent no-op into one too:
