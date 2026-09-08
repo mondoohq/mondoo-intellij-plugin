@@ -40,10 +40,17 @@ and Android Studio. It declares no product-specific dependencies, so it installs
 the rest of the family too — PyCharm, WebStorm, PhpStorm, RubyMine, CLion, Rider,
 RustRover and DataGrip — those simply are not part of the release check.
 
-1. Download the ZIP from the
-   [latest release](https://github.com/mondoohq/mondoo-intellij-plugin/releases/latest).
-2. **Settings** → **Plugins** → **⚙** → **Install Plugin from Disk…**
-3. Restart.
+1. **Settings** → **Plugins** → **Marketplace**, search for **Mondoo**.
+2. **Install**, then restart.
+
+Or from the web: [Mondoo on the JetBrains
+Marketplace](https://plugins.jetbrains.com/plugin/34142-mondoo).
+
+Installing from the Marketplace also means the IDE offers updates. To install a build
+that is not on the Marketplace yet — a release candidate, or a fix you need before it
+is published — download the ZIP from the [latest
+release](https://github.com/mondoohq/mondoo-intellij-plugin/releases/latest) and use
+**Settings** → **Plugins** → **⚙** → **Install Plugin from Disk…** instead.
 
 Then open a file. If the scanner is not already on your machine the plugin offers to
 download it, verifying its published checksum before use — nothing is fetched until
