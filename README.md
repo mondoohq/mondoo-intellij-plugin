@@ -70,6 +70,20 @@ File**.
 | [Installing a dev build](docs/install-dev-build.md) | Running an unreleased build |
 | [Contributing](CONTRIBUTING.md) · [Releasing](RELEASING.md) · [Decisions](docs/adr/) | Working on the plugin |
 
+The pages above cover the plugin. The scanning itself is xgrep, and its own
+documentation is where the detail lives — what a rule means, how to write one, and
+every flag the plugin does not surface:
+
+| | |
+| --- | --- |
+| [xgrep overview](https://mondoo.com/docs/xgrep) | What the scanner is and where it fits |
+| [Code scanning](https://mondoo.com/docs/xgrep/code-scanning) | Rules, findings, suppressing a false positive |
+| [Secrets](https://mondoo.com/docs/xgrep/secrets) | Detecting committed credentials |
+| [Dependencies](https://mondoo.com/docs/xgrep/dependencies) | Vulnerabilities and reachability |
+| [Code intelligence](https://mondoo.com/docs/xgrep/code-intelligence) | Symbol search, impact analysis |
+| [IDE integration](https://mondoo.com/docs/xgrep/ide) | This plugin, and editors generally |
+| [AI agents](https://mondoo.com/docs/xgrep/ai-agents) | MCP and agent skills |
+
 ## Status
 
 Code security, dependencies, bills of materials, policy authoring and infrastructure
@@ -81,7 +95,7 @@ Verified in Android Studio and GoLand. See
 ## Help
 
 - Issues: [GitHub Issues](https://github.com/mondoohq/mondoo-intellij-plugin/issues)
-- Docs: [mondoo.com/docs](https://mondoo.com/docs)
+- Docs: [mondoo.com/docs](https://mondoo.com/docs) · [xgrep](https://mondoo.com/docs/xgrep)
 - Community: [Discussions](https://github.com/orgs/mondoohq/discussions) ·
   [Slack](https://mondoo.link/slack)
 - Security: [SECURITY.md](SECURITY.md)
