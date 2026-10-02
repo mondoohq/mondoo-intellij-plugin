@@ -350,7 +350,7 @@ jobs:
           # Allowed to fail. An EAP breaks for reasons outside this repository, so a red
           # here means "look before their GA", not "this pull request is wrong".
           - ide: IU
-            version: "263.3889.65"
+            version: "263.6259.32"
             eap: true
     # An EAP failure is information, not a broken pull request.
     continue-on-error: ${{ matrix.eap == true }}

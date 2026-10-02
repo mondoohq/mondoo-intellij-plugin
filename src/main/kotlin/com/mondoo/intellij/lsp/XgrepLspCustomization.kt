@@ -105,15 +105,15 @@ internal class XgrepDiagnosticsSupport : LspDiagnosticsSupport() {
 
     /** Prefixes the rule id so a finding is attributable at a glance. */
     override fun getMessage(diagnostic: Diagnostic): String {
-        val ruleId = xgrepDataOf(diagnostic)?.ruleId ?: return diagnostic.message
-        return "$ruleId: ${diagnostic.message}"
+        val ruleId = xgrepDataOf(diagnostic)?.ruleId ?: return messageOf(diagnostic)
+        return "$ruleId: ${messageOf(diagnostic)}"
     }
 
     override fun getTooltip(diagnostic: Diagnostic): String {
-        val data = xgrepDataOf(diagnostic) ?: return escape(diagnostic.message)
+        val data = xgrepDataOf(diagnostic) ?: return escape(messageOf(diagnostic))
         return buildString {
             data.ruleId?.let { append("<b>").append(escape(it)).append("</b><br/>") }
-            append(escape(diagnostic.message))
+            append(escape(messageOf(diagnostic)))
             if (data.cwe.isNotEmpty()) {
                 append("<br/><br/>").append(data.cwe.joinToString("<br/>") { escape(it) })
             }
