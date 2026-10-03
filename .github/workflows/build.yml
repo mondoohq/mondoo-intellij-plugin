@@ -205,7 +205,7 @@ jobs:
         with:
           name: idea-log-${{ runner.os }}
           path: |
-            .intellijPlatform/sandbox/mondoo-intellij-plugin/*/log/idea.log
+            .intellijPlatform/sandbox/mondoo-intellij-plugin/*/log_*/idea.log
             build/smoke-test.out
           if-no-files-found: warn
 
