@@ -7,6 +7,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import com.intellij.platform.lsp.api.customization.LspDiagnosticsSupport
 import org.eclipse.lsp4j.Diagnostic
 
 /**
@@ -28,6 +29,20 @@ internal fun xgrepDataOf(diagnostic: Diagnostic): XgrepDiagnosticData? =
             else -> null
         }
     }.getOrNull()
+
+/**
+ * The text of [diagnostic], read through the platform rather than from lsp4j.
+ *
+ * `Diagnostic.getMessage()` is not binary-stable across the IDEs this plugin claims:
+ * 2026.1 bundles lsp4j 0.24, where it returns `String`, and 2026.3 bundles lsp4j 1.0,
+ * where it returns `Either<String, MarkupContent>`. A direct call compiled against
+ * one is a `NoSuchMethodError` on the other, and the Marketplace verifier rejects the
+ * release for it. [LspDiagnosticsSupport.getMessage] returns `String` in both and does
+ * the unwrapping itself, so going through it keeps a single build working everywhere.
+ */
+internal fun messageOf(diagnostic: Diagnostic): String = platformDiagnostics.getMessage(diagnostic)
+
+private val platformDiagnostics = LspDiagnosticsSupport()
 
 /** Shallow JSON → Kotlin values; enough for the flat payload xgrep sends. */
 private fun JsonObject.toValueMap(): Map<String, Any?> =
