@@ -78,16 +78,12 @@ smoke @defaults("name") {
 }
 EOF
 
-# The built-in runIde task logs to the sandbox's default "log" directory; tasks
-# registered through intellijPlatformTesting get one named after the task. Guessing
-# wrong here reports "the language server never started" for a run that started fine,
-# which is worse than no run at all.
+# Every run task logs to a sandbox directory named after the task. Before IntelliJ
+# Platform Gradle plugin 2.19 the built-in runIde was the exception and used plain
+# "log"; it no longer is. Guessing wrong here reports "the IDE did not start" for a
+# run that started fine, which is worse than no run at all.
 SANDBOX="$ROOT/.intellijPlatform/sandbox/mondoo-intellij-plugin/IU-2026.1.4"
-if [ "$TASK" = "runIde" ]; then
-  LOG_DIR="$SANDBOX/log"
-else
-  LOG_DIR="$SANDBOX/log_${TASK}"
-fi
+LOG_DIR="$SANDBOX/log_${TASK}"
 LOG="$LOG_DIR/idea.log"
 
 # Whether a real scanner exists to exercise. The plugin never downloads one without

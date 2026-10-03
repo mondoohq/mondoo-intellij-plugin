@@ -361,7 +361,7 @@ tasks {
         // Marketplace — so what someone downloads from GitHub and what the
         // Marketplace serves cannot be two different builds of the same version.
         providers.gradleProperty("publishArchive").orNull?.let { path ->
-            archiveFile = layout.file(provider { file(path) })
+            archiveFiles.setFrom(file(path))
         }
     }
 
