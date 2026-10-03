@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Works with IntelliJ IDEA 2026.3. The 2026.3 builds ship a newer LSP library in
+  which a finding's message has a different type, and the plugin read it in the old
+  way: showing a finding's message, tooltip or tool-window entry would have failed,
+  and the JetBrains Marketplace flagged 0.3.2 as incompatible with 2026.3. Messages
+  are now read through the IDE, which handles both versions.
+
 ### Removed
 
 ## [0.3.2] - 2026-09-07
