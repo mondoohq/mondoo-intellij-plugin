@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by xgrep, the same way as in the terminal; every fix is re-scanned before it counts,
   and a Local History label lets you undo a whole run. Needs xgrep 0.58.0 or later.
 - Alt+Enter on an agent-assisted finding offers **Fix with coding agent (xgrep)**.
+- **Mondoo config** (Settings | Tools | Mondoo): an optional path to the Mondoo
+  service-account configuration xgrep and cnspec use for Mondoo Platform. Empty keeps
+  their default, `MONDOO_CONFIG_PATH` or `~/.config/mondoo/mondoo.yml`.
 - **Include files not committed yet** (Settings | Tools | Mondoo, on by default): in a
   git repository, Scan Workspace and the Fix tab also scan new and untracked files.
   Before, a workspace scan only covered committed files, so a file you had just
@@ -28,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Policy, query and target scans write to a run log on the **Policies** tab, next to
-  the bundle tree, instead of opening a new console tab for every run. When cnspec
+  the bundle tree (it opens with a run and can be closed), instead of opening a new console tab for every run. When cnspec
   fails because its Mondoo service account cannot be used, the log says how to fix it.
 
 - Actions now sit with the tab they belong to. **Code Security** has Scan and fix,

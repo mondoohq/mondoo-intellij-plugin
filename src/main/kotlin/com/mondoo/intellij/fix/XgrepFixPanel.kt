@@ -89,7 +89,44 @@ internal class XgrepFixPanel(private val project: Project) :
         componentStyle = com.intellij.util.ui.UIUtil.ComponentStyle.SMALL
     }
 
-    private val views = com.intellij.ui.components.JBTabbedPane()
+    private val split = OnePixelSplitter(false, 0.42f)
+    private val viewCards = java.awt.CardLayout()
+    private val viewArea = JPanel(viewCards)
+    private var segments: com.intellij.ui.dsl.builder.SegmentedButton<String>? = null
+
+    /**
+     * The right side: the selected finding, or the log of the run. A header switches
+     * between them and closes the side, giving the list the whole tab; picking a
+     * finding or starting a run opens it again.
+     */
+    private val side: JPanel by lazy {
+        val close = com.intellij.ui.InplaceButton(
+            com.intellij.openapi.ui.popup.IconButton("Close", AllIcons.Actions.Close, AllIcons.Actions.CloseHovered),
+        ) { split.secondComponent = null }
+        val header = com.intellij.ui.dsl.builder.panel {
+            row {
+                segments = segmentedButton(listOf(FINDING_VIEW, RUN_LOG_VIEW)) { text = it }
+                    .whenItemSelected(this@XgrepFixPanel) { viewCards.show(viewArea, it) }
+                    .also { it.selectedItem = FINDING_VIEW }
+                cell(close).align(com.intellij.ui.dsl.builder.AlignX.RIGHT)
+            }
+        }.apply {
+            border = JBUI.Borders.compound(
+                JBUI.Borders.customLineBottom(com.intellij.ui.JBColor.border()),
+                JBUI.Borders.empty(2, 8),
+            )
+        }
+        JPanel(BorderLayout()).apply {
+            add(header, BorderLayout.NORTH)
+            add(viewArea, BorderLayout.CENTER)
+        }
+    }
+
+    private fun showSide(view: String) {
+        if (split.secondComponent == null) split.secondComponent = side
+        segments?.selectedItem = view
+        viewCards.show(viewArea, view)
+    }
 
     /** Set while the panel itself moves the selection, so only a user's pick switches views. */
     private var selectingProgrammatically = false
@@ -110,7 +147,7 @@ internal class XgrepFixPanel(private val project: Project) :
         }
         tree.addTreeSelectionListener {
             showSelection()
-            if (!selectingProgrammatically) views.selectedIndex = FINDING
+            if (!selectingProgrammatically && selected() != null) showSide(FINDING_VIEW)
         }
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
@@ -126,13 +163,10 @@ internal class XgrepFixPanel(private val project: Project) :
         // One place for fixing: the finding you are looking at, and the log of the
         // run you started. A run brings the log forward; picking a finding brings
         // the finding back.
-        views.addTab("Finding", finding)
-        views.addTab("Run log", FixConsole.getInstance(project).component())
-        FixConsole.getInstance(project).onRunStarted(this) { views.selectedIndex = RUN_LOG }
-        val split = OnePixelSplitter(false, 0.42f).apply {
-            firstComponent = JBScrollPane(tree)
-            secondComponent = views
-        }
+        viewArea.add(finding, FINDING_VIEW)
+        viewArea.add(FixConsole.getInstance(project).component(), RUN_LOG_VIEW)
+        FixConsole.getInstance(project).onRunStarted(this) { showSide(RUN_LOG_VIEW) }
+        split.firstComponent = JBScrollPane(tree)
         add(toolbar(), BorderLayout.NORTH)
         add(split, BorderLayout.CENTER)
         add(statusLine, BorderLayout.SOUTH)
@@ -183,6 +217,7 @@ internal class XgrepFixPanel(private val project: Project) :
         session.takePendingFocus()
         check(focus.check)
         select(focus.select)
+        if (!session.isBusy) showSide(FINDING_VIEW)
         tree.requestFocusInWindow()
     }
 
@@ -563,8 +598,8 @@ internal class XgrepFixPanel(private val project: Project) :
     }
 
     private companion object {
-        const val FINDING = 0
-        const val RUN_LOG = 1
+        const val FINDING_VIEW = "Finding"
+        const val RUN_LOG_VIEW = "Run log"
 
         val SEVERITY_ORDER = listOf("Critical", "High", "Medium", "Low", "Other")
 

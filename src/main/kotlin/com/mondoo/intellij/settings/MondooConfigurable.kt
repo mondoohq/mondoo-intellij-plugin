@@ -25,6 +25,7 @@ private data class ServerAffectingSettings(
     val rulesPath: String,
     val scanJobs: Int,
     val scanUncommitted: Boolean,
+    val mondooConfigPath: String,
     val excludePatterns: List<String>,
     val includePatterns: List<String>,
 )
@@ -55,6 +56,7 @@ class MondooConfigurable :
             before.rulesPath != after.rulesPath -> "The rules path changed."
             before.scanJobs != after.scanJobs -> "Scan parallelism changed."
             before.scanUncommitted != after.scanUncommitted -> "Which files a workspace scan covers changed."
+            before.mondooConfigPath != after.mondooConfigPath -> "The Mondoo configuration changed."
             broadened -> "The scan scope was broadened."
             else -> "Scan settings changed."
         }
@@ -84,6 +86,7 @@ class MondooConfigurable :
             rulesPath = state.xgrepRulesPath.orEmpty(),
             scanJobs = state.xgrepScanJobs,
             scanUncommitted = state.xgrepScanUncommitted,
+            mondooConfigPath = state.mondooConfigPath.orEmpty(),
             excludePatterns = state.xgrepExcludePatterns.toList(),
             includePatterns = state.xgrepIncludePatterns.toList(),
         )
@@ -170,6 +173,19 @@ class MondooConfigurable :
                         "<code>{prompt}</code> placeholder. Empty uses xgrep's default " +
                         "(<code>XGREP_AGENT</code>, its config, then claude), the same agent " +
                         "<code>xgrep fix</code> uses in a terminal.",
+                )
+            }
+            group("Mondoo Platform") {
+                row("Mondoo config:") {
+                    textFieldWithBrowseButton(
+                        FileChooserDescriptorFactory.singleFile(),
+                    )
+                        .bindText(state::mondooConfigPath.toNonNullableProperty(""))
+                        .align(AlignX.FILL)
+                }.rowComment(
+                    "The service account xgrep and cnspec use for Mondoo Platform: dependency " +
+                        "vulnerabilities, uploads and policy upload. Leave empty to use " +
+                        "<code>MONDOO_CONFIG_PATH</code> or <code>~/.config/mondoo/mondoo.yml</code>.",
                 )
             }
             group("Infrastructure Security (cnspec)") {

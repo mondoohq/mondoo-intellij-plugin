@@ -55,7 +55,7 @@ internal class CnspecLspServerDescriptor(project: Project, private val binaryPat
     override fun isSupportedFile(file: VirtualFile): Boolean = MqlFiles.isSupported(file.name)
 
     override fun createCommandLine(): GeneralCommandLine =
-        GeneralCommandLine(binaryPath).apply {
+        com.mondoo.intellij.settings.MondooEnvironment.commandLine(binaryPath).apply {
             addParameter("lsp")
             project.basePath?.let { withWorkDirectory(it) }
         }

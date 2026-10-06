@@ -84,6 +84,13 @@ class MondooState : BaseState() {
     /** mondoo.xgrepIncludePatterns — when non-empty, only these are scanned. */
     val xgrepIncludePatterns: MutableList<String> by list()
 
+    /**
+     * mondoo.configPath — the Mondoo configuration (service account) xgrep and cnspec
+     * use, passed as MONDOO_CONFIG_PATH. Empty uses their default: MONDOO_CONFIG_PATH
+     * from the environment, else ~/.config/mondoo/mondoo.yml.
+     */
+    var mondooConfigPath: String? by string("")
+
     // --- Infrastructure security (cnspec) ---
 
     /** mondoo.cnspecEnabled — MQL language support. */

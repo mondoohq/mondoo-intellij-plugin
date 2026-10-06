@@ -3,7 +3,6 @@
 
 package com.mondoo.intellij.bom
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
@@ -52,7 +51,7 @@ class BomService(private val project: Project) {
         object : Task.Backgroundable(project, "Generating ${request.describeContent()}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     .withParameters(request.arguments(projectPath, output.toString()))
                     .withWorkDirectory(projectPath)
 

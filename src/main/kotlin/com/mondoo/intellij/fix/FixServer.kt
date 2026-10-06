@@ -45,7 +45,13 @@ class FixServer(private val project: Project) : Disposable {
 
     private class Running(val process: Process, val client: FixClient, val config: Config)
 
-    private data class Config(val binary: String, val rulesPath: String, val agent: String, val allFiles: Boolean)
+    private data class Config(
+        val binary: String,
+        val rulesPath: String,
+        val agent: String,
+        val allFiles: Boolean,
+        val mondooConfig: String?,
+    )
 
     /**
      * A client for a live server, starting one when needed. Blocks while the server
@@ -66,6 +72,7 @@ class FixServer(private val project: Project) : Disposable {
             settings.xgrepRulesPath.orEmpty(),
             settings.xgrepFixAgent.orEmpty(),
             settings.xgrepScanUncommitted,
+            com.mondoo.intellij.settings.MondooEnvironment.configPath(),
         )
 
         running?.let { current ->
@@ -87,7 +94,7 @@ class FixServer(private val project: Project) : Disposable {
         requireFixServe(config.binary)
         val token = HexFormat.of().formatHex(ByteArray(TOKEN_BYTES).also { SecureRandom().nextBytes(it) })
 
-        val command = GeneralCommandLine(config.binary)
+        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(config.binary)
             .withWorkDirectory(base)
             .withCharset(Charsets.UTF_8)
             // The token goes in the environment: a command line is visible to every

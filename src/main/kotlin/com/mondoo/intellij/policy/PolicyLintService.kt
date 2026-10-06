@@ -3,7 +3,6 @@
 
 package com.mondoo.intellij.policy
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
@@ -46,7 +45,7 @@ class PolicyLintService(private val project: Project) {
     fun lint(bundle: Path): List<LintFinding>? {
         val binary = CnspecBinaryService.getInstance().resolvedBinaryOrNull() ?: return null
 
-        val command = GeneralCommandLine(binary.toString())
+        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
             .withParameters("policy", "lint", bundle.fileName.toString(), "-o", "sarif")
             // From the bundle's directory, so the paths it reports are relative to it.
             .withWorkDirectory(bundle.parent?.toString())

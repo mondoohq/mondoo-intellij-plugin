@@ -102,7 +102,7 @@ internal class XgrepLspServerDescriptor(project: Project, private val binaryPath
 
     override fun createCommandLine(): GeneralCommandLine {
         val rulesPath = MondooSettings.getInstance().state.xgrepRulesPath.orEmpty()
-        val command = GeneralCommandLine(binaryPath)
+        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binaryPath)
         // `-f` precedes the subcommand: `xgrep -f <rules> lsp`.
         if (rulesPath.isNotBlank()) {
             command.addParameters("-f", rulesPath)

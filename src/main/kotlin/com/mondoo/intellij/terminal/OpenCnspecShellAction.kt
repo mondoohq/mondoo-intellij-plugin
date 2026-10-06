@@ -65,14 +65,21 @@ internal class OpenCnspecShellAction : AnAction() {
         // Only whether a password exists, never the password itself: there is nowhere
         // on a shell command line it could safely go, so cnspec is asked to prompt.
         val hasPassword = TargetCredentials.forTarget(target).containsKey("password")
-        val command = CnspecShellCommand.arguments(binary.toString(), target, hasPassword) ?: run {
-            Messages.showWarningDialog(
-                project,
-                "${target.name} cannot be opened as a shell — it has no host or target to connect to.",
-                TITLE,
-            )
-            return
-        }
+        val command = CnspecShellCommand.arguments(binary.toString(), target, hasPassword)
+            // A terminal runs a command line, not a configured process, so the chosen
+            // Mondoo config goes in as cnspec's own --config flag.
+            ?.let { args ->
+                com.mondoo.intellij.settings.MondooEnvironment.configPath()
+                    ?.let { args + listOf("--config", it) } ?: args
+            }
+            ?: run {
+                Messages.showWarningDialog(
+                    project,
+                    "${target.name} cannot be opened as a shell — it has no host or target to connect to.",
+                    TITLE,
+                )
+                return
+            }
 
         runCatching {
             // Public API only, and it took three attempts to find it. Every

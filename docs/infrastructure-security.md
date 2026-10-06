@@ -97,6 +97,12 @@ bash -c "$(curl -sSL https://install.mondoo.com/sh)"
 
 Set a custom location in **Settings** → **Tools** → **Mondoo** → **cnspec path**.
 
+cnspec and xgrep connect to Mondoo Platform with the service account in
+`~/.config/mondoo/mondoo.yml`, or the file `MONDOO_CONFIG_PATH` names. To use a
+different one from the IDE, set **Settings** → **Tools** → **Mondoo** → **Mondoo
+config**; the plugin passes it to every cnspec and xgrep it starts, including the
+cnspec shell.
+
 ## Running policies against a target
 
 **Scan Target…** runs a policy scan. **Run MQL Query…** runs a single query, which is

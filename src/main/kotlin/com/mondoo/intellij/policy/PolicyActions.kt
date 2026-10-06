@@ -3,7 +3,6 @@
 
 package com.mondoo.intellij.policy
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
@@ -140,7 +139,7 @@ open class FormatPolicyAction(private val sort: Boolean = false) : PolicyBundleA
                     if (sort) add("--sort")
                     add(file.name)
                 }
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     .withParameters(args)
                     .withWorkDirectory(file.parent?.path)
 
@@ -232,7 +231,7 @@ class NewPolicyFromTemplateAction : AnAction() {
         object : Task.Backgroundable(project, "Creating $name", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     // The name is one argv token and never reaches a shell, and it has
                     // already been refused if it contains a separator.
                     .withParameters("policy", "init", name)
@@ -326,7 +325,7 @@ class UploadPolicyAction : PolicyBundleAction() {
         object : Task.Backgroundable(project, "Uploading ${file.name}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     .withParameters("policy", "upload", file.name)
                     .withWorkDirectory(file.parent?.path)
                     .withCharset(StandardCharsets.UTF_8)

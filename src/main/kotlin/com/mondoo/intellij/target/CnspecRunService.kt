@@ -4,7 +4,6 @@
 package com.mondoo.intellij.target
 
 import com.intellij.execution.ExecutionException
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
@@ -91,7 +90,7 @@ class CnspecRunService(private val project: Project) : Disposable {
         }
 
         return try {
-            val command = GeneralCommandLine(binary.toString())
+            val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                 .withParameters("run", "--inventory-file", inventory.toString(), "-c", ConnectionProbe.QUERY, "-j")
                 .withWorkDirectory(project.basePath)
                 .withCharset(StandardCharsets.UTF_8)
@@ -129,7 +128,7 @@ class CnspecRunService(private val project: Project) : Disposable {
             return
         }
 
-        val command = GeneralCommandLine(binary.toString())
+        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
             .withParameters(verb + listOf("--inventory-file", inventory.toString()))
             .withWorkDirectory(project.basePath)
 
