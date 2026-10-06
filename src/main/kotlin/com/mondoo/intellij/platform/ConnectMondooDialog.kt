@@ -89,6 +89,10 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
     private val token = JBPasswordField()
     private val saveTo = TextFieldWithBrowseButton()
     private val existing = TextFieldWithBrowseButton()
+
+    // Every component the panel uses is declared here, above init: init() builds the
+    // panel, and a property declared further down is still null at that point.
+    private val organizationNote = com.intellij.ui.components.JBLabel()
     private val space = com.intellij.ui.components.JBTextField(
         MondooEnvironment.spaceMrn()?.let(MondooSpace::id).orEmpty(),
     )
@@ -227,8 +231,6 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                 }
         }
     }
-
-    private val organizationNote = com.intellij.ui.components.JBLabel()
 
     /** The organization of the chosen service account file, or null for a space account. */
     private fun chosenOrganization(): String? =
