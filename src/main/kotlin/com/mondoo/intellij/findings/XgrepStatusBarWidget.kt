@@ -56,12 +56,12 @@ internal class XgrepStatusBarWidget(project: Project) : EditorBasedStatusBarPopu
             is XgrepStatus.Disabled -> WidgetState.HIDDEN
 
             is XgrepStatus.Resolving ->
-                WidgetState("Looking for the xgrep security scanner", "xgrep", true)
+                WidgetState("Looking for the xgrep security scanner", "Mondoo", true)
 
             is XgrepStatus.Downloading ->
                 WidgetState(
                     "Downloading xgrep ${status.version}",
-                    "xgrep: ${status.percent}%",
+                    "Mondoo: ${status.percent}%",
                     true,
                 )
 
@@ -69,14 +69,26 @@ internal class XgrepStatusBarWidget(project: Project) : EditorBasedStatusBarPopu
                 val count = XgrepFindingsStore.getInstance(project).findingCount()
                 val version = status.version?.let { " $it" }.orEmpty()
                 WidgetState(
-                    if (count == 0) "xgrep$version: no findings" else "xgrep$version: $count findings",
-                    if (count == 0) "xgrep" else "xgrep: $count",
+                    // The label says Mondoo: the plugin covers code and infrastructure, and
+                    // which scanner found what is a detail for the tooltip.
+                    if (count ==
+                        0
+                    ) {
+                        "Mondoo: no findings (xgrep$version)"
+                    } else {
+                        "Mondoo: $count findings (xgrep$version)"
+                    },
+                    if (count == 0) "Mondoo" else "Mondoo: $count",
                     true,
                 ).also { it.icon = AllIcons.General.InspectionsOK.takeIf { count == 0 } }
             }
 
             is XgrepStatus.Unavailable ->
-                WidgetState("xgrep unavailable: ${status.reason} — click to set it up", "xgrep: set up", true)
+                WidgetState(
+                    "The xgrep scanner is unavailable: ${status.reason} — click to set it up",
+                    "Mondoo: set up",
+                    true,
+                )
                     .also { it.icon = AllIcons.General.Warning }
         }
     }
@@ -104,7 +116,7 @@ internal class XgrepStatusBarWidget(project: Project) : EditorBasedStatusBarPopu
             true,
         )
         // The mark in the title says whose menu this is; the status bar text alone
-        // ("xgrep: 13") does not.
+        // ("Mondoo: 13") does not.
         (popup as? com.intellij.ui.popup.AbstractPopup)?.setCaptionIcon(com.mondoo.intellij.MondooIcons.Mondoo)
         return popup
     }

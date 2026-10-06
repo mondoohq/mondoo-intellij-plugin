@@ -32,6 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The status bar reads **Mondoo** (for example **Mondoo: 12**) instead of **xgrep**, as
+  do scan notifications: the plugin covers code and infrastructure, and which scanner
+  found what is in the tooltip. **Connect to Mondoo Platform…** is in the status bar
+  menu too.
+
 - Policy, query and target scans write to a run log on the **Policies** tab, next to
   the bundle tree (it opens with a run and can be closed), instead of opening a new console tab for every run. When cnspec
   fails because its Mondoo service account cannot be used, the log says how to fix it.

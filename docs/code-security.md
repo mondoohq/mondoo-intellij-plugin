@@ -175,7 +175,7 @@ agreement to every later one. Turn the offer off in advance by clearing **Offer 
 update the scanner**, or disable the scanner entirely with **Enable the xgrep
 security scanner**.
 
-If the status bar shows **xgrep: set up**, the scanner could not be located. Click it,
+If the status bar shows **Mondoo: set up**, the scanner could not be located. Click it,
 or run **Set Up Scanner**. A bar also appears at the top of any file the scanner would
 have checked, offering the same thing; dismiss it for good with **Don't show again**.
 **Show xgrep Path** reports which binary is in use.

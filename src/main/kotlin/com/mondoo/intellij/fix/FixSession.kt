@@ -288,11 +288,11 @@ class FixSession(private val project: Project) : Disposable {
                 val fixable = found.filter { it.fixable }
                 when {
                     found.isEmpty() -> notify(
-                        "xgrep fix: the current scan no longer reports ${if (targets.size == 1) "this finding" else "these findings"}.",
+                        "Mondoo fix: the current scan no longer reports ${if (targets.size == 1) "this finding" else "these findings"}.",
                         NotificationType.INFORMATION,
                     )
                     fixable.isEmpty() -> notify(
-                        "xgrep fix: nothing to fix here (${found.joinToString { FixDetails.badge(it) }}).",
+                        "Mondoo fix: nothing to fix here (${found.joinToString { FixDetails.badge(it) }}).",
                         NotificationType.INFORMATION,
                     )
                     else -> run(fixable.map { it.fingerprint })
@@ -385,7 +385,7 @@ class FixSession(private val project: Project) : Disposable {
         setStatus("Fix run: $summary")
         if (done.applied == 0) {
             notify(
-                "xgrep fix: $summary.",
+                "Mondoo fix: $summary.",
                 if (done.rejected >
                     0
                 ) {
@@ -397,7 +397,7 @@ class FixSession(private val project: Project) : Disposable {
             return
         }
         notify(
-            "xgrep fix: $summary. Review the changes, then open a pull request.",
+            "Mondoo fix: $summary. Review the changes, then open a pull request.",
             NotificationType.INFORMATION,
             NotificationAction.createSimpleExpiring("Create Pull Request") { createPullRequest() },
             NotificationAction.createSimpleExpiring("Review Changes") { showChanges() },
@@ -428,7 +428,7 @@ class FixSession(private val project: Project) : Disposable {
                 } catch (e: ConnectException) {
                     if (e.code == "unavailable") FixServer.getInstance(project).restart()
                     setStatus("")
-                    notify("xgrep: ${e.message}", NotificationType.ERROR)
+                    notify("Mondoo: ${e.message}", NotificationType.ERROR)
                 }
             }
         }.queue()

@@ -238,6 +238,7 @@
       <separator/>
       <reference ref="Mondoo.Search"/>
       <separator/>
+      <reference ref="Mondoo.Platform.Connect"/>
       <reference ref="Mondoo.More"/>
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </group>
