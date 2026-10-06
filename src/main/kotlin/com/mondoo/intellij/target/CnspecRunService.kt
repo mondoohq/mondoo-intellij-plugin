@@ -244,13 +244,13 @@ class CnspecRunService(private val project: Project) : Disposable {
 
     private var runLog: ConsoleView? = null
     private var current: OSProcessHandler? = null
-    private val runListeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+    private val runListeners = java.util.concurrent.CopyOnWriteArrayList<(String) -> Unit>()
 
     /** The run log the Policies tab shows, created on first use. EDT only. */
     fun runLogComponent(): javax.swing.JComponent = runLog().component
 
-    /** [listener] runs on the EDT whenever a run starts, until [parent] is disposed. */
-    fun onRunStarted(parent: Disposable, listener: () -> Unit) {
+    /** [listener] runs on the EDT with the run's title whenever a run starts, until [parent] is disposed. */
+    fun onRunStarted(parent: Disposable, listener: (String) -> Unit) {
         runListeners += listener
         Disposer.register(parent) { runListeners -= listener }
     }
@@ -271,7 +271,7 @@ class CnspecRunService(private val project: Project) : Disposable {
         val console = runLog()
         console.clear()
         console.print("▶ $title\n", com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
-        runListeners.forEach { it() }
+        runListeners.forEach { it(title) }
         ToolWindowManager.getInstance(project).getToolWindow("Mondoo")?.let { window ->
             window.activate {
                 window.contentManager.findContent(POLICIES_TAB)?.let { window.contentManager.setSelectedContent(it) }
