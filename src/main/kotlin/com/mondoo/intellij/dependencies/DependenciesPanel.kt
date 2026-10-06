@@ -182,7 +182,7 @@ internal class DependenciesPanel(private val project: Project) :
                     append("   ${node.reachability.explanation}", SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
                 }
                 is DepNode.Package -> {
-                    icon = AllIcons.Nodes.PpLib
+                    icon = EcosystemIcons.forEcosystem(node.pkg.ecosystem)
                     append(node.pkg.label)
                     if (node.pkg.ecosystem.isNotBlank()) {
                         append("  ${node.pkg.ecosystem}", SimpleTextAttributes.GRAYED_ATTRIBUTES)

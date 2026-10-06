@@ -51,6 +51,7 @@ class FixServer(private val project: Project) : Disposable {
         val agent: String,
         val allFiles: Boolean,
         val mondooConfig: String?,
+        val spaceMrn: String?,
     )
 
     /**
@@ -73,6 +74,7 @@ class FixServer(private val project: Project) : Disposable {
             settings.xgrepFixAgent.orEmpty(),
             settings.xgrepScanUncommitted,
             com.mondoo.intellij.settings.MondooEnvironment.configPath(),
+            com.mondoo.intellij.settings.MondooEnvironment.spaceMrn(),
         )
 
         running?.let { current ->
@@ -104,6 +106,7 @@ class FixServer(private val project: Project) : Disposable {
         command.addParameters("fix", "serve")
         if (config.agent.isNotBlank()) command.addParameters("--agent", config.agent)
         if (config.allFiles) command.addParameter("--all-files")
+        config.spaceMrn?.let { command.addParameters("--scope-mrn", it) }
 
         val process = try {
             command.createProcess()

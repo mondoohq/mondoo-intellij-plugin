@@ -49,7 +49,9 @@ class FixClientIntegrationTest {
 
         assertTrue(client.serverInfo().agent.available)
         assertEquals(false, client.listFindings().cachePresent)
-        assertEquals(2, client.rescan())
+        // No service account in the test, so no dependency lookup and nothing to warn about.
+        assertEquals(emptyList<String>(), client.rescan())
+        assertEquals(2, client.listFindings().findings.size)
 
         val findings = client.listFindings().findings
         val det = findings.first { it.ruleId == "js-bad-suffix" }

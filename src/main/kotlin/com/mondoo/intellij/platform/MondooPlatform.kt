@@ -31,7 +31,15 @@ object MondooPlatform {
 
         data class Missing(override val path: Path) : Status
         data class Unusable(override val path: Path, val problems: List<String>) : Status
-        data class Connected(override val path: Path, val space: String?, val endpoint: String?) : Status
+        data class Connected(
+            override val path: Path,
+            val space: String?,
+            val endpoint: String?,
+            val organization: String? = null,
+        ) : Status
+
+        /** An organization service account with no space chosen yet. */
+        data class NeedsSpace(override val path: Path, val organization: String) : Status
     }
 
     fun status(path: Path = effectivePath()): Status {
@@ -40,24 +48,28 @@ object MondooPlatform {
             return Status.Unusable(path, listOf("cannot be read: ${it.message}"))
         }
         val config = MondooConfigFile.inspect(text)
-        return if (config.usable) {
-            Status.Connected(path, config.space, config.apiEndpoint)
-        } else {
-            Status.Unusable(path, config.problems)
-        }
+        if (!config.usable) return Status.Unusable(path, config.problems)
+        val org = config.organization ?: return Status.Connected(path, config.space, config.apiEndpoint)
+        val space = MondooEnvironment.spaceMrn()?.let(MondooSpace::id) ?: return Status.NeedsSpace(path, org)
+        return Status.Connected(path, space, config.apiEndpoint, org)
     }
 
     /** A short headline for the user. */
     fun describe(status: Status): String = when (status) {
         is Status.Connected -> "Connected to ${status.space ?: "Mondoo Platform"}"
         is Status.Unusable -> "Your service account can't be used"
+        is Status.NeedsSpace -> "Choose a space"
         is Status.Missing -> "Not connected"
     }
 
     /** The line under the headline: why, and what to do. */
     fun explain(status: Status): String = when (status) {
         is Status.Connected ->
-            "Findings and dependency checks use the service account in ${display(status.path)}."
+            (status.organization?.let { "Space ${status.space} in the organization $it. " } ?: "") +
+                "Findings and dependency checks use the service account in ${display(status.path)}."
+        is Status.NeedsSpace ->
+            "The service account in ${display(status.path)} belongs to the organization " +
+                "${status.organization}. Dependency checks and reports go to one of its spaces."
         is Status.Unusable ->
             "In ${display(status.path)}, ${joinWords(status.problems)}. Register again with a token to replace it."
         is Status.Missing ->
@@ -100,6 +112,7 @@ object MondooPlatform {
             is Status.Connected -> null
             is Status.Unusable -> "Registration finished, but the saved file is not usable: ${joinWords(s.problems)}."
             is Status.Missing -> "Registration finished, but no file was written to ${display(target)}."
+            is Status.NeedsSpace -> null
         }
     }
 

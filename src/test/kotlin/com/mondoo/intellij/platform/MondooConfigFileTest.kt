@@ -68,4 +68,22 @@ class MondooConfigFileTest {
         val c = MondooConfigFile.inspect(usable.replace("-----BEGIN PRIVATE KEY-----", "SECRETVALUE"))
         assertFalse(c.problems.joinToString().contains("SECRETVALUE"))
     }
+
+    /** The shape of the organization service account picked in the sandbox, 2026-10-06. */
+    @Test
+    fun `an organization service account is usable but names an organization, not a space`() {
+        val org = usable
+            .replace(
+                "spaces/friendly-nash-115619/serviceaccounts",
+                "organizations/youthful-meitner-435985/serviceaccounts",
+            )
+            .replace(
+                "//captain.api.mondoo.app/spaces/friendly-nash-115619",
+                "//captain.api.mondoo.app/organizations/youthful-meitner-435985",
+            )
+        val c = MondooConfigFile.inspect(org)
+        assertTrue(c.usable)
+        assertEquals("youthful-meitner-435985", c.organization)
+        assertEquals(null, c.space)
+    }
 }

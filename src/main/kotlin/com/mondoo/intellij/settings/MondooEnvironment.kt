@@ -20,6 +20,9 @@ object MondooEnvironment {
     /** The configured path, or null to use the tools' own default. */
     fun configPath(): String? = MondooSettings.getInstance().state.mondooConfigPath?.trim()?.takeIf { it.isNotEmpty() }
 
+    /** The chosen space's MRN, or null to use the service account's own. */
+    fun spaceMrn(): String? = MondooSettings.getInstance().state.mondooSpaceMrn?.trim()?.takeIf { it.isNotEmpty() }
+
     /** A command line for [exe] that carries the configured Mondoo config. */
     fun commandLine(exe: String): GeneralCommandLine = apply(GeneralCommandLine(exe))
 

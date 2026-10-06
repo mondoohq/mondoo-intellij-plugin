@@ -32,8 +32,11 @@ class FixClient(private val baseUrl: String, private val token: String) {
 
     fun listFindings(): FindingList = FixApi.findingList(unary("ListFindings", JsonObject()))
 
-    /** Scans the project; as slow as a scan. */
-    fun rescan(): Int = unary("Rescan", JsonObject(), SCAN_TIMEOUT).get("findingCount")?.asInt ?: 0
+    /** Scans the project; as slow as a scan. Returns what the scan warned about. */
+    fun rescan(): List<String> =
+        unary("Rescan", JsonObject(), SCAN_TIMEOUT).getAsJsonArray("warnings")
+            ?.mapNotNull { it.takeIf { e -> e.isJsonPrimitive }?.asString }
+            .orEmpty()
 
     fun preview(fingerprint: String): Preview =
         FixApi.preview(unary("Preview", FixApi.fingerprintRequest(fingerprint), SCAN_TIMEOUT))

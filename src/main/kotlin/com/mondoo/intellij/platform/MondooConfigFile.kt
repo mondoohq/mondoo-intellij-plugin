@@ -18,12 +18,17 @@ import org.yaml.snakeyaml.Yaml
  * Pure: no platform types, tested without an IDE. Never returns key material.
  */
 data class MondooConfigFile(
-    /** The space the account reports to, e.g. `friendly-nash-115619`. */
+    /** The space the account reports to, e.g. `friendly-nash-115619`; null for an organization account. */
     val space: String?,
     val spaceMrn: String?,
     val apiEndpoint: String?,
     /** What makes the file unusable, in words for the user; empty when it looks usable. */
     val problems: List<String>,
+    /**
+     * The organization, for a service account that belongs to one rather than to a
+     * space. Such an account needs a space chosen for dependency checks and reports.
+     */
+    val organization: String? = null,
 ) {
     val usable: Boolean get() = problems.isEmpty()
 
@@ -57,8 +62,12 @@ data class MondooConfigFile(
                     !field("certificate")!!.contains("-----BEGIN") -> add("its certificate is damaged")
                 }
             }
+            // The field is called space_mrn either way; an organization account puts
+            // the organization's MRN in it.
+            val organization = spaceMrn?.takeIf { "/organizations/" in it }?.substringAfterLast('/')
             return MondooConfigFile(
-                space = spaceMrn?.substringAfterLast('/'),
+                organization = organization,
+                space = spaceMrn?.takeIf { organization == null }?.substringAfterLast('/'),
                 spaceMrn = spaceMrn,
                 apiEndpoint = field("api_endpoint"),
                 problems = problems,

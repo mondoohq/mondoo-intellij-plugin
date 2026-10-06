@@ -115,7 +115,7 @@ class FixSession(private val project: Project) : Disposable {
         background(title) { client ->
             if (rescan) {
                 setStatus("Scanning the project...")
-                client.rescan()
+                reportScanWarnings(client.rescan())
                 previews.clear()
             }
             reload(client)
@@ -262,7 +262,7 @@ class FixSession(private val project: Project) : Disposable {
             var found = matches()
             if (found.size < targets.size) {
                 setStatus("Scanning so the fix starts from current code...")
-                client.rescan()
+                reportScanWarnings(client.rescan())
                 previews.clear()
                 reload(client)
                 setStatus("")
@@ -308,6 +308,26 @@ class FixSession(private val project: Project) : Disposable {
 
     /** Hands the pending focus to the caller once, if there is one. */
     fun takePendingFocus(): PendingFocus? = pendingFocus.also { pendingFocus = null }
+
+    /**
+     * A scan that could not do everything still produces findings, so without this
+     * the list looks complete. The one users can act on (a service account that
+     * needs a space) gets a button to fix it.
+     */
+    private fun reportScanWarnings(warnings: List<String>) {
+        val shown = warnings.map(ScanWarnings::explain).distinct()
+        if (shown.isEmpty()) return
+        val actions = if (warnings.any(ScanWarnings::needsSpace)) {
+            arrayOf(
+                NotificationAction.createSimpleExpiring("Choose Space...") {
+                    com.mondoo.intellij.platform.ConnectMondooDialog(project).show()
+                },
+            )
+        } else {
+            emptyArray()
+        }
+        notify("The scan finished with warnings:\n" + shown.joinToString("\n"), NotificationType.WARNING, *actions)
+    }
 
     private fun samePath(a: String, b: String): Boolean =
         runCatching { Path.of(a).toRealPath() == Path.of(b).toRealPath() }.getOrDefault(a == b)

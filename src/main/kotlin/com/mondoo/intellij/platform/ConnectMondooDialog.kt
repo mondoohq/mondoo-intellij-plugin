@@ -58,6 +58,12 @@ class ConnectMondooAction :
                 p.description = "Your service account can't be used: ${MondooPlatform.joinWords(status.problems)}"
                 p.icon = AllIcons.General.Warning
             }
+            is MondooPlatform.Status.NeedsSpace -> {
+                p.text = "Choose a Mondoo Space..."
+                p.description =
+                    "Your service account belongs to the organization ${status.organization}; choose a space"
+                p.icon = AllIcons.General.Warning
+            }
             is MondooPlatform.Status.Missing -> {
                 p.text = "Connect to Mondoo Platform..."
                 p.description = templatePresentation.description
@@ -83,6 +89,9 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
     private val token = JBPasswordField()
     private val saveTo = TextFieldWithBrowseButton()
     private val existing = TextFieldWithBrowseButton()
+    private val space = com.intellij.ui.components.JBTextField(
+        MondooEnvironment.spaceMrn()?.let(MondooSpace::id).orEmpty(),
+    )
     private lateinit var useToken: Cell<JBRadioButton>
     private lateinit var useFile: Cell<JBRadioButton>
 
@@ -105,7 +114,9 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
 
     override fun createCenterPanel(): JComponent {
         val status = MondooPlatform.status()
-        val connected = status is MondooPlatform.Status.Connected
+        // A file that works (or only lacks a space) is the one to keep, so start there.
+        val connected = status is MondooPlatform.Status.Connected || status is MondooPlatform.Status.NeedsSpace
+        space.emptyText.text = "Space ID or console URL, e.g. friendly-nash-115619"
         token.emptyText.text = "Paste your registration token"
         existing.textField.let {
             (it as? com.intellij.ui.components.JBTextField)?.emptyText?.text = "Path to mondoo.yml"
@@ -117,7 +128,9 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                 icon(
                     when (status) {
                         is MondooPlatform.Status.Connected -> AllIcons.General.InspectionsOK
-                        is MondooPlatform.Status.Unusable -> AllIcons.General.Warning
+                        is MondooPlatform.Status.Unusable,
+                        is MondooPlatform.Status.NeedsSpace,
+                        -> AllIcons.General.Warning
                         is MondooPlatform.Status.Missing -> AllIcons.General.Information
                     },
                 ).align(com.intellij.ui.dsl.builder.AlignY.TOP)
@@ -169,6 +182,14 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                 }
             }
 
+            row("Space:") {
+                cell(space).columns(com.intellij.ui.dsl.builder.COLUMNS_LARGE).align(AlignX.FILL)
+            }.rowComment(
+                "Only for a service account that belongs to an organization: the space to report " +
+                    "to and check dependencies in. Paste its ID or its URL from the Mondoo Console.",
+                maxLineLength = TEXT_WIDTH,
+            ).topGap(com.intellij.ui.dsl.builder.TopGap.SMALL)
+
             collapsibleGroup("Advanced") {
                 row("Save new service accounts to:") {
                     cell(saveTo).align(AlignX.FILL)
@@ -177,24 +198,32 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
         }
     }
 
-    override fun doValidate(): ValidationInfo? = if (useToken.component.isSelected) {
-        when {
-            token.password.isEmpty() -> ValidationInfo("Paste a registration token", token)
-            saveTo.text.isBlank() -> ValidationInfo("Choose where to save the service account", saveTo.textField)
-            else -> null
+    override fun doValidate(): ValidationInfo? {
+        if (space.text.isNotBlank() && MondooSpace.toMrn(space.text) == null) {
+            return ValidationInfo("This is not a space ID or a space URL", space)
         }
-    } else {
-        val path = existing.text.trim()
-        when (val s = if (path.isEmpty()) null else MondooPlatform.status(Path.of(path))) {
-            null -> ValidationInfo("Choose a service account file", existing.textField)
+        if (useToken.component.isSelected) {
+            return when {
+                token.password.isEmpty() -> ValidationInfo("Paste a registration token", token)
+                saveTo.text.isBlank() -> ValidationInfo("Choose where to save the service account", saveTo.textField)
+                else -> null
+            }
+        }
+        val path = existing.text.trim().takeIf { it.isNotEmpty() }
+            ?: return ValidationInfo("Choose a service account file", existing.textField)
+        return when (val s = MondooPlatform.status(Path.of(path))) {
             is MondooPlatform.Status.Missing -> ValidationInfo("There is no file at this path", existing.textField)
-            is MondooPlatform.Status.Unusable -> ValidationInfo(
-                "This file ${s.problems.joinToString(", ")}",
-                existing.textField,
-            )
-            is MondooPlatform.Status.Connected -> null
+            is MondooPlatform.Status.Unusable ->
+                ValidationInfo("This file can't be used: ${MondooPlatform.joinWords(s.problems)}", existing.textField)
+            is MondooPlatform.Status.NeedsSpace, is MondooPlatform.Status.Connected ->
+                organizationOf(Path.of(path))?.takeIf { space.text.isBlank() }?.let {
+                    ValidationInfo("This service account belongs to the organization $it: enter a space", space)
+                }
         }
     }
+
+    private fun organizationOf(path: Path): String? =
+        runCatching { MondooConfigFile.inspect(java.nio.file.Files.readString(path)).organization }.getOrNull()
 
     override fun doOKAction() {
         val path: Path
@@ -212,9 +241,19 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                 setErrorText(error, token)
                 return
             }
+            organizationOf(path)?.takeIf { space.text.isBlank() }?.let { org ->
+                // Registered, but the token was an organization's: the file is kept,
+                // and the user only has to add the space and press Connect again.
+                useFile.component.isSelected = true
+                existing.text = path.toString()
+                setErrorText("This registration token is for the organization $org: enter a space", space)
+                return
+            }
         } else {
             path = Path.of(existing.text.trim())
         }
+        com.mondoo.intellij.settings.MondooSettings.getInstance().state.mondooSpaceMrn =
+            MondooSpace.toMrn(space.text).orEmpty()
         MondooPlatform.use(path)
         val status = MondooPlatform.status(path)
         NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")

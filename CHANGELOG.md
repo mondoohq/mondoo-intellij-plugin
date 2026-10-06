@@ -23,14 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Connect to Mondoo Platform…** (More menu, and Settings | Tools | Mondoo): register a
   service account with a registration token, or pick a service account file on disk.
   The file is checked before it is used (a missing key or certificate is reported up
-  front), and every xgrep and cnspec the plugin starts then uses it. Settings shows
-  which space you are connected to. Needs xgrep 0.58.0 or later for token registration.
+  front), and every xgrep and cnspec the plugin starts then uses it. An organization
+  service account asks for a space. Settings and the menu show which space you are
+  connected to. A Fix tab scan that could not check dependencies says so, and why. Needs xgrep 0.58.0 or later for token registration.
 - **Include files not committed yet** (Settings | Tools | Mondoo, on by default): in a
   git repository, Scan Workspace and the Fix tab also scan new and untracked files.
   Before, a workspace scan only covered committed files, so a file you had just
   created showed findings in the editor but not in the scan results.
 
 ### Changed
+
+- The Dependencies tab shows each package's ecosystem with the IDE's icon for its
+  language (JavaScript for npm, Python for PyPI, …), or a coloured badge where the IDE
+  does not know the language.
 
 - The status bar reads **Mondoo** (for example **Mondoo: 12**) instead of **xgrep**, as
   do scan notifications: the plugin covers code and infrastructure, and which scanner

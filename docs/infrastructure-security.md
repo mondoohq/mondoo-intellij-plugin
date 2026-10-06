@@ -108,6 +108,11 @@ from the IDE, use **More** → **Connect to Mondoo Platform…** (also a button 
   passed in the environment, never on a command line.
 - **Use a service account file** you already have, such as one `cnspec login` wrote.
 
+A service account that belongs to an organization rather than a space needs a space
+chosen too, since dependency checks and reports go to a space: enter its ID or paste its
+URL from the console in **Space**. When a scan could not check dependencies, the Fix tab
+says so after scanning, with a **Choose Space…** button where that is the reason.
+
 Either way the file is checked first: one with no private key or certificate is
 reported in the dialog instead of failing every scan later. The plugin then passes it to
 every cnspec and xgrep it starts, including the cnspec shell.

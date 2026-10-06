@@ -91,6 +91,13 @@ class MondooState : BaseState() {
      */
     var mondooConfigPath: String? by string("")
 
+    /**
+     * mondoo.spaceMrn — the space to report to and check dependencies in, as an MRN.
+     * Needed for a service account that belongs to an organization; empty uses the
+     * service account's own space.
+     */
+    var mondooSpaceMrn: String? by string("")
+
     // --- Infrastructure security (cnspec) ---
 
     /** mondoo.cnspecEnabled — MQL language support. */
