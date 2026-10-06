@@ -59,7 +59,7 @@ Only worth checking when the description, icons or change notes have changed.
 
 - [ ] Opening the **Fix** tab starts one `xgrep fix serve` (check with `ps`); opening
       the tool window without selecting the tab starts none.
-- [ ] With no `.xgrep/findings.json`, the tab says so and **Scan Project** fills it.
+- [ ] With no `.xgrep/findings.json`, the tab says so and **Scan** fills it. Running `xgrep scan` in a terminal updates the tab by itself.
 - [ ] Selecting a deterministic finding shows a diff of the file with the fix; the file
       is unchanged on disk.
 - [ ] **Mark False Positive…** asks for a reason, the finding becomes not fixable, and

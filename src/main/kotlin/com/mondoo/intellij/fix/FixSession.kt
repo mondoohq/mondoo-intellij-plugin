@@ -42,6 +42,36 @@ import java.util.concurrent.atomic.AtomicBoolean
 @Service(Service.Level.PROJECT)
 class FixSession(private val project: Project) : Disposable {
 
+    init {
+        watchCache()
+    }
+
+    /**
+     * Reloads when `.xgrep/findings.json` changes, whoever wrote it: a scan from this
+     * tab, `xgrep scan` in a terminal, or an agent. Without this the tab needed a
+     * Refresh button next to Scan, and the difference was not obvious.
+     */
+    private fun watchCache() {
+        val reload = com.intellij.util.Alarm(com.intellij.util.Alarm.ThreadToUse.POOLED_THREAD, this)
+        project.messageBus.connect(this).subscribe(
+            com.intellij.openapi.vfs.VirtualFileManager.VFS_CHANGES,
+            object : com.intellij.openapi.vfs.newvfs.BulkFileListener {
+                override fun after(events: List<com.intellij.openapi.vfs.newvfs.events.VFileEvent>) {
+                    if (!loaded || busy.get()) return
+                    if (events.none {
+                            it.path.endsWith(CACHE_SUFFIX) &&
+                                project.basePath?.let(it.path::startsWith) == true
+                        }
+                    ) {
+                        return
+                    }
+                    reload.cancelAllRequests()
+                    reload.addRequest({ refresh() }, CACHE_RELOAD_DELAY_MS)
+                }
+            },
+        )
+    }
+
     private val log = logger<FixSession>()
 
     @Volatile var findings: List<FixFinding> = emptyList()
@@ -431,6 +461,8 @@ class FixSession(private val project: Project) : Disposable {
         val TOPIC: Topic<Listener> = Topic.create("Mondoo xgrep fix session", Listener::class.java)
 
         private const val CANCEL_POLL_MS = 200L
+        private const val CACHE_SUFFIX = "/.xgrep/findings.json"
+        private const val CACHE_RELOAD_DELAY_MS = 500
 
         fun getInstance(project: Project): FixSession = project.service()
     }

@@ -88,5 +88,5 @@ first use.
 - The language server's own deterministic quick fix still bypasses the harness. The
   Fix tab is the verified path.
 - Findings in the Fix tab come from the findings cache (`.xgrep/findings.json`), not
-  from the language server. The two can differ until **Scan Project** refreshes the
+  from the language server. The two can differ until **Scan** refreshes the
   cache. Alt+Enter rescans when the cache does not have the finding yet.

@@ -149,7 +149,9 @@ internal class XgrepFixPanel(private val project: Project) :
 
     /** Called when the tab is first selected: starts the session lazily. */
     fun onShown() {
-        if (!session.loaded) session.refresh() else render()
+        // Cheap (it reads the cache), and the cache may have changed while the tab
+        // was hidden.
+        if (!session.isBusy) session.refresh() else render()
     }
 
     /** Selects the finding with [fingerprint], if it is listed. */
@@ -228,7 +230,7 @@ internal class XgrepFixPanel(private val project: Project) :
             !session.loaded -> tree.emptyText.appendLine("Loading findings...")
             !session.cachePresent -> {
                 tree.emptyText.appendLine("This project has not been scanned for fixing yet.")
-                tree.emptyText.appendLine("Scan Project", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+                tree.emptyText.appendLine("Scan", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
                     session.refresh(rescan = true)
                 }
             }
@@ -364,10 +366,16 @@ internal class XgrepFixPanel(private val project: Project) :
         val group = DefaultActionGroup().apply {
             add(FixCheckedAction())
             add(Separator.create())
-            add(action("Refresh", "Reload findings from the last scan", AllIcons.Actions.Refresh) { session.refresh() })
+            // One button: scanning is the only thing worth asking for. Reloading the
+            // last results happens by itself (see FixSession's cache watcher).
             add(
-                action("Scan Project", "Scan the project again and reload", AllIcons.Actions.ForceRefresh) {
+                action("Scan", "Scan the project and list what can be fixed", AllIcons.Actions.Find) {
                     session.refresh(rescan = true)
+                }.also {
+                    it.templatePresentation.putClientProperty(
+                        com.intellij.openapi.actionSystem.ex.ActionUtil.SHOW_TEXT_IN_TOOLBAR,
+                        true,
+                    )
                 },
             )
             add(Separator.create())
