@@ -103,7 +103,8 @@ Set a custom location in **Settings** → **Tools** → **Mondoo** → **cnspec 
 the fastest way to answer "what does this resource actually return here?" — select an
 expression in the editor first and it is offered as the default.
 
-Output streams into a console tab in the Mondoo tool window.
+Output streams into the run log on the **Policies** tab, next to the bundle tree. Each
+run replaces the last; starting one while another is still going stops the first.
 
 **This machine** is always available and needs no configuration. **Manage Targets…**
 adds others:
@@ -142,7 +143,7 @@ terminal. It is the fastest way to answer "what does this resource actually retu
 here?", which is most of policy authoring — you type MQL, read the answer, and type
 more.
 
-This is the one cnspec feature that uses the terminal rather than a console tab. The
+This is the one cnspec feature that uses the terminal rather than the run log. The
 others stream output and a console renders that fine; a shell needs an input line,
 which a console does not have.
 

@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Policy, query and target scans write to a run log on the **Policies** tab, next to
+  the bundle tree, instead of opening a new console tab for every run. When cnspec
+  fails because its Mondoo service account cannot be used, the log says how to fix it.
+
 - Actions now sit with the tab they belong to. **Code Security** has Scan and fix,
   **Dependencies** has Generate SBOM…, and **Policies** has New Policy, Bundle (lint,
   format, upload the selected bundle) and Target (scan, query, shell, manage).

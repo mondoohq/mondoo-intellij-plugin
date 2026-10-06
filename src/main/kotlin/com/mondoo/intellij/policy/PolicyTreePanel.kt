@@ -104,7 +104,13 @@ internal class PolicyTreePanel(private val project: Project) :
         )
 
         add(toolbar().component, BorderLayout.NORTH)
-        add(JBScrollPane(tree), BorderLayout.CENTER)
+        add(
+            com.intellij.ui.OnePixelSplitter(false, 0.4f).apply {
+                firstComponent = JBScrollPane(tree)
+                secondComponent = runLogArea()
+            },
+            BorderLayout.CENTER,
+        )
         border = JBUI.Borders.empty()
 
         val bus = project.messageBus.connect(this)
@@ -129,6 +135,25 @@ internal class PolicyTreePanel(private val project: Project) :
             },
         )
         PolicyIndexService.getInstance(project).refresh()
+    }
+
+    /**
+     * The output of the scans and queries started from this tab, next to the tree,
+     * as the Fix tab shows its runs. A hint until the first run.
+     */
+    private fun runLogArea(): javax.swing.JComponent {
+        val cards = java.awt.CardLayout()
+        val area = JPanel(cards)
+        area.add(
+            com.intellij.ui.components.JBLabel(
+                "Run a query, a policy or a target scan to see its output here.",
+                javax.swing.SwingConstants.CENTER,
+            ).apply { foreground = com.intellij.util.ui.UIUtil.getContextHelpForeground() },
+            "hint",
+        )
+        area.add(CnspecRunService.getInstance(project).runLogComponent(), "log")
+        CnspecRunService.getInstance(project).onRunStarted(this) { cards.show(area, "log") }
+        return area
     }
 
     private fun toolbar(): ActionToolbar {

@@ -155,7 +155,7 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
       deleting one.
 - [ ] **Run** is disabled with nothing selected, and offers Query / Policy / Bundle
       according to what is.
-- [ ] Running a query streams cnspec output into a console tab.
+- [ ] Running a query streams cnspec output into the run log on the **Policies** tab.
 - [ ] Right-clicking a node offers **Jump to Source** and **Run**.
 - [ ] Expanding a policy, then saving the bundle, leaves it expanded.
 - [ ] In an untrusted project the tree still lists bundles, but **Run** is disabled.
@@ -187,7 +187,7 @@ Needs a Mondoo space; the upload is real and visible to everyone with access to 
 Needs `cnspec` on the PATH; the actions explain themselves when it is absent.
 
 - [ ] **Scan Target…** offers "This machine" with no configuration, and runs.
-- [ ] Output appears in a console tab in the **Mondoo** tool window.
+- [ ] Output appears in the run log on the **Policies** tab, which comes forward; a second run clears it and stops the first.
 - [ ] **Run MQL Query…** is seeded with the editor selection when one line is selected.
 - [ ] `asset.platform` against this machine returns a result.
 - [ ] **Manage Targets…** adds an SSH target; the password prompt is masked.
