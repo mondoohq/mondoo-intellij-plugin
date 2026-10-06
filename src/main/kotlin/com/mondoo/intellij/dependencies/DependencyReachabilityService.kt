@@ -59,6 +59,12 @@ class DependencyReachabilityService(private val project: Project) {
         )
     }
 
+    /** Called at project open: marks vulnerable manifests from the last scan, if there is one. */
+    fun start() {
+        ManifestHighlighter.getInstance(project) // subscribes to the vulnerabilities
+        loadVulnerabilities()
+    }
+
     private fun cachePath(): java.nio.file.Path? =
         project.basePath?.let { java.nio.file.Path.of(it, ".xgrep", "findings.json") }
 
@@ -67,6 +73,7 @@ class DependencyReachabilityService(private val project: Project) {
         ApplicationManager.getApplication().executeOnPooledThread {
             val text = cachePath()?.let { runCatching { java.nio.file.Files.readString(it) }.getOrNull() }
             vulns.set(text?.let(DependencyVulnerabilities::parse).orEmpty())
+            log.debug("Mondoo: ${vulns.get().size} vulnerable package(s) in the findings cache")
             if (!project.isDisposed) project.messageBus.syncPublisher(VULNERABILITIES_TOPIC).vulnerabilitiesChanged()
         }
     }

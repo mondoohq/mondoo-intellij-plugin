@@ -39,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CVEs. Double-click a CVE to open its advisory; right-click a package to copy the upgrade
   command. The vulnerabilities come from the same scan as the Fix tab's, so a scan from
   either tab, or `xgrep scan` in a terminal, updates both.
+- Vulnerable dependencies show where they are declared: `requirements.txt` and
+  `package.json` turn red in the Project view, and each vulnerable line gets an
+  underline, a scrollbar mark and a gutter icon listing its vulnerabilities. Alt+Enter on
+  the line offers **Upgrade <package> to <version>**, the first version that fixes them.
+- **Generate SBOM…** is one dialog instead of three prompts: what to include (software,
+  cryptography and AI can be combined), the format, the software options and where to
+  save it.
 - The Dependencies tab shows each package's ecosystem with the IDE's icon for its
   language (JavaScript for npm, Python for PyPI, …), or a coloured badge where the IDE
   does not know the language.

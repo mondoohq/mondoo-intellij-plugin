@@ -39,6 +39,11 @@ enum class VulnSeverity(val label: String, val rank: Int) {
 
 /** A package's vulnerabilities, and the upgrade that clears all of them where one is known. */
 data class PackageVulnerabilities(
+    val ecosystem: String,
+    val name: String,
+    val version: String,
+    /** The manifests the findings point at, relative to the scan root (e.g. `package.json`). */
+    val manifests: Set<String>,
     val vulnerabilities: List<Vulnerability>,
     /** The lowest version that fixes every known vulnerability, or empty. */
     val upgradeTo: String,
@@ -72,6 +77,8 @@ object DependencyVulnerabilities {
         // The cache wraps the report; a bare `scan --json` report works too.
         val report = root.obj("report") ?: root
         val byPackage = linkedMapOf<String, MutableList<Pair<Vulnerability, JsonObject?>>>()
+        val identity = mutableMapOf<String, Triple<String, String, String>>()
+        val manifests = mutableMapOf<String, MutableSet<String>>()
         report.get("results")?.takeIf { it.isJsonArray }?.asJsonArray?.forEach { element ->
             runCatching {
                 val r = element.asJsonObject
@@ -90,15 +97,22 @@ object DependencyVulnerabilities {
                     fixedVersion = meta.str("fixed_version"),
                 )
                 byPackage.getOrPut(key) { mutableListOf() } += vuln to fix.obj("ecosystem_plan")
+                identity[key] = Triple(meta.str("ecosystem"), name, meta.str("version"))
+                r.str("path").takeIf { it.isNotEmpty() }?.let { manifests.getOrPut(key) { mutableSetOf() } += it }
             }
         }
-        byPackage.mapValues { (_, entries) ->
+        byPackage.mapValues { (key, entries) ->
             val vulns = entries.map { it.first }.distinctBy { it.id }
                 .sortedWith(compareByDescending<Vulnerability> { it.severity.rank }.thenBy { it.id })
             // Every vulnerability's fix has to be in: the highest fixed version.
             val target = entries.filter { it.first.fixedVersion.isNotEmpty() }
                 .maxWithOrNull { a, b -> ArtifactSelector.compareVersions(a.first.fixedVersion, b.first.fixedVersion) }
+            val (ecosystem, name, version) = identity.getValue(key)
             PackageVulnerabilities(
+                ecosystem = ecosystem,
+                name = name,
+                version = version,
+                manifests = manifests[key].orEmpty(),
                 vulnerabilities = vulns,
                 upgradeTo = target?.first?.fixedVersion.orEmpty(),
                 upgradeCommand = target?.second?.get("commands")?.takeIf { it.isJsonArray }?.asJsonArray

@@ -24,6 +24,10 @@ internal class XgrepStartupActivity : ProjectActivity {
         val settings = MondooSettings.getInstance().state
         if (!settings.xgrepEnabled) return
 
+        // Vulnerable dependencies from the last scan show in their manifests from the
+        // start, not only after the Dependencies tab is opened. Reads a file; no scan.
+        com.mondoo.intellij.dependencies.DependencyReachabilityService.getInstance(project).start()
+
         val service = XgrepBinaryService.getInstance()
         if (service.resolvedBinaryOrNull() != null) {
             service.checkForUpdate(project)
