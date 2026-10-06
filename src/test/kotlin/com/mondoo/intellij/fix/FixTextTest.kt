@@ -43,4 +43,20 @@ class FixTextTest {
         assertEquals("agent finished", FixText.finished(AgentActivity(ActivityKind.FINISHED)))
         assertEquals("Done: 1 fixed, 1 not fixed (cancelled)", FixText.summary(RunFixEvent.Done(1, 1, 0, true)))
     }
+
+    /** One dependency upgrade clears many advisories; the log names them on one line. */
+    @Test
+    fun `findings of one outcome line`() {
+        assertEquals("CVE-1", FixText.findings(listOf("CVE-1")))
+        assertEquals("CVE-1 and CVE-2", FixText.findings(listOf("CVE-1", "CVE-2")))
+        assertEquals(
+            "10 findings (CVE-0, CVE-1 and 8 more)",
+            FixText.findings((0 until 10).map { "CVE-$it" }),
+        )
+    }
+
+    @Test
+    fun `denied tool calls decode`() {
+        assertEquals(ActivityKind.DENIED, ActivityKind.fromWire("KIND_DENIED"))
+    }
 }

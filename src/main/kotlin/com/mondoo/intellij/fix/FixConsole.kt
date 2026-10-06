@@ -33,6 +33,21 @@ import javax.swing.JComponent
 class FixConsole(private val project: Project) : Disposable {
 
     private var view: ConsoleView? = null
+
+    /**
+     * Outcomes waiting to be printed as one line. A dependency upgrade reports one
+     * outcome per vulnerability it cleared, all alike but for the advisory; printed
+     * one by one, upgrading lodash alone filled ten lines.
+     */
+    private var pending: OutcomeGroup? = null
+
+    private class OutcomeGroup(val first: Outcome) {
+        val rules = mutableListOf(first.ruleId)
+        fun matches(o: Outcome) = o.path == first.path &&
+            o.status == first.status &&
+            o.reason == first.reason &&
+            o.detail == first.detail
+    }
     private val runListeners = CopyOnWriteArrayList<() -> Unit>()
 
     /** The log's component, created on first use. EDT only. */
@@ -45,6 +60,7 @@ class FixConsole(private val project: Project) : Disposable {
     }
 
     fun startRun(findingCount: Int) = onEdt {
+        pending = null
         console().clear()
         print(
             "Fixing $findingCount finding${if (findingCount == 1) "" else "s"}\n",
@@ -54,16 +70,19 @@ class FixConsole(private val project: Project) : Disposable {
     }
 
     fun progress(message: String) = onEdt {
+        flushOutcomes()
         print("  · $message\n", ConsoleViewContentType.LOG_INFO_OUTPUT)
     }
 
     fun agentStarted(agent: AgentInfo, findingCount: Int) = onEdt {
+        flushOutcomes()
         val what = if (findingCount == 1) "1 finding" else "$findingCount findings"
         print("\nHanding $what to ${agent.name}\n", ConsoleViewContentType.SYSTEM_OUTPUT)
         print("  $ ${agent.commandLine}\n", ConsoleViewContentType.LOG_DEBUG_OUTPUT)
     }
 
     fun activity(a: AgentActivity) = onEdt {
+        flushOutcomes()
         when (a.kind) {
             ActivityKind.TOOL -> print(
                 "  ▸ ${listOf(a.tool, a.target).filter {
@@ -86,26 +105,45 @@ class FixConsole(private val project: Project) : Disposable {
                 }
             }
             ActivityKind.OUTPUT -> print("${a.text}\n", ConsoleViewContentType.NORMAL_OUTPUT)
+            ActivityKind.DENIED -> print(
+                "  ✗ ${a.tool} not allowed${if (a.text.isNotBlank()) ": ${a.text}" else ""}\n",
+                ConsoleViewContentType.LOG_WARNING_OUTPUT,
+            )
         }
     }
 
     fun outcome(o: Outcome) = onEdt {
+        val group = pending
+        if (group != null && group.matches(o)) {
+            group.rules += o.ruleId
+        } else {
+            flushOutcomes()
+            pending = OutcomeGroup(o)
+        }
+    }
+
+    private fun flushOutcomes() {
+        val group = pending ?: return
+        pending = null
+        val o = group.first
         val (mark, type) = when {
             o.applied -> "✓ Fixed " to ConsoleViewContentType.SYSTEM_OUTPUT
             o.rejected -> "✗ Not fixed " to ConsoleViewContentType.ERROR_OUTPUT
             else -> "• Skipped " to ConsoleViewContentType.LOG_INFO_OUTPUT
         }
-        print(mark + o.ruleId + " in ", type)
+        print(mark + FixText.findings(group.rules) + " in ", type)
         fileLink(o.path, 0)
         val why = listOf(o.reason, o.detail).filter { it.isNotBlank() }.joinToString(": ")
         print(if (why.isNotEmpty()) " — $why\n" else "\n", type)
     }
 
     fun done(d: RunFixEvent.Done) = onEdt {
+        flushOutcomes()
         print("\n${FixText.summary(d)}\n", ConsoleViewContentType.SYSTEM_OUTPUT)
     }
 
     fun error(message: String) = onEdt {
+        flushOutcomes()
         print("\n$message\n", ConsoleViewContentType.ERROR_OUTPUT)
     }
 
@@ -173,6 +211,16 @@ object FixText {
         append("agent finished")
         if (a.durationMs > 0) append(" in %.1fs".format(java.util.Locale.ROOT, a.durationMs / 1000.0))
         if (a.costUsd > 0) append(" · $%.2f".format(java.util.Locale.ROOT, a.costUsd))
+    }
+
+    /** "CVE-1", "CVE-1 and CVE-2", "10 findings (CVE-1, CVE-2 and 8 more)". */
+    fun findings(rules: List<String>): String {
+        val distinct = rules.distinct()
+        return when (distinct.size) {
+            1 -> distinct[0]
+            2 -> "${distinct[0]} and ${distinct[1]}"
+            else -> "${rules.size} findings (${distinct[0]}, ${distinct[1]} and ${distinct.size - 2} more)"
+        }
     }
 
     fun summary(d: RunFixEvent.Done): String = buildString {

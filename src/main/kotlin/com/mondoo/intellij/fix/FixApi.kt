@@ -113,6 +113,9 @@ enum class ActivityKind(val wire: String) {
     FILE_CHANGE("KIND_FILE_CHANGE"),
     FINISHED("KIND_FINISHED"),
     OUTPUT("KIND_OUTPUT"),
+
+    /** A tool call the agent's permissions refused; text says why. */
+    DENIED("KIND_DENIED"),
     ;
 
     companion object {
