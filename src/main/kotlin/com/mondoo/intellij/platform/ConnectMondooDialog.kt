@@ -20,6 +20,7 @@ import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Cell
+import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.builder.selected
 import com.mondoo.intellij.settings.MondooEnvironment
@@ -46,6 +47,13 @@ class ConnectMondooAction :
 
 class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project) {
 
+    private companion object {
+        /** Characters per line for the explanatory text, so the dialog stays a readable width. */
+        const val TEXT_WIDTH = 72
+
+        const val CONSOLE_URL = "https://console.mondoo.com"
+    }
+
     private val token = JBPasswordField()
     private val saveTo = TextFieldWithBrowseButton()
     private val existing = TextFieldWithBrowseButton()
@@ -71,7 +79,14 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
 
     override fun createCenterPanel(): JComponent {
         val status = MondooPlatform.status()
+        val connected = status is MondooPlatform.Status.Connected
+        token.emptyText.text = "Paste your registration token"
+        existing.textField.let {
+            (it as? com.intellij.ui.components.JBTextField)?.emptyText?.text = "Path to mondoo.yml"
+        }
+
         return panel {
+            // Where things stand, in a headline and one sentence, before any choice.
             row {
                 icon(
                     when (status) {
@@ -79,32 +94,59 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                         is MondooPlatform.Status.Unusable -> AllIcons.General.Warning
                         is MondooPlatform.Status.Missing -> AllIcons.General.Information
                     },
+                ).align(com.intellij.ui.dsl.builder.AlignY.TOP)
+                text(
+                    "<b>${MondooPlatform.describe(status)}</b><br>${
+                        com.intellij.openapi.util.text.StringUtil.escapeXmlEntities(MondooPlatform.explain(status))
+                    }",
+                    maxLineLength = TEXT_WIDTH,
                 )
-                label(MondooPlatform.describe(status))
-            }.comment(status.path.toString())
-            separator()
+            }.bottomGap(com.intellij.ui.dsl.builder.BottomGap.MEDIUM)
+
             buttonsGroup {
                 row {
                     useToken = radioButton("Register with a registration token")
-                        .applyToComponent { isSelected = status !is MondooPlatform.Status.Connected }
+                        .applyToComponent { isSelected = !connected }
+                        .bold()
+                    comment("Recommended")
                 }
                 indent {
-                    row("Token:") { cell(token).align(AlignX.FILL) }
-                        .comment("In the Mondoo Console: Space → Settings → Registration Token.")
-                        .enabledIf(useToken.selected)
-                    row("Save to:") { cell(saveTo).align(AlignX.FILL) }
-                        .comment("An existing file there is replaced.")
-                        .enabledIf(useToken.selected)
+                    row {
+                        cell(token).columns(com.intellij.ui.dsl.builder.COLUMNS_LARGE).align(AlignX.FILL)
+                    }.enabledIf(useToken.selected)
+                    row {
+                        comment(
+                            "Find one in the Mondoo Console under Space → Settings → Registration Token. " +
+                                "It creates a service account for this machine.",
+                            maxLineLength = TEXT_WIDTH,
+                        )
+                    }
+                    row {
+                        browserLink("Open the Mondoo Console", CONSOLE_URL)
+                    }.bottomGap(com.intellij.ui.dsl.builder.BottomGap.SMALL)
                 }
                 row {
-                    useFile = radioButton("Use a service account file")
-                        .applyToComponent { isSelected = status is MondooPlatform.Status.Connected }
+                    useFile = radioButton("Use a service account file you already have")
+                        .applyToComponent { isSelected = connected }
+                        .bold()
                 }
                 indent {
-                    row("File:") { cell(existing).align(AlignX.FILL) }
-                        .comment("A mondoo.yml written by <code>cnspec login</code> or <code>xgrep login</code>.")
-                        .enabledIf(useFile.selected)
+                    row {
+                        cell(existing).columns(com.intellij.ui.dsl.builder.COLUMNS_LARGE).align(AlignX.FILL)
+                    }.enabledIf(useFile.selected)
+                    row {
+                        comment(
+                            "For example the mondoo.yml that <code>cnspec login</code> wrote.",
+                            maxLineLength = TEXT_WIDTH,
+                        )
+                    }
                 }
+            }
+
+            collapsibleGroup("Advanced") {
+                row("Save new service accounts to:") {
+                    cell(saveTo).align(AlignX.FILL)
+                }.rowComment("Used when registering with a token. A file already at this path is replaced.")
             }
         }
     }
@@ -119,7 +161,7 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
         val path = existing.text.trim()
         when (val s = if (path.isEmpty()) null else MondooPlatform.status(Path.of(path))) {
             null -> ValidationInfo("Choose a service account file", existing.textField)
-            is MondooPlatform.Status.Missing -> ValidationInfo("No file at this path", existing.textField)
+            is MondooPlatform.Status.Missing -> ValidationInfo("There is no file at this path", existing.textField)
             is MondooPlatform.Status.Unusable -> ValidationInfo(
                 "This file ${s.problems.joinToString(", ")}",
                 existing.textField,

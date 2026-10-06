@@ -49,18 +49,18 @@ class MondooConfigFileTest {
             .joinToString("\n")
         val c = MondooConfigFile.inspect(broken)
         assertFalse(c.usable)
-        assertEquals(listOf("has no private key", "has no certificate"), c.problems)
+        assertEquals(listOf("its private key is missing", "its certificate is missing"), c.problems)
     }
 
     @Test
     fun `a key that is not PEM, and a file that is not a config`() {
         val c = MondooConfigFile.inspect(usable.replace("-----BEGIN PRIVATE KEY-----", "garbage"))
-        assertEquals(listOf("has a private key that is not in PEM form"), c.problems)
+        assertEquals(listOf("its private key is damaged"), c.problems)
         assertEquals(
-            listOf("is not a Mondoo configuration file"),
+            listOf("it is not a Mondoo service account file"),
             MondooConfigFile.inspect("- just\n- a list").problems,
         )
-        assertEquals(listOf("is not a Mondoo configuration file"), MondooConfigFile.inspect("{ not yaml").problems)
+        assertEquals(listOf("it is not a Mondoo service account file"), MondooConfigFile.inspect("{ not yaml").problems)
     }
 
     @Test

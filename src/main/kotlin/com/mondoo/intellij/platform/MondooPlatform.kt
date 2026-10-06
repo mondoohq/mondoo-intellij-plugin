@@ -47,12 +47,31 @@ object MondooPlatform {
         }
     }
 
-    /** One line for the user. */
+    /** A short headline for the user. */
     fun describe(status: Status): String = when (status) {
-        is Status.Connected -> "Connected to space ${status.space ?: "unknown"}"
-        is Status.Unusable -> "The service account ${status.problems.joinToString(", ")}"
+        is Status.Connected -> "Connected to ${status.space ?: "Mondoo Platform"}"
+        is Status.Unusable -> "Your service account can't be used"
         is Status.Missing -> "Not connected"
     }
+
+    /** The line under the headline: why, and what to do. */
+    fun explain(status: Status): String = when (status) {
+        is Status.Connected ->
+            "Findings and dependency checks use the service account in ${display(status.path)}."
+        is Status.Unusable ->
+            "In ${display(status.path)}, ${joinWords(status.problems)}. Register again with a token to replace it."
+        is Status.Missing ->
+            "Connect to report findings to Mondoo and check your dependencies for known vulnerabilities."
+    }
+
+    /** "a", "a and b", "a, b and c". */
+    fun joinWords(items: List<String>): String = when (items.size) {
+        0 -> ""
+        1 -> items[0]
+        else -> items.dropLast(1).joinToString(", ") + " and " + items.last()
+    }
+
+    fun display(path: Path): String = com.mondoo.intellij.actions.ToolPaths.display(path.toString())
 
     /**
      * Registers a service account with [token] and writes it to [target], using
@@ -79,7 +98,8 @@ object MondooPlatform {
         }
         return when (val s = status(target)) {
             is Status.Connected -> null
-            else -> "xgrep login finished, but ${describe(s).replaceFirstChar(Char::lowercase)}."
+            is Status.Unusable -> "Registration finished, but the saved file is not usable: ${joinWords(s.problems)}."
+            is Status.Missing -> "Registration finished, but no file was written to ${display(target)}."
         }
     }
 

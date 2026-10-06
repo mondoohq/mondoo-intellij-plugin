@@ -37,21 +37,24 @@ data class MondooConfigFile(
                     },
                 )
                     .load<Any?>(text) as? Map<*, *>
-            }.getOrNull() ?: return MondooConfigFile(null, null, null, listOf("is not a Mondoo configuration file"))
+            }.getOrNull()
+                ?: return MondooConfigFile(null, null, null, listOf("it is not a Mondoo service account file"))
 
             fun field(name: String) = (map[name] as? String)?.trim()?.takeIf { it.isNotEmpty() }
 
             val spaceMrn = field("space_mrn") ?: field("scope_mrn")
+            // Worded for someone who has never opened the file: what is wrong, not
+            // which field or encoding.
             val problems = buildList {
-                if (field("mrn") == null) add("names no service account (mrn)")
-                if (spaceMrn == null) add("names no space (space_mrn)")
+                if (field("mrn") == null) add("it does not name a service account")
+                if (spaceMrn == null) add("it does not name a space")
                 when {
-                    field("private_key") == null -> add("has no private key")
-                    !field("private_key")!!.contains("-----BEGIN") -> add("has a private key that is not in PEM form")
+                    field("private_key") == null -> add("its private key is missing")
+                    !field("private_key")!!.contains("-----BEGIN") -> add("its private key is damaged")
                 }
                 when {
-                    field("certificate") == null -> add("has no certificate")
-                    !field("certificate")!!.contains("-----BEGIN") -> add("has a certificate that is not in PEM form")
+                    field("certificate") == null -> add("its certificate is missing")
+                    !field("certificate")!!.contains("-----BEGIN") -> add("its certificate is damaged")
                 }
             }
             return MondooConfigFile(
