@@ -38,12 +38,12 @@ class XgrepVersionPolicyTest {
 
     @Test
     fun `prefers the manifest version`() {
-        assertEquals("0.58.0", XgrepVersionPolicy.targetVersion("0.58.0", "0.57.0"))
+        assertEquals("0.80.0", XgrepVersionPolicy.targetVersion("0.80.0", "0.79.0"))
     }
 
     @Test
     fun `falls back to the cached version when the manifest is unreachable`() {
-        assertEquals("0.58.0", XgrepVersionPolicy.targetVersion(null, "0.58.0"))
+        assertEquals("0.80.0", XgrepVersionPolicy.targetVersion(null, "0.80.0"))
     }
 
     @Test
@@ -60,17 +60,17 @@ class XgrepVersionPolicyTest {
 
     @Test
     fun `ignores a malformed manifest version`() {
-        assertEquals("0.58.0", XgrepVersionPolicy.targetVersion("not-a-version", "0.58.0"))
-        assertEquals("0.58.0", XgrepVersionPolicy.targetVersion("../../etc", "0.58.0"))
+        assertEquals("0.80.0", XgrepVersionPolicy.targetVersion("not-a-version", "0.80.0"))
+        assertEquals("0.80.0", XgrepVersionPolicy.targetVersion("../../etc", "0.80.0"))
     }
 
     @Test
     fun `needsUpdate compares numerically`() {
-        assertTrue(XgrepVersionPolicy.needsUpdate("0.57.0", "0.58.0"))
-        assertFalse(XgrepVersionPolicy.needsUpdate("0.58.0", "0.58.0"))
-        assertFalse(XgrepVersionPolicy.needsUpdate("0.59.0", "0.58.0"))
-        assertTrue(XgrepVersionPolicy.needsUpdate(null, "0.58.0"))
-        assertTrue(XgrepVersionPolicy.needsUpdate("", "0.58.0"))
+        assertTrue(XgrepVersionPolicy.needsUpdate("0.57.0", "0.80.0"))
+        assertFalse(XgrepVersionPolicy.needsUpdate("0.80.0", "0.80.0"))
+        assertFalse(XgrepVersionPolicy.needsUpdate("0.81.0", "0.80.0"))
+        assertTrue(XgrepVersionPolicy.needsUpdate(null, "0.80.0"))
+        assertTrue(XgrepVersionPolicy.needsUpdate("", "0.80.0"))
         // Lexical comparison would call 0.9.0 newer than 0.57.0.
         assertTrue(XgrepVersionPolicy.needsUpdate("0.9.0", "0.57.0"))
     }
