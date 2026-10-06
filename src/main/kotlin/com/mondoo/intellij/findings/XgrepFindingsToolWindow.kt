@@ -93,10 +93,10 @@ internal class XgrepFindingsToolWindowFactory :
         toolWindow.contentManager.addContentManagerListener(
             object : com.intellij.ui.content.ContentManagerListener {
                 override fun selectionChanged(event: com.intellij.ui.content.ContentManagerEvent) {
-                    if (event.content === fixContent &&
-                        event.operation == com.intellij.ui.content.ContentManagerEvent.ContentOperation.add
-                    ) {
-                        fix.onShown()
+                    if (event.operation != com.intellij.ui.content.ContentManagerEvent.ContentOperation.add) return
+                    when (event.content.component) {
+                        fix -> fix.onShown()
+                        dependencies -> dependencies.onShown()
                     }
                 }
             },

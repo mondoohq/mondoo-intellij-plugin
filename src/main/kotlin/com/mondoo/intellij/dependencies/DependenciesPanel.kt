@@ -55,12 +55,7 @@ internal class DependenciesPanel(private val project: Project) :
         tree.showsRootHandles = true
         tree.selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
         tree.cellRenderer = DepCellRenderer()
-        tree.emptyText
-            .appendLine("No dependency analysis yet")
-            .appendLine("See which packages your code actually imports.")
-            .appendLine("Analyze Dependencies", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
-                DependencyReachabilityService.getInstance(project).refresh()
-            }
+        showPrompt()
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (e.clickCount == 2) navigate()
@@ -76,6 +71,40 @@ internal class DependenciesPanel(private val project: Project) :
             DependencyReachabilityService.Listener { render(it) },
         )
         DependencyReachabilityService.getInstance(project).report()?.let(::render)
+    }
+
+    /**
+     * Called when the tab is shown: analyzes on the first look, so the tab is not an
+     * empty "run Analyze" prompt. Only where an explicit click would have worked —
+     * a trusted project and an installed scanner — and quietly otherwise, since
+     * nobody asked yet.
+     */
+    fun onShown() {
+        val service = DependencyReachabilityService.getInstance(project)
+        if (service.report() != null || service.isRunning()) return
+        if (!com.mondoo.intellij.util.ProjectTrust.isTrusted(project)) return
+        if (com.mondoo.intellij.binary.XgrepBinaryService.getInstance().resolvedBinaryOrNull() == null) return
+        tree.emptyText.clear().appendLine("Analyzing dependencies...")
+        service.refresh()
+        // A failed analysis publishes nothing; put the prompt back once it stops.
+        val alarm = com.intellij.util.Alarm(com.intellij.util.Alarm.ThreadToUse.SWING_THREAD, this)
+        fun check() {
+            if (service.isRunning()) {
+                alarm.addRequest(::check, RUNNING_POLL_MS)
+            } else if (service.report() == null) {
+                showPrompt()
+            }
+        }
+        alarm.addRequest(::check, RUNNING_POLL_MS)
+    }
+
+    private fun showPrompt() {
+        tree.emptyText.clear()
+            .appendLine("No dependency analysis yet")
+            .appendLine("See which packages your code actually imports.")
+            .appendLine("Analyze Dependencies", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+                DependencyReachabilityService.getInstance(project).refresh()
+            }
     }
 
     private fun toolbar(): javax.swing.JComponent {
@@ -130,6 +159,10 @@ internal class DependenciesPanel(private val project: Project) :
     }
 
     override fun dispose() = Unit
+
+    private companion object {
+        const val RUNNING_POLL_MS = 500
+    }
 
     private class DepCellRenderer : ColoredTreeCellRenderer() {
         override fun customizeCellRenderer(
