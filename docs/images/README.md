@@ -8,7 +8,7 @@ out of `docs/` means the docs directory is only things people read.
 editor, grouped by severity and rule in the Mondoo tool window, with the count in the
 status bar.
 
-Retake it on the demo file (**Tools → Mondoo → More → Open Demo File**) so the
+Retake it on the demo file (**Tools → Mondoo Code Security → More → Open Demo File**) so the
 findings are reproducible and nothing real is shown, then downscale it — a retina
 capture is around 3000px wide and GitHub renders the README at roughly 900:
 

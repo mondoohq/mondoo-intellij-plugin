@@ -90,7 +90,7 @@
   <actions>
     <!-- Actions live with the tab they belong to: each tab of the Mondoo tool
          window builds its toolbar from one of the groups below. The menu (Tools |
-         Mondoo, and the status bar widget) keeps only the everyday actions plus a
+         Mondoo Code Security, and the status bar widget) keeps only the everyday actions plus a
          More submenu; setup and help also sit in the tool window's gear menu. -->
 
     <!-- Code Security tab, and the core of the menu. -->
@@ -224,7 +224,7 @@
 
     <!-- Tools | Mondoo and the status bar widget: what you reach for daily. -->
     <group id="Mondoo.CodeSecurity" popup="true"
-           text="Mondoo" description="Mondoo security actions"
+           text="Mondoo Code Security" description="Mondoo security actions"
            icon="/icons/mondoo.svg">
       <reference ref="Mondoo.Xgrep.ScanWorkspace"/>
       <reference ref="Mondoo.Xgrep.ScanChanged"/>

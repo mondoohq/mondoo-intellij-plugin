@@ -81,8 +81,8 @@ uninstall first. The IDE restarts again.
 ## Checking it actually loaded
 
 1. **Settings** → **Tools** → **Mondoo** exists.
-2. **Tools** → **Mondoo** lists the actions.
-3. **Tools** → **Mondoo** → **More** → **Show Tool Paths** reports a binary. If it
+2. **Tools** → **Mondoo Code Security** lists the actions.
+3. **Tools** → **Mondoo Code Security** → **More** → **Show Tool Paths** reports a binary. If it
    does not, run **Set Up Scanner**.
 4. Open a file in a supported language. Findings appear in the editor and in the
    **Mondoo** tool window.
