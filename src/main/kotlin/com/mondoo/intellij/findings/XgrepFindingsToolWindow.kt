@@ -61,19 +61,21 @@ internal class XgrepFindingsToolWindowFactory :
         val findings = XgrepFindingsPanel(project)
         Disposer.register(toolWindow.disposable, findings)
         toolWindow.contentManager.addContent(
-            factory.createContent(findings, "Code Security", false).also { it.isCloseable = false },
+            factory.createContent(findings, "Code Security", false).also {
+                tab(it, com.mondoo.intellij.MondooIcons.Mondoo)
+            },
         )
 
         val dependencies = com.mondoo.intellij.dependencies.DependenciesPanel(project)
         Disposer.register(toolWindow.disposable, dependencies)
         toolWindow.contentManager.addContent(
-            factory.createContent(dependencies, "Dependencies", false).also { it.isCloseable = false },
+            factory.createContent(dependencies, "Dependencies", false).also { tab(it, AllIcons.Nodes.PpLib) },
         )
 
         val policies = com.mondoo.intellij.policy.PolicyTreePanel(project)
         Disposer.register(toolWindow.disposable, policies)
         toolWindow.contentManager.addContent(
-            factory.createContent(policies, "Policies", false).also { it.isCloseable = false },
+            factory.createContent(policies, "Policies", false).also { tab(it, AllIcons.FileTypes.Yaml) },
         )
 
         // Setup and help live in the gear menu, so the tabs keep to their own work.
@@ -85,9 +87,7 @@ internal class XgrepFindingsToolWindowFactory :
         val fix = com.mondoo.intellij.fix.XgrepFixPanel(project)
         Disposer.register(toolWindow.disposable, fix)
         val fixContent = factory.createContent(fix, FIX_TAB, false).also {
-            it.isCloseable = false
-            it.icon = com.mondoo.intellij.MondooIcons.Fix
-            it.putUserData(com.intellij.openapi.wm.ToolWindow.SHOW_CONTENT_ICON, true)
+            tab(it, com.mondoo.intellij.MondooIcons.Fix)
         }
         toolWindow.contentManager.addContent(fixContent)
         toolWindow.contentManager.addContentManagerListener(
@@ -101,6 +101,17 @@ internal class XgrepFindingsToolWindowFactory :
                 }
             },
         )
+    }
+
+    /**
+     * A permanent tab with its icon shown. The platform draws a tool window's own icon
+     * in the header only when it has a single tab, so the Mondoo mark goes on the
+     * first tab instead, right after the title; the others get icons to match.
+     */
+    private fun tab(content: com.intellij.ui.content.Content, icon: javax.swing.Icon) {
+        content.isCloseable = false
+        content.icon = icon
+        content.putUserData(com.intellij.openapi.wm.ToolWindow.SHOW_CONTENT_ICON, true)
     }
 
     companion object {
