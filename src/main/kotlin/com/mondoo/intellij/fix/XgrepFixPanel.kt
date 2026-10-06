@@ -56,7 +56,7 @@ import javax.swing.tree.TreePath
  * | deterministic preview diff          | an IntelliJ diff of the file with the fix    |
  * | `t` / `f` / `s` / `u`               | Triage actions, toolbar and right-click      |
  * | `x` / enter                         | Fix Checked                                  |
- * | spinner while the agent works       | a cancellable progress, agent output in a console tab |
+ * | spinner while the agent works       | a cancellable progress, and the agent's steps in the Run log |
  * | "create a PR?" prompt               | a notification after the run, or Create Pull Request |
  * | `g`                                 | Graph Context                                |
  *
@@ -89,6 +89,11 @@ internal class XgrepFixPanel(private val project: Project) :
         componentStyle = com.intellij.util.ui.UIUtil.ComponentStyle.SMALL
     }
 
+    private val views = com.intellij.ui.components.JBTabbedPane()
+
+    /** Set while the panel itself moves the selection, so only a user's pick switches views. */
+    private var selectingProgrammatically = false
+
     /** The finding the right side currently shows; stale preview answers are dropped. */
     private var shown: String? = null
 
@@ -103,7 +108,10 @@ internal class XgrepFixPanel(private val project: Project) :
                 else -> ""
             }
         }
-        tree.addTreeSelectionListener { showSelection() }
+        tree.addTreeSelectionListener {
+            showSelection()
+            if (!selectingProgrammatically) views.selectedIndex = FINDING
+        }
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (e.clickCount == 2) selected()?.let(::navigate)
@@ -111,13 +119,19 @@ internal class XgrepFixPanel(private val project: Project) :
         })
         PopupHandler.installPopupMenu(tree, popupActions(), "MondooFixTree")
 
-        val right = OnePixelSplitter(true, 0.45f).apply {
+        val finding = OnePixelSplitter(true, 0.45f).apply {
             firstComponent = JBScrollPane(details)
             secondComponent = diff.component
         }
+        // One place for fixing: the finding you are looking at, and the log of the
+        // run you started. A run brings the log forward; picking a finding brings
+        // the finding back.
+        views.addTab("Finding", finding)
+        views.addTab("Run log", FixConsole.getInstance(project).component())
+        FixConsole.getInstance(project).onRunStarted(this) { views.selectedIndex = RUN_LOG }
         val split = OnePixelSplitter(false, 0.42f).apply {
             firstComponent = JBScrollPane(tree)
-            secondComponent = right
+            secondComponent = views
         }
         add(toolbar(), BorderLayout.NORTH)
         add(split, BorderLayout.CENTER)
@@ -142,8 +156,19 @@ internal class XgrepFixPanel(private val project: Project) :
     fun select(fingerprint: String) {
         val node = leaves().firstOrNull { (it.userObject as FixFinding).fingerprint == fingerprint } ?: return
         val path = TreePath(node.path)
-        tree.selectionPath = path
-        tree.scrollPathToVisible(path)
+        programmatically {
+            tree.selectionPath = path
+            tree.scrollPathToVisible(path)
+        }
+    }
+
+    private inline fun programmatically(block: () -> Unit) {
+        selectingProgrammatically = true
+        try {
+            block()
+        } finally {
+            selectingProgrammatically = false
+        }
     }
 
     /**
@@ -191,7 +216,7 @@ internal class XgrepFixPanel(private val project: Project) :
                 }
                 root.add(groupNode)
             }
-        (tree.model as DefaultTreeModel).reload()
+        programmatically { (tree.model as DefaultTreeModel).reload() }
         for (i in 0 until root.childCount) {
             tree.expandPath(TreePath(arrayOf<Any>(root, root.getChildAt(i))))
         }
@@ -494,11 +519,15 @@ internal class XgrepFixPanel(private val project: Project) :
             val r = textRenderer
             when (val obj = node.userObject) {
                 is String -> {
+                    threeStateCheckBox.isVisible = node.isEnabled
                     r.icon = severityIcon(obj)
                     r.append(obj, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES)
                     r.append("  ${node.childCount}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
                 }
                 is FixFinding -> {
+                    // Only what can be fixed gets a checkbox; a fixed, advisory or
+                    // dismissed finding has nothing to tick.
+                    threeStateCheckBox.isVisible = obj.fixable
                     r.icon = outcomeIcon(obj) ?: severityIcon(severityLabel(obj.severityRank))
                     val done = obj.outcome?.applied == true
                     r.append(
@@ -526,6 +555,9 @@ internal class XgrepFixPanel(private val project: Project) :
     }
 
     private companion object {
+        const val FINDING = 0
+        const val RUN_LOG = 1
+
         val SEVERITY_ORDER = listOf("Critical", "High", "Medium", "Low", "Other")
 
         fun severityLabel(rank: Int) = when (rank) {

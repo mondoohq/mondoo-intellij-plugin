@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   false positive with a reason, needs review), and previews deterministic fixes as an
   IntelliJ diff. Fix Checked applies them, and hands agent-assisted findings to your
   coding agent (Claude Code, Codex, or your own command, chosen in Settings | Tools |
-  Mondoo). The agent's output streams to an **xgrep fix** console, and cancelling the
-  progress stops it. Afterwards you can open a pull request. The fixing itself is done
+  Mondoo). The run shows step by step in the Fix tab's Run log (the files the agent
+  reads, the commands it runs, the files it changes), and cancelling the progress
+  stops it. Afterwards you can open a pull request. The fixing itself is done
   by xgrep, the same way as in the terminal; every fix is re-scanned before it counts,
   and a Local History label lets you undo a whole run. Needs xgrep 0.58.0 or later.
 - Alt+Enter on an agent-assisted finding offers **Fix with coding agent (xgrep)**.

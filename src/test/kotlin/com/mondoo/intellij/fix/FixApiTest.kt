@@ -126,7 +126,7 @@ class FixApiTest {
             """{"outcome":{"fingerprint":"53058b647b1f6eed","ruleId":"js-bad-suffix","path":"app.js","status":"applied","tier":"FIX_TIER_DETERMINISTIC","diff":"--- a/app.js\n"}}""",
             """{"filesChanged":{"paths":["/work/app.js"]}}""",
             """{"agentStarted":{"agent":{"name":"claude","commandLine":"claude -p <prompt>","available":true},"findingCount":1}}""",
-            """{"agentOutput":{"text":"agent: rewriting run.js\n"}}""",
+            """{"agentActivity":{"kind":"KIND_TOOL","tool":"Read","target":"run.js"}}""",
             """{"done":{"applied":2}}""",
             """{"somethingNew":{}}""",
         ).map { FixApi.runFixEvent(obj(it)) }
@@ -137,9 +137,22 @@ class FixApiTest {
         assertTrue((frames[1] as RunFixEvent.OutcomeReported).outcome.applied)
         assertEquals(listOf("/work/app.js"), (frames[2] as RunFixEvent.FilesChanged).paths)
         assertEquals(1, (frames[3] as RunFixEvent.AgentStarted).findingCount)
-        assertEquals("agent: rewriting run.js\n", (frames[4] as RunFixEvent.AgentOutput).text)
+        assertEquals(
+            AgentActivity(ActivityKind.TOOL, tool = "Read", target = "run.js"),
+            (frames[4] as RunFixEvent.AgentActivity).activity,
+        )
         assertEquals(RunFixEvent.Done(2, 0, 0, false), frames[5])
         assertEquals(RunFixEvent.Unknown, frames[6])
+    }
+
+    @Test
+    fun `agent activity decodes, with int64 as the string protobuf JSON writes`() {
+        val e = FixApi.runFixEvent(
+            obj("""{"agentActivity":{"kind":"KIND_FINISHED","durationMs":"5382","costUsd":0.0269}}"""),
+        ) as RunFixEvent.AgentActivity
+        assertEquals(AgentActivity(ActivityKind.FINISHED, durationMs = 5382, costUsd = 0.0269), e.activity)
+        val unknown = FixApi.runFixEvent(obj("""{"agentActivity":{"kind":"KIND_TELEPATHY","text":"hi"}}"""))
+        assertEquals(ActivityKind.OUTPUT, (unknown as RunFixEvent.AgentActivity).activity.kind)
     }
 
     @Test

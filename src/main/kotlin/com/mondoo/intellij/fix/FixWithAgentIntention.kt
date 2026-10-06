@@ -63,7 +63,7 @@ internal class FixWithAgentIntention :
             if (lastKind == XgrepDiagnosticData.FIX_KIND_ASSISTED) {
                 "Hands this finding to your coding agent. xgrep re-scans the file and reports the fix " +
                     "as applied only if the finding is gone. Opens the <b>Fix</b> tab, and the agent's " +
-                    "output streams to the <b>xgrep fix</b> console."
+                    "run shows step by step in its <b>Run log</b>."
             } else {
                 "Applies xgrep's fix and re-scans the file to confirm the finding is gone. Opens the " +
                     "<b>Fix</b> tab with the result."

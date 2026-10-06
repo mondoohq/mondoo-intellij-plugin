@@ -71,7 +71,7 @@ class FixClientIntegrationTest {
         val outcomes = events.filterIsInstance<RunFixEvent.OutcomeReported>().map { it.outcome }
         assertEquals(listOf("applied", "applied"), outcomes.map { it.status })
         assertTrue(
-            events.filterIsInstance<RunFixEvent.AgentOutput>().joinToString("") { it.text }
+            events.filterIsInstance<RunFixEvent.AgentActivity>().joinToString("\n") { it.activity.text }
                 .contains("agent: rewriting run.js"),
         )
         assertEquals(RunFixEvent.Done(2, 0, 0, false), events.last())
@@ -88,7 +88,7 @@ class FixClientIntegrationTest {
         val stream = client.runFix(listOf(asst.fingerprint))
         while (true) {
             val event = stream.next() ?: break
-            if (event is RunFixEvent.AgentOutput && event.text.contains("started")) break
+            if (event is RunFixEvent.AgentActivity && event.activity.text.contains("started")) break
         }
         val pid = dir.resolve("child.pid").readText().trim().toLong()
         assertTrue(ProcessHandle.of(pid).isPresent, "the agent's child should be running")

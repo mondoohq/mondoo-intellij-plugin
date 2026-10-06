@@ -106,6 +106,35 @@ data class FixFinding(
         }
 }
 
+/** What a step of the agent's run is. */
+enum class ActivityKind(val wire: String) {
+    MESSAGE("KIND_MESSAGE"),
+    TOOL("KIND_TOOL"),
+    FILE_CHANGE("KIND_FILE_CHANGE"),
+    FINISHED("KIND_FINISHED"),
+    OUTPUT("KIND_OUTPUT"),
+    ;
+
+    companion object {
+        /** An unknown kind from a newer server is shown as plain output. */
+        fun fromWire(value: String?): ActivityKind = entries.firstOrNull { it.wire == value } ?: OUTPUT
+    }
+}
+
+/**
+ * One step of the agent's run: a message (Markdown), a tool call (tool on target), a
+ * file change, the end of the run (duration, cost; text when it failed), or a line of
+ * output xgrep could not describe.
+ */
+data class AgentActivity(
+    val kind: ActivityKind,
+    val text: String = "",
+    val tool: String = "",
+    val target: String = "",
+    val durationMs: Long = 0,
+    val costUsd: Double = 0.0,
+)
+
 data class AgentInfo(val name: String = "", val commandLine: String = "", val available: Boolean = false)
 
 data class ServerInfo(
@@ -141,7 +170,7 @@ data class PullRequestResult(
 sealed interface RunFixEvent {
     data class Progress(val message: String, val completed: Int, val total: Int) : RunFixEvent
     data class AgentStarted(val agent: AgentInfo, val findingCount: Int) : RunFixEvent
-    data class AgentOutput(val text: String) : RunFixEvent
+    data class AgentActivity(val activity: com.mondoo.intellij.fix.AgentActivity) : RunFixEvent
     data class FilesChanged(val paths: List<String>) : RunFixEvent
     data class OutcomeReported(val outcome: Outcome) : RunFixEvent
     data class Done(val applied: Int, val rejected: Int, val skipped: Int, val cancelled: Boolean) : RunFixEvent
@@ -244,7 +273,19 @@ object FixApi {
         obj.obj("agentStarted")?.let {
             return RunFixEvent.AgentStarted(it.obj("agent")?.let(::agent) ?: AgentInfo(), it.int("findingCount"))
         }
-        obj.obj("agentOutput")?.let { return RunFixEvent.AgentOutput(it.str("text")) }
+        obj.obj("agentActivity")?.let { a ->
+            return RunFixEvent.AgentActivity(
+                AgentActivity(
+                    kind = ActivityKind.fromWire(a.str("kind")),
+                    text = a.str("text"),
+                    tool = a.str("tool"),
+                    target = a.str("target"),
+                    // int64 is a JSON string in protobuf JSON; Gson reads either.
+                    durationMs = a.long("durationMs"),
+                    costUsd = a.double("costUsd"),
+                ),
+            )
+        }
         obj.obj("filesChanged")?.let { return RunFixEvent.FilesChanged(it.strings("paths")) }
         obj.obj("outcome")?.let { return RunFixEvent.OutcomeReported(outcome(it)) }
         obj.obj("done")?.let {
@@ -286,6 +327,12 @@ object FixApi {
     // Gson reads every JSON number as a double-backed primitive; asInt truncates.
     private fun JsonObject.int(name: String): Int =
         field(name)?.takeIf { it.isJsonPrimitive }?.let { runCatching { it.asInt }.getOrNull() } ?: 0
+
+    private fun JsonObject.long(name: String): Long =
+        field(name)?.takeIf { it.isJsonPrimitive }?.let { runCatching { it.asLong }.getOrNull() } ?: 0L
+
+    private fun JsonObject.double(name: String): Double =
+        field(name)?.takeIf { it.isJsonPrimitive }?.let { runCatching { it.asDouble }.getOrNull() } ?: 0.0
 
     private fun JsonObject.obj(name: String): JsonObject? = field(name)?.takeIf { it.isJsonObject }?.asJsonObject
 

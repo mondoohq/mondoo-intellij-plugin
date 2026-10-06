@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * - save open documents before xgrep reads the files;
  * - put a Local History label in front of the run, so the whole run can be undone;
  * - reload what xgrep wrote;
- * - stream the agent's output to a console.
+ * - stream the agent's run to the Fix tab's run log.
  *
  * Listeners on [TOPIC] are told when anything changes; read the state from them on
  * the EDT.
@@ -142,7 +142,7 @@ class FixSession(private val project: Project) : Disposable {
         }
         snapshotBefore(targets)
         val console = FixConsole.getInstance(project)
-        console.startRun()
+        console.startRun(targets.size)
 
         object : Task.Backgroundable(project, "Fixing findings with xgrep", true) {
             override fun run(indicator: ProgressIndicator) {
@@ -163,20 +163,29 @@ class FixSession(private val project: Project) : Disposable {
                         val event = stream.next() ?: break
                         when (event) {
                             is RunFixEvent.Progress -> {
+                                console.progress(event.message)
                                 indicator.text = event.message
                                 if (event.total > 0) indicator.fraction = event.completed.toDouble() / event.total
                             }
                             is RunFixEvent.AgentStarted -> {
                                 indicator.text = "Waiting for ${event.agent.name} (${event.findingCount} finding(s))"
-                                console.agentStarted(event.agent)
+                                console.agentStarted(event.agent, event.findingCount)
                             }
-                            is RunFixEvent.AgentOutput -> console.agentOutput(event.text)
+                            is RunFixEvent.AgentActivity -> {
+                                console.activity(event.activity)
+                                if (event.activity.kind == ActivityKind.TOOL) {
+                                    indicator.text2 = "${event.activity.tool} ${event.activity.target}".trim()
+                                }
+                            }
                             is RunFixEvent.FilesChanged -> reloadFiles(event.paths)
                             is RunFixEvent.OutcomeReported -> {
                                 console.outcome(event.outcome)
                                 applyOutcome(event.outcome)
                             }
-                            is RunFixEvent.Done -> done = event
+                            is RunFixEvent.Done -> {
+                                done = event
+                                console.done(event)
+                            }
                             RunFixEvent.Unknown -> Unit
                         }
                     }

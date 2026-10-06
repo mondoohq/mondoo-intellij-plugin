@@ -71,7 +71,7 @@ first use.
   - a details pane (verdict, fix plan, acceptance criteria);
   - an IntelliJ diff (the preview, or before/after once applied);
   - triage, graph context and pull request actions.
-- An **xgrep fix** console tab streams the agent's output.
+- The Fix tab's **Run log** shows each run step by step: xgrep's own fixes, and from the agent's structured stream (xgrep ADR-0877 §3a) the files it reads, the commands it runs, the files it changes and what it says, then each finding's outcome with a link to the file. A run brings the log forward; picking a finding brings the finding back. It used to be a separate console tab, which read as a second Fix tab.
 - Alt+Enter on an assisted finding offers **Fix with coding agent (xgrep)**.
 - **Before a run** the plugin saves all documents, because xgrep edits files on disk,
   and puts a Local History label ("Before xgrep fix") in front of it, so the whole

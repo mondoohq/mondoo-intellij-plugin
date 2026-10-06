@@ -65,7 +65,7 @@ Only worth checking when the description, icons or change notes have changed.
 - [ ] **Mark False Positive…** asks for a reason, the finding becomes not fixable, and
       `.xgrep/findings.json` records `reviewed_by: ide`.
 - [ ] Checking a deterministic and an assisted finding and pressing **Fix Checked**
-      applies both. The **xgrep fix** console shows the agent's command and its output,
+      applies both. The Fix tab switches to **Run log**, which shows the agent's steps (files read, commands, edits) as they happen,
       the editor shows the new file content, and the notification offers **Create Pull
       Request**.
 - [ ] Cancelling the progress during the agent run stops it: no `claude`/`codex`
