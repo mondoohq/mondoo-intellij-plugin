@@ -54,4 +54,18 @@ class FixDetailsTest {
         assertTrue(html.contains("Fix plan"))
         assertTrue(html.contains("<li>finding no longer fires</li>"))
     }
+
+    /** A dependency finding as `xgrep fix serve` lists it, 2026-10-06. */
+    @Test
+    fun `a dependency finding is labelled by package and problem`() {
+        val dep = FixFinding(
+            fingerprint = "x",
+            ruleId = "CVE-2017-16082",
+            tier = FixTier.ECOSYSTEM,
+            message = "pg@7.1.0 is affected by CVE-2017-16082: Remote Code Execution in pg",
+        )
+        assertEquals("pg@7.1.0: Remote Code Execution in pg (CVE-2017-16082)", FixDetails.label(dep))
+        assertEquals("upgrade", FixDetails.badge(dep.copy(fixable = true)))
+        assertEquals("js-eval-input", FixDetails.label(base))
+    }
 }

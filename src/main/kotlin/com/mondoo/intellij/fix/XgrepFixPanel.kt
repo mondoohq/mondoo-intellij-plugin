@@ -313,6 +313,20 @@ internal class XgrepFixPanel(private val project: Project) :
                     }?.let { ": $it" } ?: ""}",
                 ),
             )
+            f.tier == FixTier.ECOSYSTEM && !f.stale -> {
+                // A dependency fix is a package-manager command, not an edit: show it.
+                diff.setRequest(MessageDiffRequest("Planning the upgrade..."))
+                session.preview(f.fingerprint) { p ->
+                    if (shown != f.fingerprint) return@preview
+                    val text = when {
+                        p == null -> "No upgrade plan is available."
+                        p.accepted -> p.detail.replaceFirstChar(Char::titlecase) +
+                            ", then checks the vulnerability is gone."
+                        else -> p.detail.ifBlank { "No package-manager upgrade is known for this dependency." }
+                    }
+                    diff.setRequest(MessageDiffRequest(text))
+                }
+            }
             f.tier == FixTier.DETERMINISTIC && !f.stale -> {
                 val cached = session.cachedPreview(f.fingerprint)
                 if (cached != null) {
@@ -574,7 +588,7 @@ internal class XgrepFixPanel(private val project: Project) :
                     r.icon = outcomeIcon(obj) ?: severityIcon(severityLabel(obj.severityRank))
                     val done = obj.outcome?.applied == true
                     r.append(
-                        obj.title.ifBlank { obj.ruleId },
+                        FixDetails.label(obj),
                         if (done) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES,
                     )
                     r.append("  ${obj.path}:${obj.startLine}", SimpleTextAttributes.GRAYED_ATTRIBUTES)

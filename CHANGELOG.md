@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CVEs. Double-click a CVE to open its advisory; right-click a package to copy the upgrade
   command. The vulnerabilities come from the same scan as the Fix tab's, so a scan from
   either tab, or `xgrep scan` in a terminal, updates both.
+- The Fix tab fixes vulnerable dependencies: check one and Fix Checked runs the package
+  manager (e.g. `npm install pg@7.1.2`) through xgrep, which re-checks the vulnerability
+  and rolls back if the upgrade did not clear it. A package with several advisories is
+  upgraded once, to the version that fixes all of them. Selecting one shows the command
+  that will run.
 - Vulnerable dependencies show where they are declared: `requirements.txt` and
   `package.json` turn red in the Project view, and each vulnerable line gets an
   underline, a scrollbar mark and a gutter icon listing its vulnerabilities. Alt+Enter on

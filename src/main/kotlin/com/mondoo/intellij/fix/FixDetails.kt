@@ -31,15 +31,29 @@ object FixDetails {
             f.tier == FixTier.DETERMINISTIC -> "auto-fix"
             f.tier == FixTier.ASSISTED -> "agent fix"
             f.tier == FixTier.ADVISORY -> "advice"
-            f.tier == FixTier.ECOSYSTEM -> "dependency"
+            f.tier == FixTier.ECOSYSTEM -> "upgrade"
             else -> null
         }
         return listOfNotNull(tier, triage).joinToString(" · ")
     }
 
+    /**
+     * The row label. A dependency finding's rule is a CVE id, which says nothing about
+     * which package; its message names both ("pg@7.1.0 is affected by CVE-2017-16082:
+     * Remote Code Execution in pg"), so the label is the package and what is wrong.
+     */
+    fun label(f: FixFinding): String {
+        if (f.tier == FixTier.ECOSYSTEM && " is affected by " in f.message) {
+            val pkg = f.message.substringBefore(" is affected by ")
+            val what = f.message.substringAfter(": ", "").ifBlank { f.ruleId }
+            return "$pkg: $what (${f.ruleId})"
+        }
+        return f.title.ifBlank { f.ruleId }
+    }
+
     fun html(f: FixFinding): String = buildString {
         append("<html><body>")
-        append("<h3>").append(esc(f.title.ifBlank { f.ruleId })).append("</h3>")
+        append("<h3>").append(esc(label(f))).append("</h3>")
         append("<p>").append(esc(f.message)).append("</p>")
 
         append("<table cellpadding='2'>")
@@ -101,7 +115,8 @@ object FixDetails {
         f.tier == FixTier.ASSISTED ->
             "Agent-assisted: the coding agent writes the edit, and xgrep re-scans to confirm it."
         f.tier == FixTier.ADVISORY -> "Advisory: guidance only, nothing is applied."
-        f.tier == FixTier.ECOSYSTEM -> "Dependency upgrade: run `xgrep fix` in a terminal."
+        f.tier == FixTier.ECOSYSTEM ->
+            "Dependency upgrade: xgrep runs the package manager, then checks the vulnerability is gone."
         else -> "This rule offers no fix."
     }
 
