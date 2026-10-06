@@ -32,9 +32,9 @@ for minutes, streams its output and must be cancellable.
 ## Decision
 
 **1. xgrep serves the session; the plugin is a client.**
-- xgrep gained `xgrep fix serve`, a Connect RPC service (`xgrep.fix.v1`; xgrep
-  ADR-0877) with RPCs to list findings, rescan, preview, triage, run fixes (a server
-  stream), open a PR and fetch graph context.
+- xgrep gained `xgrep fix serve`, a Connect RPC service (`xgrep.fix.v1`) with RPCs
+  to list findings, rescan, preview, triage, run fixes (a server stream), open a PR
+  and fetch graph context.
 - The plugin has no fix logic of its own. It decides nothing about which findings can
   be fixed or how. It shows what the server says and sends what the user picks.
 
@@ -71,7 +71,7 @@ first use.
   - a details pane (verdict, fix plan, acceptance criteria);
   - an IntelliJ diff (the preview, or before/after once applied);
   - triage, graph context and pull request actions.
-- The Fix tab's **Run log** shows each run step by step: xgrep's own fixes, and from the agent's structured stream (xgrep ADR-0877 §3a) the files it reads, the commands it runs, the files it changes and what it says, then each finding's outcome with a link to the file. A run brings the log forward; picking a finding brings the finding back. It used to be a separate console tab, which read as a second Fix tab.
+- The Fix tab's **Run log** shows each run step by step: xgrep's own fixes, and from the agent's structured stream the files it reads, the commands it runs, the files it changes and what it says, then each finding's outcome with a link to the file. A run brings the log forward; picking a finding brings the finding back. It used to be a separate console tab, which read as a second Fix tab.
 - Alt+Enter on an assisted finding offers **Fix with coding agent (xgrep)**.
 - **Before a run** the plugin saves all documents, because xgrep edits files on disk,
   and puts a Local History label ("Before xgrep fix") in front of it, so the whole
