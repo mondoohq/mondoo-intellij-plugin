@@ -20,6 +20,10 @@ space.
   tool window, counted in the status bar.
 - **One-click fixes** — apply a fix, or dismiss a false positive with a reason that
   holds in CI too.
+- **Fixing with a coding agent** — the Fix tab hands findings to Claude Code or Codex
+  through `xgrep fix`, shows what the agent does as it works, and opens a pull request.
+- **Vulnerable dependencies, fixed** — vulnerable packages are marked in `package.json`
+  and `requirements.txt`, and upgraded with the project's own package manager.
 - **Scans before you commit** — the whole project, only what git says changed, or only
   what changed since a branch.
 - **Dependency triage that starts with what matters** — which packages your code

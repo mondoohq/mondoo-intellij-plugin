@@ -170,13 +170,13 @@ class FixSession(private val project: Project) : Disposable {
             FileDocumentManager.getInstance().saveAllDocuments()
             LocalHistory.getInstance().putSystemLabel(project, "Before xgrep fix")
         }
-        snapshotBefore(targets)
         val console = FixConsole.getInstance(project)
         console.startRun(targets.size)
 
         object : Task.Backgroundable(project, "Fixing findings with xgrep", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
+                snapshotBefore(targets) // reads every target file: not on the EDT
                 val client = FixServer.getInstance(project).client()
                 val stream = client.runFix(targets)
                 // The stream blocks in a read; watch the indicator from the side and
@@ -222,6 +222,9 @@ class FixSession(private val project: Project) : Disposable {
                 } finally {
                     stream.close()
                     watcher.cancel(true)
+                    // Without a Done (cancelled, or the server went away) the log
+                    // still owes its last outcomes.
+                    if (done == null) console.ended(indicator.isCanceled)
                 }
                 runCatching { reload(client) }
                 summarize(done, indicator.isCanceled)
@@ -463,9 +466,16 @@ class FixSession(private val project: Project) : Disposable {
         if (!project.isDisposed) project.messageBus.syncPublisher(TOPIC).sessionChanged()
     }
 
+    /**
+     * [content] is plain text. Notifications render HTML, and the text carries what
+     * the agent, the scanner and git wrote — a PR title, a push error — so it is escaped.
+     */
     private fun notify(content: String, type: NotificationType, vararg actions: NotificationAction) {
         NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
-            .createNotification(content, type)
+            .createNotification(
+                com.intellij.openapi.util.text.StringUtil.escapeXmlEntities(content).replace("\n", "<br>"),
+                type,
+            )
             .also { n -> actions.forEach(n::addAction) }
             .notify(project)
     }

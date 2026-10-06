@@ -53,6 +53,8 @@ class FixTextTest {
             "10 findings (CVE-0, CVE-1 and 8 more)",
             FixText.findings((0 until 10).map { "CVE-$it" }),
         )
+        // The count names distinct advisories, matching the "and N more".
+        assertEquals("3 findings (A, B and 1 more)", FixText.findings(listOf("A", "B", "C", "C")))
     }
 
     @Test

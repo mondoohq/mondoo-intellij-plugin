@@ -244,8 +244,9 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
     private inner class OrganizationAccount : com.intellij.ui.layout.ComponentPredicate() {
         override fun invoke(): Boolean {
             val org = chosenOrganization() ?: return false
+            val name = com.intellij.openapi.util.text.StringUtil.escapeXmlEntities(org)
             organizationNote.text =
-                "<html>This service account belongs to the organization <b>$org</b>, not to a space. " +
+                "<html>This service account belongs to the organization <b>$name</b>, not to a space. " +
                 "Choose the space to report to and check dependencies in.</html>"
             return true
         }
@@ -297,9 +298,17 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
         }
         // A space account names its own space; a space left over from an
         // organization account must not override it.
+        val before = MondooEnvironment.configPath() to MondooEnvironment.spaceMrn()
         com.mondoo.intellij.settings.MondooSettings.getInstance().state.mondooSpaceMrn =
             if (organizationOf(path) != null) MondooSpace.toMrn(space.text).orEmpty() else ""
         MondooPlatform.use(path)
+        if (before != (MondooEnvironment.configPath() to MondooEnvironment.spaceMrn())) {
+            // The running language server still has the old account in its environment.
+            // (The Fix tab's server notices by itself.)
+            com.intellij.openapi.project.ProjectManager.getInstance().openProjects
+                .filterNot { it.isDisposed }
+                .forEach(com.mondoo.intellij.settings.ScannerReload::restart)
+        }
         val status = MondooPlatform.status(path)
         NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
             .createNotification(

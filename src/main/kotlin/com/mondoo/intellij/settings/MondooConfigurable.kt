@@ -26,6 +26,7 @@ private data class ServerAffectingSettings(
     val scanJobs: Int,
     val scanUncommitted: Boolean,
     val mondooConfigPath: String,
+    val mondooSpaceMrn: String,
     val excludePatterns: List<String>,
     val includePatterns: List<String>,
 )
@@ -56,7 +57,8 @@ class MondooConfigurable :
             before.rulesPath != after.rulesPath -> "The rules path changed."
             before.scanJobs != after.scanJobs -> "Scan parallelism changed."
             before.scanUncommitted != after.scanUncommitted -> "Which files a workspace scan covers changed."
-            before.mondooConfigPath != after.mondooConfigPath -> "The Mondoo configuration changed."
+            before.mondooConfigPath != after.mondooConfigPath ||
+                before.mondooSpaceMrn != after.mondooSpaceMrn -> "The Mondoo configuration changed."
             broadened -> "The scan scope was broadened."
             else -> "Scan settings changed."
         }
@@ -73,7 +75,7 @@ class MondooConfigurable :
                     )
                     .addAction(
                         com.intellij.notification.NotificationAction.createSimpleExpiring("Reload now") {
-                            reloadScanner(project)
+                            ScannerReload.restart(project)
                         },
                     )
                     .notify(project)
@@ -87,31 +89,10 @@ class MondooConfigurable :
             scanJobs = state.xgrepScanJobs,
             scanUncommitted = state.xgrepScanUncommitted,
             mondooConfigPath = state.mondooConfigPath.orEmpty(),
+            mondooSpaceMrn = state.mondooSpaceMrn.orEmpty(),
             excludePatterns = state.xgrepExcludePatterns.toList(),
             includePatterns = state.xgrepIncludePatterns.toList(),
         )
-    }
-
-    /**
-     * Restarts the scanner, reached reflectively.
-     *
-     * The restart lives in the optional LSP module. A direct reference would pull
-     * com.intellij.modules.lsp into the core plugin and break loading wherever that
-     * module is absent — the whole point of keeping LSP optional. A no-op when the
-     * module did not load, which is correct: there is no server to restart.
-     */
-    private fun reloadScanner(project: com.intellij.openapi.project.Project) {
-        runCatching {
-            val actionClass = Class.forName(
-                "com.mondoo.intellij.lsp.ReloadRulesAction",
-                false,
-                javaClass.classLoader,
-            )
-            val companion = actionClass.getDeclaredField("Companion").get(null)
-            companion.javaClass
-                .getMethod("restart", com.intellij.openapi.project.Project::class.java)
-                .invoke(companion, project)
-        }
     }
 
     override fun createPanel(): DialogPanel {

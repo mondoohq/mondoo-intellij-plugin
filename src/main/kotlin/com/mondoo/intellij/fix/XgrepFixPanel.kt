@@ -17,7 +17,6 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAware
@@ -66,6 +65,8 @@ import javax.swing.tree.TreePath
 internal class XgrepFixPanel(private val project: Project) :
     JPanel(BorderLayout()),
     Disposable {
+
+    private val renderAlarm = com.intellij.util.Alarm(com.intellij.util.Alarm.ThreadToUse.SWING_THREAD, this)
 
     private val session = FixSession.getInstance(project)
 
@@ -176,7 +177,9 @@ internal class XgrepFixPanel(private val project: Project) :
         project.messageBus.connect(this).subscribe(
             FixSession.TOPIC,
             FixSession.Listener {
-                ApplicationManager.getApplication().invokeLater({ render() }, project.disposed)
+                // A run reports every outcome; coalesce them into one rebuild of the tree.
+                renderAlarm.cancelAllRequests()
+                renderAlarm.addRequest(::render, RENDER_DELAY_MS)
             },
         )
     }
@@ -260,8 +263,10 @@ internal class XgrepFixPanel(private val project: Project) :
         selectedFp?.let(::select)
 
         tree.emptyText.clear()
+        // Read once: a reload on a pooled thread may clear it between a check and a read.
+        val problem = session.problem
         when {
-            session.problem != null -> tree.emptyText.appendLine(session.problem!!)
+            problem != null -> tree.emptyText.appendLine(problem)
             !session.loaded -> tree.emptyText.appendLine("Loading findings...")
             !session.cachePresent -> {
                 tree.emptyText.appendLine("This project has not been scanned for fixing yet.")
@@ -612,6 +617,7 @@ internal class XgrepFixPanel(private val project: Project) :
     }
 
     private companion object {
+        const val RENDER_DELAY_MS = 100
         const val FINDING_VIEW = "Finding"
         const val RUN_LOG_VIEW = "Run log"
 

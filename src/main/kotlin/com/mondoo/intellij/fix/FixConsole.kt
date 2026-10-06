@@ -142,6 +142,12 @@ class FixConsole(private val project: Project) : Disposable {
         print("\n${FixText.summary(d)}\n", ConsoleViewContentType.SYSTEM_OUTPUT)
     }
 
+    /** The run ended without a summary from the server. */
+    fun ended(cancelled: Boolean) = onEdt {
+        flushOutcomes()
+        if (cancelled) print("\nCancelled\n", ConsoleViewContentType.SYSTEM_OUTPUT)
+    }
+
     fun error(message: String) = onEdt {
         flushOutcomes()
         print("\n$message\n", ConsoleViewContentType.ERROR_OUTPUT)
@@ -219,7 +225,7 @@ object FixText {
         return when (distinct.size) {
             1 -> distinct[0]
             2 -> "${distinct[0]} and ${distinct[1]}"
-            else -> "${rules.size} findings (${distinct[0]}, ${distinct[1]} and ${distinct.size - 2} more)"
+            else -> "${distinct.size} findings (${distinct[0]}, ${distinct[1]} and ${distinct.size - 2} more)"
         }
     }
 

@@ -76,7 +76,39 @@ Only worth checking when the description, icons or change notes have changed.
       `fix` on a path named `serve`.
 - [ ] Changing the coding agent in settings takes effect on the next run (the server
       restarts).
-- [ ] Closing the project leaves no `xgrep fix serve` process behind.
+- [ ] Closing the project leaves no `xgrep fix serve` process behind, and closing it
+      while the Fix tab is still loading does not freeze the IDE.
+- [ ] Checking a vulnerable npm dependency and pressing **Fix Checked** runs
+      `npm install <pkg>@<fixed>`; `package.json` and `package-lock.json` reload in the
+      editor, and the run log prints one line for the package, not one per CVE.
+- [ ] The same for a pip dependency pins it in `requirements.txt`. Outside a virtualenv
+      the log says `pip install` did not run; nothing is installed into the system Python.
+- [ ] A tool call the agent was not allowed to make shows as one "✗ … not allowed" line,
+      never as raw JSON.
+
+## Dependencies
+
+Needs a Mondoo Platform service account (below).
+
+- [ ] Opening the **Dependencies** tab the first time loads the analysis by itself.
+- [ ] **Scan** lists vulnerable packages with severity and the version to upgrade to,
+      with the ecosystem's icon.
+- [ ] `package.json` and `requirements.txt` with vulnerabilities show red in the Project
+      view; the vulnerable lines are underlined with a gutter icon listing the advisories.
+- [ ] Alt+Enter on a vulnerable line offers **Upgrade dependency**; the preview names the
+      version, and applying it rewrites only that line.
+- [ ] After a scan in a terminal (`xgrep scan`), the marks update without reopening the file.
+
+## Mondoo Platform
+
+- [ ] **Connect to Mondoo Platform…** with a registration token writes a service account;
+      the token does not appear in `ps` output while `xgrep login` runs.
+- [ ] Picking a space's service account file connects without asking for a space.
+- [ ] Picking an organization's service account asks for a space, and dependency scans
+      then work (no "missing space").
+- [ ] A file with no private key is reported in words before anything runs.
+- [ ] Changing the account restarts the scanner (findings reload), and the menu entry
+      shows a green check when connected.
 
 ## Scans
 

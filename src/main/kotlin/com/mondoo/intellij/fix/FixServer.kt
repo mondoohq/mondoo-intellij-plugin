@@ -41,7 +41,12 @@ class FixServer(private val project: Project) : Disposable {
     private val log = logger<FixServer>()
     private val lock = Any()
 
+    @Volatile
     private var running: Running? = null
+
+    /** Set by [dispose], which must not wait for [lock]: a start holds it for up to a minute. */
+    @Volatile
+    private var disposed = false
 
     private class Running(val process: Process, val client: FixClient, val config: Config)
 
@@ -62,6 +67,7 @@ class FixServer(private val project: Project) : Disposable {
      *   fit to show the user.
      */
     fun client(): FixClient = synchronized(lock) {
+        if (disposed) throw FixServerUnavailable("The project is closing.")
         if (!ProjectTrust.isTrusted(project)) {
             throw FixServerUnavailable("Trust this project to fix findings in it.")
         }
@@ -82,7 +88,14 @@ class FixServer(private val project: Project) : Disposable {
             stop(current)
             running = null
         }
-        return start(config).also { running = it }.client
+        val started = start(config)
+        if (disposed) {
+            // Disposed while starting: nobody will stop this server but us.
+            stop(started)
+            throw FixServerUnavailable("The project is closing.")
+        }
+        running = started
+        return started.client
     }
 
     /** Stops the server; the next [client] call starts a fresh one. */
@@ -189,8 +202,10 @@ class FixServer(private val project: Project) : Disposable {
     }
 
     override fun dispose() {
-        // Off the EDT if we can; dispose may run on it at project close.
-        val current = synchronized(lock) { running.also { running = null } } ?: return
+        // Runs on the EDT at project close, so it never waits: not for the lock a
+        // starting server holds, and not for the process to exit.
+        disposed = true
+        val current = running.also { running = null } ?: return
         runCatching { current.process.outputStream.close() }
         current.process.onExit().orTimeout(STOP_GRACE_SECONDS, TimeUnit.SECONDS)
             .exceptionally {

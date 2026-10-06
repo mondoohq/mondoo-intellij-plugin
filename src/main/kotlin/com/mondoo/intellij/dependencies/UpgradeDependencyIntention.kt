@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Iconable
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiFile
 import com.mondoo.intellij.MondooIcons
 import java.awt.datatransfer.StringSelection
@@ -54,7 +55,10 @@ internal class UpgradeDependencyIntention :
                 val command = "npm install"
                 NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
                     .createNotification(
-                        "Updated ${pkg.name} to ${pkg.upgradeTo} in package.json. Run npm install to update the lockfile.",
+                        StringUtil.escapeXmlEntities(
+                            "Updated ${pkg.name} to ${pkg.upgradeTo} in package.json. " +
+                                "Run npm install to update the lockfile.",
+                        ),
                         NotificationType.INFORMATION,
                     )
                     .addAction(
@@ -70,8 +74,10 @@ internal class UpgradeDependencyIntention :
     override fun generatePreview(project: Project, editor: Editor, file: PsiFile): IntentionPreviewInfo {
         val (pkg, _) = target(project, editor, file) ?: return IntentionPreviewInfo.EMPTY
         return IntentionPreviewInfo.Html(
-            "Changes ${pkg.name} from ${pkg.version} to ${pkg.upgradeTo}, the first version without its " +
-                "known vulnerabilities (${pkg.counts}). Scan again to confirm.",
+            StringUtil.escapeXmlEntities(
+                "Changes ${pkg.name} from ${pkg.version} to ${pkg.upgradeTo}, the first version without its " +
+                    "known vulnerabilities (${pkg.counts}). Scan again to confirm.",
+            ),
         )
     }
 

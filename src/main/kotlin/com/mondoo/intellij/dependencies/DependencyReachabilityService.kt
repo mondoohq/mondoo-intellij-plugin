@@ -13,6 +13,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.messages.Topic
 import com.mondoo.intellij.binary.XgrepBinaryService
 import java.nio.charset.StandardCharsets
@@ -32,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference
  * per-file editor state.
  */
 @Service(Service.Level.PROJECT)
-class DependencyReachabilityService(private val project: Project) {
+class DependencyReachabilityService(private val project: Project) : com.intellij.openapi.Disposable {
 
     private val log = Logger.getInstance(DependencyReachabilityService::class.java)
     private val latest = AtomicReference<ReachabilityReport?>(null)
@@ -49,15 +50,19 @@ class DependencyReachabilityService(private val project: Project) {
     init {
         // The vulnerabilities come from the findings cache, whoever scanned: this
         // tab's Scan, the Fix tab, or `xgrep scan` in a terminal.
-        project.messageBus.connect().subscribe(
+        project.messageBus.connect(this).subscribe(
             com.intellij.openapi.vfs.VirtualFileManager.VFS_CHANGES,
             object : com.intellij.openapi.vfs.newvfs.BulkFileListener {
                 override fun after(events: List<com.intellij.openapi.vfs.newvfs.events.VFileEvent>) {
-                    if (events.any { it.path == cachePath()?.toString() }) loadVulnerabilities()
+                    // VFS paths use '/' on every OS; compare in that form, or Windows never matches.
+                    val cache = cachePath()?.let { FileUtil.toSystemIndependentName(it.toString()) } ?: return
+                    if (events.any { it.path == cache }) loadVulnerabilities()
                 }
             },
         )
     }
+
+    override fun dispose() = Unit
 
     /** Called at project open: marks vulnerable manifests from the last scan, if there is one. */
     fun start() {
