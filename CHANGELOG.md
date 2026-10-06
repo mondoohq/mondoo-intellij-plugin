@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by xgrep, the same way as in the terminal; every fix is re-scanned before it counts,
   and a Local History label lets you undo a whole run. Needs xgrep 0.58.0 or later.
 - Alt+Enter on an agent-assisted finding offers **Fix with coding agent (xgrep)**.
+- **Include files not committed yet** (Settings | Tools | Mondoo, on by default): in a
+  git repository, Scan Workspace and the Fix tab also scan new and untracked files.
+  Before, a workspace scan only covered committed files, so a file you had just
+  created showed findings in the editor but not in the scan results.
 
 ### Changed
 

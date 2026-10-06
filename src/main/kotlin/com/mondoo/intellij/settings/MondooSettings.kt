@@ -69,6 +69,15 @@ class MondooState : BaseState() {
      */
     var xgrepFixAgent: String? by string("")
 
+    /**
+     * mondoo.xgrepScanUncommitted — in a git repository, whether workspace scans and
+     * the Fix tab's scan include files not committed yet. `xgrep scan` covers
+     * committed files only by default; in an IDE the file you just created is
+     * usually the one you are working on, so this is on. `.gitignore`d files are
+     * never scanned either way.
+     */
+    var xgrepScanUncommitted: Boolean by property(true)
+
     /** mondoo.xgrepExcludePatterns — globs never scanned. */
     val xgrepExcludePatterns: MutableList<String> by list()
 

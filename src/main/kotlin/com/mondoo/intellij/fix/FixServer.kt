@@ -45,7 +45,7 @@ class FixServer(private val project: Project) : Disposable {
 
     private class Running(val process: Process, val client: FixClient, val config: Config)
 
-    private data class Config(val binary: String, val rulesPath: String, val agent: String)
+    private data class Config(val binary: String, val rulesPath: String, val agent: String, val allFiles: Boolean)
 
     /**
      * A client for a live server, starting one when needed. Blocks while the server
@@ -61,7 +61,12 @@ class FixServer(private val project: Project) : Disposable {
         val binary = XgrepBinaryService.getInstance().resolvedBinaryOrNull()
             ?: throw FixServerUnavailable("The xgrep scanner is not installed. Use Set Up Scanner first.")
         val settings = MondooSettings.getInstance().state
-        val config = Config(binary.toString(), settings.xgrepRulesPath.orEmpty(), settings.xgrepFixAgent.orEmpty())
+        val config = Config(
+            binary.toString(),
+            settings.xgrepRulesPath.orEmpty(),
+            settings.xgrepFixAgent.orEmpty(),
+            settings.xgrepScanUncommitted,
+        )
 
         running?.let { current ->
             if (current.process.isAlive && current.config == config) return current.client
@@ -91,6 +96,7 @@ class FixServer(private val project: Project) : Disposable {
         if (config.rulesPath.isNotBlank()) command.addParameters("-f", config.rulesPath)
         command.addParameters("fix", "serve")
         if (config.agent.isNotBlank()) command.addParameters("--agent", config.agent)
+        if (config.allFiles) command.addParameter("--all-files")
 
         val process = try {
             command.createProcess()

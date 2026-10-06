@@ -24,6 +24,7 @@ import com.intellij.ui.dsl.builder.toNonNullableProperty
 private data class ServerAffectingSettings(
     val rulesPath: String,
     val scanJobs: Int,
+    val scanUncommitted: Boolean,
     val excludePatterns: List<String>,
     val includePatterns: List<String>,
 )
@@ -53,6 +54,7 @@ class MondooConfigurable :
         val reason = when {
             before.rulesPath != after.rulesPath -> "The rules path changed."
             before.scanJobs != after.scanJobs -> "Scan parallelism changed."
+            before.scanUncommitted != after.scanUncommitted -> "Which files a workspace scan covers changed."
             broadened -> "The scan scope was broadened."
             else -> "Scan settings changed."
         }
@@ -81,6 +83,7 @@ class MondooConfigurable :
         return ServerAffectingSettings(
             rulesPath = state.xgrepRulesPath.orEmpty(),
             scanJobs = state.xgrepScanJobs,
+            scanUncommitted = state.xgrepScanUncommitted,
             excludePatterns = state.xgrepExcludePatterns.toList(),
             includePatterns = state.xgrepIncludePatterns.toList(),
         )
@@ -136,6 +139,14 @@ class MondooConfigurable :
                         .bindText(state::xgrepRulesPath.toNonNullableProperty(""))
                         .align(AlignX.FILL)
                 }.rowComment("Passed as <code>-f</code>. Empty uses the embedded security and secrets rules.")
+                row {
+                    checkBox("Include files not committed yet")
+                        .bindSelected(state::xgrepScanUncommitted)
+                }.rowComment(
+                    "In a git repository, Scan Workspace and the Fix tab also scan new and " +
+                        "untracked files. Off scans committed files only, like " +
+                        "<code>xgrep scan</code>. Files in <code>.gitignore</code> are never scanned.",
+                )
                 row("Scan parallelism:") {
                     intTextField(range = 0..32).bindIntText(state::xgrepScanJobs)
                 }.rowComment(
