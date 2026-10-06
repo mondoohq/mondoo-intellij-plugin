@@ -88,9 +88,14 @@
   </extensions>
 
   <actions>
-    <group id="Mondoo.CodeSecurity" popup="true"
-           text="Mondoo Code Security" description="Mondoo code security actions"
-           icon="/icons/mondoo.svg">
+    <!-- Actions live with the tab they belong to: each tab of the Mondoo tool
+         window builds its toolbar from one of the groups below. The menu (Tools |
+         Mondoo, and the status bar widget) keeps only the everyday actions plus a
+         More submenu; setup and help also sit in the tool window's gear menu. -->
+
+    <!-- Code Security tab, and the core of the menu. -->
+    <group id="Mondoo.Scan" popup="true" text="Scan" description="Scan for security findings"
+           icon="AllIcons.Actions.Find">
       <action id="Mondoo.Xgrep.ScanWorkspace"
               class="com.mondoo.intellij.actions.ScanWorkspaceAction"
               text="Scan Workspace"
@@ -103,25 +108,18 @@
               class="com.mondoo.intellij.actions.ScanChangesSinceAction"
               text="Scan Changes Since..."
               description="Check only what changed since a git ref you pick"/>
-      <action id="Mondoo.Xgrep.FixFindings"
-              class="com.mondoo.intellij.fix.OpenFixTabAction"
-              text="Fix Findings..."
-              description="Review findings and fix them: deterministic fixes by xgrep, the rest by your coding agent"
-              icon="/icons/fix.svg"/>
-      <action id="Mondoo.Xgrep.ClearFindings"
-              class="com.mondoo.intellij.actions.ClearFindingsAction"
-              text="Clear Findings"
-              description="Empty the findings view"/>
-      <separator/>
-      <action id="Mondoo.Deps.Analyze"
-              class="com.mondoo.intellij.actions.AnalyzeDependenciesAction"
-              text="Analyze Dependencies"
-              description="Show which dependency packages your code actually imports"/>
-      <action id="Mondoo.Bom.Generate"
-              class="com.mondoo.intellij.actions.GenerateBomAction"
-              text="Generate Bill of Materials..."
-              description="Inventory dependencies, cryptography or AI components"/>
-      <separator/>
+    </group>
+    <action id="Mondoo.Xgrep.FixFindings"
+            class="com.mondoo.intellij.fix.OpenFixTabAction"
+            text="Fix Findings..."
+            description="Review findings and fix them: deterministic fixes by xgrep, the rest by your coding agent"
+            icon="/icons/fix.svg"/>
+    <action id="Mondoo.Xgrep.ClearFindings"
+            class="com.mondoo.intellij.actions.ClearFindingsAction"
+            text="Clear Findings"
+            description="Empty the findings view"
+            icon="AllIcons.Actions.GC"/>
+    <group id="Mondoo.Search" popup="false">
       <action id="Mondoo.Xgrep.SearchCode"
               class="com.mondoo.intellij.actions.SearchCodeAction"
               text="Search Code..."
@@ -134,21 +132,35 @@
               class="com.mondoo.intellij.actions.ExportSearchRuleAction"
               text="Export Search as Rule"
               description="Turn a structural pattern into a reusable xgrep rule"/>
-      <separator/>
-      <!-- Policy authoring. These stay hidden unless the focused file is a policy
-           bundle, so they cost nothing in a project that has none. -->
-      <action id="Mondoo.Policy.New"
-              class="com.mondoo.intellij.policy.NewPolicyFromTemplateAction"
-              text="New Policy from Template..."
-              description="Scaffold a policy bundle with cnspec and open it"/>
+    </group>
+
+    <!-- Dependencies tab. -->
+    <group id="Mondoo.Dependencies" popup="false">
+      <action id="Mondoo.Deps.Analyze"
+              class="com.mondoo.intellij.actions.AnalyzeDependenciesAction"
+              text="Analyze Dependencies"
+              description="Show which dependency packages your code actually imports"
+              icon="AllIcons.Actions.Refresh"/>
+      <action id="Mondoo.Bom.Generate"
+              class="com.mondoo.intellij.actions.GenerateBomAction"
+              text="Generate SBOM..."
+              description="Write a bill of materials: dependencies (SBOM), cryptography or AI components"
+              icon="AllIcons.Actions.Download"/>
+    </group>
+
+    <!-- Policies tab: the bundle you selected, and the targets you scan. -->
+    <action id="Mondoo.Policy.New"
+            class="com.mondoo.intellij.policy.NewPolicyFromTemplateAction"
+            text="New Policy from Template..."
+            description="Scaffold a policy bundle with cnspec and open it"
+            icon="AllIcons.General.Add"/>
+    <group id="Mondoo.Policy.Bundle" popup="true" text="Bundle"
+           description="Lint, format or upload the selected policy bundle"
+           icon="AllIcons.FileTypes.Yaml">
       <action id="Mondoo.Policy.Lint"
               class="com.mondoo.intellij.policy.LintPolicyAction"
               text="Lint Policy Bundle"
               description="Check policy hygiene: tags, asset filters, unused queries"/>
-      <action id="Mondoo.Policy.Upload"
-              class="com.mondoo.intellij.policy.UploadPolicyAction"
-              text="Upload Policy to Mondoo..."
-              description="Publish this policy bundle to your connected Mondoo space"/>
       <action id="Mondoo.Policy.Format"
               class="com.mondoo.intellij.policy.FormatPolicyAction"
               text="Format Policy Bundle"
@@ -158,6 +170,14 @@
               text="Format and Sort Policy Bundle"
               description="Format this bundle and sort its queries"/>
       <separator/>
+      <action id="Mondoo.Policy.Upload"
+              class="com.mondoo.intellij.policy.UploadPolicyAction"
+              text="Upload Policy to Mondoo..."
+              description="Publish this policy bundle to your connected Mondoo space"/>
+    </group>
+    <group id="Mondoo.Targets" popup="true" text="Target"
+           description="Scan a target, query it, or manage targets"
+           icon="AllIcons.Nodes.Deploy">
       <action id="Mondoo.Target.Scan"
               class="com.mondoo.intellij.target.ScanTargetAction"
               text="Scan Target..."
@@ -166,11 +186,15 @@
               class="com.mondoo.intellij.target.RunQueryAction"
               text="Run MQL Query..."
               description="Run a single MQL query against a target"/>
+      <separator/>
       <action id="Mondoo.Target.Manage"
               class="com.mondoo.intellij.target.ManageTargetsAction"
               text="Manage Targets..."
               description="Add or remove the targets cnspec can scan"/>
-      <separator/>
+    </group>
+
+    <!-- Setup and help: the gear menu of the tool window, and More in the menu. -->
+    <group id="Mondoo.More" popup="true" text="More" description="Setup, AI agents and help">
       <action id="Mondoo.Xgrep.Setup"
               class="com.mondoo.intellij.actions.SetupScannerAction"
               text="Set Up Scanner"
@@ -184,6 +208,10 @@
               text="Configure MCP Server..."
               description="Expose xgrep to AI agents over MCP"/>
       <separator/>
+      <action id="Mondoo.Xgrep.ShowPath"
+              class="com.mondoo.intellij.actions.ShowXgrepPathAction"
+              text="Show Tool Paths"
+              description="Show which xgrep, cnspec and mqlr binaries this plugin resolves"/>
       <action id="Mondoo.Xgrep.OpenDemo"
               class="com.mondoo.intellij.actions.OpenDemoFileAction"
               text="Open Demo File"
@@ -192,11 +220,21 @@
               class="com.mondoo.intellij.actions.OpenDocumentationAction"
               text="Documentation"
               description="Open the Mondoo documentation"/>
+    </group>
+
+    <!-- Tools | Mondoo and the status bar widget: what you reach for daily. -->
+    <group id="Mondoo.CodeSecurity" popup="true"
+           text="Mondoo" description="Mondoo security actions"
+           icon="/icons/mondoo.svg">
+      <reference ref="Mondoo.Xgrep.ScanWorkspace"/>
+      <reference ref="Mondoo.Xgrep.ScanChanged"/>
+      <reference ref="Mondoo.Xgrep.ScanSince"/>
       <separator/>
-      <action id="Mondoo.Xgrep.ShowPath"
-              class="com.mondoo.intellij.actions.ShowXgrepPathAction"
-              text="Show Tool Paths"
-              description="Show which xgrep, cnspec and mqlr binaries this plugin resolves"/>
+      <reference ref="Mondoo.Xgrep.FixFindings"/>
+      <separator/>
+      <reference ref="Mondoo.Search"/>
+      <separator/>
+      <reference ref="Mondoo.More"/>
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </group>
   </actions>

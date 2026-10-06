@@ -35,7 +35,8 @@ to enforce your team's own rules, so the editor matches your pipeline.
 
 ## Check the whole project before you commit
 
-Three actions cover code you do not have open, under **Tools | Mondoo Code Security**:
+Three actions cover code you do not have open, under **Tools | Mondoo**, the status bar menu, and **Scan** in the **Code Security**
+tab:
 
 | Action | What it checks |
 | --- | --- |

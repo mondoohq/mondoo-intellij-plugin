@@ -97,7 +97,7 @@ internal class XgrepStatusBarWidget(project: Project) : EditorBasedStatusBarPopu
         val withProject = SimpleDataContext.getProjectContext(project)
 
         val popup = JBPopupFactory.getInstance().createActionGroupPopup(
-            "Mondoo Code Security",
+            "Mondoo",
             group,
             withProject,
             JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,

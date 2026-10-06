@@ -76,6 +76,10 @@ internal class XgrepFindingsToolWindowFactory :
             factory.createContent(policies, "Policies", false).also { it.isCloseable = false },
         )
 
+        // Setup and help live in the gear menu, so the tabs keep to their own work.
+        (ActionManager.getInstance().getAction("Mondoo.More") as? com.intellij.openapi.actionSystem.ActionGroup)
+            ?.let { toolWindow.setAdditionalGearActions(it) }
+
         // The fix session starts `xgrep fix serve`, so it waits until the tab is
         // actually looked at rather than starting with the tool window.
         val fix = com.mondoo.intellij.fix.XgrepFixPanel(project)
@@ -172,7 +176,9 @@ internal class XgrepFindingsPanel(private val project: Project) :
 
     private fun toolbar(): ActionToolbar {
         val group = DefaultActionGroup()
+        com.mondoo.intellij.ui.MondooToolbars.labeled("Mondoo.Scan")?.let { group.add(it) }
         group.add(FixSelectedAction())
+        group.addSeparator()
         group.add(object : ToggleAction(
             "Group by File",
             "Group findings by file instead of severity",
@@ -185,7 +191,8 @@ internal class XgrepFindingsPanel(private val project: Project) :
                 refresh()
             }
         })
-        ActionManager.getInstance().getAction("Mondoo.CodeSecurity")?.let { group.add(it) }
+        group.addSeparator()
+        com.mondoo.intellij.ui.MondooToolbars.action("Mondoo.Xgrep.ClearFindings")?.let { group.add(it) }
 
         val toolbar = ActionManager.getInstance()
             .createActionToolbar(ActionPlaces.TOOLWINDOW_CONTENT, group, true)

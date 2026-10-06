@@ -63,8 +63,8 @@
             class="com.mondoo.intellij.lsp.ReloadRulesAction"
             text="Reload Rules"
             description="Restart the scanner so it re-reads its rules and settings">
-      <add-to-group group-id="Mondoo.CodeSecurity" anchor="after"
-                    relative-to-action="Mondoo.Xgrep.ScanSince"/>
+      <add-to-group group-id="Mondoo.More" anchor="after"
+                    relative-to-action="Mondoo.Xgrep.ConfigureMcp"/>
     </action>
 
     <!-- Also here rather than in the core: there is nothing to restart where this
@@ -73,7 +73,7 @@
             class="com.mondoo.intellij.lsp.RestartLanguageServersAction"
             text="Restart Language Servers"
             description="Restart the code security, MQL and LR language servers">
-      <add-to-group group-id="Mondoo.CodeSecurity" anchor="after"
+      <add-to-group group-id="Mondoo.More" anchor="after"
                     relative-to-action="Mondoo.Xgrep.ReloadRules"/>
     </action>
   </actions>

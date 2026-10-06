@@ -63,7 +63,7 @@ and this is where you would notice it.
 
 ## Linting a bundle
 
-**Tools** → **Mondoo Code Security** → **Lint Policy Bundle**, on an open bundle.
+**Bundle** → **Lint Policy Bundle** in the **Policies** tab, with a bundle selected.
 
 The linter checks things the language server does not: required tags, missing asset
 filters, queries that no policy references. On a bundle with a compile error and

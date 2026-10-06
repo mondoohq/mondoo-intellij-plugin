@@ -30,7 +30,7 @@ import com.mondoo.intellij.util.ProjectTrust
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-/** Base for actions that operate on the policy bundle in the editor. */
+/** Base for actions on a policy bundle: the one selected on the Policies tab, or open in the editor. */
 abstract class PolicyBundleAction : AnAction() {
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -38,7 +38,10 @@ abstract class PolicyBundleAction : AnAction() {
     override fun update(e: AnActionEvent) {
         val project = e.project
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
-        e.presentation.isEnabledAndVisible = project != null &&
+        // Listed under Bundle on the Policies tab whether or not a bundle is selected,
+        // so the menu shows what it can do; enabled once one is.
+        e.presentation.isVisible = project != null
+        e.presentation.isEnabled = project != null &&
             file != null &&
             MqlFiles.isPolicyBundle(file.name) &&
             ProjectTrust.isTrusted(project) &&

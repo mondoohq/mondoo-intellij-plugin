@@ -2,8 +2,8 @@
 
 Which of your dependencies does your code actually use?
 
-**Tools** → **Mondoo Code Security** → **Analyze Dependencies**, or the refresh button
-in the **Dependencies** tab of the Mondoo tool window.
+The refresh button in the **Dependencies** tab of the Mondoo tool window, or the
+**Analyze Dependencies** link shown there before the first analysis.
 
 ## Why it matters
 

@@ -4,7 +4,7 @@ Inventory what is actually in your project — its dependencies, its cryptograph
 its AI components — as a standard document you can hand to compliance, attach to a
 release, or diff between versions.
 
-**Tools** → **Mondoo Code Security** → **Generate Bill of Materials…**
+**Generate SBOM…** in the **Dependencies** tab of the Mondoo tool window.
 
 ## What you can generate
 

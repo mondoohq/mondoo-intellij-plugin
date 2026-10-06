@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Actions now sit with the tab they belong to. **Code Security** has Scan and fix,
+  **Dependencies** has Generate SBOM…, and **Policies** has New Policy, Bundle (lint,
+  format, upload the selected bundle) and Target (scan, query, shell, manage).
+  **Tools | Mondoo** and the status bar menu keep scanning, fixing and search, with
+  setup and help under More, which is also the tool window's gear menu.
+
 ### Fixed
 
 ### Removed

@@ -60,7 +60,17 @@ import javax.swing.tree.TreeSelectionModel
  */
 internal class PolicyTreePanel(private val project: Project) :
     JPanel(BorderLayout()),
-    Disposable {
+    Disposable,
+    com.intellij.openapi.actionSystem.UiDataProvider {
+
+    /**
+     * The bundle of the selected node, as the file the Bundle actions (lint, format,
+     * upload) act on — the same key they read from an open editor.
+     */
+    override fun uiDataSnapshot(sink: com.intellij.openapi.actionSystem.DataSink) {
+        val file = selectedNode()?.target?.path?.let(::virtualFile) ?: return
+        sink[com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE] = file
+    }
 
     private val root = DefaultMutableTreeNode()
     private val model = DefaultTreeModel(root)
@@ -132,7 +142,9 @@ internal class PolicyTreePanel(private val project: Project) :
         )
         group.add(RunSelectionAction())
         group.addSeparator()
-        ActionManager.getInstance().getAction("Mondoo.CodeSecurity")?.let { group.add(it) }
+        listOf("Mondoo.Policy.New", "Mondoo.Policy.Bundle", "Mondoo.Targets")
+            .mapNotNull(com.mondoo.intellij.ui.MondooToolbars::labeled)
+            .forEach(group::add)
 
         val toolbar = ActionManager.getInstance()
             .createActionToolbar(ActionPlaces.TOOLWINDOW_CONTENT, group, true)

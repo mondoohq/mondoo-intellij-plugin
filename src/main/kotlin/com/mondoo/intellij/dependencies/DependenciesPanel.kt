@@ -7,9 +7,6 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
@@ -60,7 +57,10 @@ internal class DependenciesPanel(private val project: Project) :
         tree.cellRenderer = DepCellRenderer()
         tree.emptyText
             .appendLine("No dependency analysis yet")
-            .appendLine("Run Analyze Dependencies to see which packages your code imports.")
+            .appendLine("See which packages your code actually imports.")
+            .appendLine("Analyze Dependencies", SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+                DependencyReachabilityService.getInstance(project).refresh()
+            }
         tree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (e.clickCount == 2) navigate()
@@ -80,19 +80,9 @@ internal class DependenciesPanel(private val project: Project) :
 
     private fun toolbar(): javax.swing.JComponent {
         val group = DefaultActionGroup()
-        group.add(object : AnAction(
-            "Analyze Dependencies",
-            "Rebuild the dependency reachability graph",
-            AllIcons.Actions.Refresh,
-        ) {
-            override fun getActionUpdateThread() = ActionUpdateThread.BGT
-            override fun update(e: AnActionEvent) {
-                e.presentation.isEnabled = !DependencyReachabilityService.getInstance(project).isRunning()
-            }
-            override fun actionPerformed(e: AnActionEvent) {
-                DependencyReachabilityService.getInstance(project).refresh()
-            }
-        })
+        com.mondoo.intellij.ui.MondooToolbars.action("Mondoo.Deps.Analyze")?.let { group.add(it) }
+        // A bill of materials is about these same dependencies, so it is made here.
+        com.mondoo.intellij.ui.MondooToolbars.labeled("Mondoo.Bom.Generate")?.let { group.add(it) }
         val toolbar = ActionManager.getInstance()
             .createActionToolbar(ActionPlaces.TOOLWINDOW_CONTENT, group, true)
         toolbar.targetComponent = tree
