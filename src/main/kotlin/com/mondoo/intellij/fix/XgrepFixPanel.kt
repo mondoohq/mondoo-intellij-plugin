@@ -146,6 +146,14 @@ internal class XgrepFixPanel(private val project: Project) :
         tree.scrollPathToVisible(path)
     }
 
+    /** Checks the findings with these fingerprints (when fixable), leaving the rest as they are. */
+    fun check(fingerprints: Collection<String>) {
+        if (fingerprints.isEmpty()) return
+        val wanted = fingerprints.toSet()
+        leaves().filter { it.isEnabled && (it.userObject as FixFinding).fingerprint in wanted }
+            .forEach { tree.setNodeState(it, true) }
+    }
+
     // --- rendering ---------------------------------------------------------------
 
     private fun render() {
@@ -368,7 +376,7 @@ internal class XgrepFixPanel(private val project: Project) :
         AnAction(
             "Fix Checked",
             "Fix the checked findings, or the selected one: deterministic fixes are applied, assisted ones go to the coding agent",
-            AllIcons.Actions.Execute,
+            com.mondoo.intellij.MondooIcons.Fix,
         ),
         DumbAware {
         override fun getActionUpdateThread() = ActionUpdateThread.EDT

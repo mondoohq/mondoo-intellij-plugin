@@ -80,7 +80,11 @@ internal class XgrepFindingsToolWindowFactory :
         // actually looked at rather than starting with the tool window.
         val fix = com.mondoo.intellij.fix.XgrepFixPanel(project)
         Disposer.register(toolWindow.disposable, fix)
-        val fixContent = factory.createContent(fix, FIX_TAB, false).also { it.isCloseable = false }
+        val fixContent = factory.createContent(fix, FIX_TAB, false).also {
+            it.isCloseable = false
+            it.icon = com.mondoo.intellij.MondooIcons.Fix
+            it.putUserData(com.intellij.openapi.wm.ToolWindow.SHOW_CONTENT_ICON, true)
+        }
         toolWindow.contentManager.addContent(fixContent)
         toolWindow.contentManager.addContentManagerListener(
             object : com.intellij.ui.content.ContentManagerListener {
@@ -136,7 +140,8 @@ internal class XgrepFindingsPanel(private val project: Project) :
     init {
         tree.isRootVisible = false
         tree.showsRootHandles = true
-        tree.selectionModel.selectionMode = TreeSelectionModel.SINGLE_TREE_SELECTION
+        // Several findings (or whole rule groups) can be fixed in one go.
+        tree.selectionModel.selectionMode = TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION
         tree.cellRenderer = FindingsCellRenderer()
         tree.emptyText
             .appendLine("No security findings")
@@ -146,6 +151,13 @@ internal class XgrepFindingsPanel(private val project: Project) :
                 if (e.clickCount == 2) navigateToSelection()
             }
         })
+
+        // Right-click on a finding is where people look for "fix this".
+        com.intellij.ui.PopupHandler.installPopupMenu(
+            tree,
+            DefaultActionGroup(FixSelectedAction(), ReviewInFixTabAction(), JumpToSourceAction()),
+            "MondooFindingsTree",
+        )
 
         add(toolbar().component, BorderLayout.NORTH)
         add(JBScrollPane(tree), BorderLayout.CENTER)
@@ -160,6 +172,7 @@ internal class XgrepFindingsPanel(private val project: Project) :
 
     private fun toolbar(): ActionToolbar {
         val group = DefaultActionGroup()
+        group.add(FixSelectedAction())
         group.add(object : ToggleAction(
             "Group by File",
             "Group findings by file instead of severity",
@@ -221,6 +234,86 @@ internal class XgrepFindingsPanel(private val project: Project) :
         is FindingsNode.Leaf -> DefaultMutableTreeNode(this)
     }
 
+    /** The findings under the selection: a selected group stands for all of its findings. */
+    private fun selectedFindings(): List<Finding> {
+        val out = LinkedHashSet<Finding>()
+        fun collect(node: FindingsNode) {
+            when (node) {
+                is FindingsNode.Leaf -> out += node.finding
+                is FindingsNode.Group -> node.children.forEach(::collect)
+            }
+        }
+        tree.selectionPaths.orEmpty().forEach { path ->
+            ((path.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? FindingsNode)?.let(::collect)
+        }
+        return out.toList()
+    }
+
+    private fun fixTargets(): List<com.mondoo.intellij.fix.FixTarget> {
+        val base = project.basePath ?: return emptyList()
+        return selectedFindings()
+            .filter { it.fixKind == FIX_DETERMINISTIC || it.fixKind == FIX_ASSISTED }
+            .map {
+                com.mondoo.intellij.fix.FixTarget(
+                    absolutePath = Path.of(base).resolve(it.path).normalize().toString(),
+                    line = it.line + 1,
+                    ruleId = it.ruleId,
+                )
+            }
+    }
+
+    private inner class FixSelectedAction :
+        com.intellij.openapi.actionSystem.AnAction(
+            "Fix with xgrep",
+            "Fix the selected findings: deterministic fixes by xgrep, the rest by your coding agent. " +
+                "Opens the Fix tab.",
+            com.mondoo.intellij.MondooIcons.Fix,
+        ),
+        DumbAware {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            val n = fixTargets().size
+            e.presentation.isEnabled = n > 0
+            e.presentation.text = if (n > 1) "Fix $n Findings with xgrep" else "Fix with xgrep"
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+            com.mondoo.intellij.fix.FixSession.getInstance(project).fixFindings(fixTargets())
+        }
+    }
+
+    private inner class ReviewInFixTabAction :
+        com.intellij.openapi.actionSystem.AnAction(
+            "Review in Fix Tab",
+            "Open the Fix tab with these findings checked, to preview and triage before fixing",
+            null,
+        ),
+        DumbAware {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled = fixTargets().isNotEmpty()
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+            com.mondoo.intellij.fix.FixSession.getInstance(project).fixFindings(fixTargets(), run = false)
+        }
+    }
+
+    private inner class JumpToSourceAction :
+        com.intellij.openapi.actionSystem.AnAction("Jump to Source", null, AllIcons.Actions.EditSource),
+        DumbAware {
+        override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+        override fun update(e: AnActionEvent) {
+            e.presentation.isEnabled =
+                (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject is FindingsNode.Leaf
+        }
+
+        override fun actionPerformed(e: AnActionEvent) = navigateToSelection()
+    }
+
     private fun navigateToSelection() {
         val leaf = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? FindingsNode.Leaf
             ?: return
@@ -236,6 +329,9 @@ internal class XgrepFindingsPanel(private val project: Project) :
     private companion object {
         /** Long enough to absorb a scan's burst, short enough to feel immediate. */
         const val REFRESH_COALESCE_MS = 200
+
+        const val FIX_DETERMINISTIC = "deterministic"
+        const val FIX_ASSISTED = "assisted"
     }
 
     private class FindingsCellRenderer : ColoredTreeCellRenderer() {
@@ -259,6 +355,10 @@ internal class XgrepFindingsPanel(private val project: Project) :
                     icon = severityIcon(finding.severity)
                     append(finding.message)
                     append("  ${finding.path}:${finding.line + 1}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                    when (finding.fixKind) {
+                        FIX_DETERMINISTIC -> append("  auto-fix", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
+                        FIX_ASSISTED -> append("  agent fix", SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
+                    }
                 }
             }
         }

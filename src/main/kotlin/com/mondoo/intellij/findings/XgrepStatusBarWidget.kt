@@ -96,12 +96,16 @@ internal class XgrepStatusBarWidget(project: Project) : EditorBasedStatusBarPopu
         // context containing exactly that is both sufficient and predictable.
         val withProject = SimpleDataContext.getProjectContext(project)
 
-        return JBPopupFactory.getInstance().createActionGroupPopup(
+        val popup = JBPopupFactory.getInstance().createActionGroupPopup(
             "Mondoo Code Security",
             group,
             withProject,
             JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
             true,
         )
+        // The mark in the title says whose menu this is; the status bar text alone
+        // ("xgrep: 13") does not.
+        (popup as? com.intellij.ui.popup.AbstractPopup)?.setCaptionIcon(com.mondoo.intellij.MondooIcons.Mondoo)
+        return popup
     }
 }

@@ -19,6 +19,7 @@ object DeclaredActions {
         "Mondoo.Xgrep.ScanWorkspace",
         "Mondoo.Xgrep.ScanChanged",
         "Mondoo.Xgrep.ScanSince",
+        "Mondoo.Xgrep.FixFindings",
         "Mondoo.Xgrep.ClearFindings",
         "Mondoo.Deps.Analyze",
         "Mondoo.Bom.Generate",

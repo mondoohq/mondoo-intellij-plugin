@@ -203,36 +203,53 @@ class FixSession(private val project: Project) : Disposable {
     }
 
     /**
-     * Fixes the finding at [absolutePath]:[line] (1-based) for [ruleId] — the Alt+Enter
-     * path. The editor knows findings from the language server, the session from the
-     * findings cache, so a finding the cache does not have yet means a scan first.
+     * Fixes (or, with [run] false, only shows) findings the editor or the Code Security
+     * tab knows about — the Alt+Enter and right-click paths.
+     *
+     * Those views get findings from the language server, the session from the findings
+     * cache, so they are matched by file, line and rule. One the cache does not have
+     * yet means the code changed since the last scan, so the session scans first.
+     *
+     * The Fix tab opens straight away, before any of that, so what happens next is
+     * visible rather than somewhere else.
      */
-    fun fixAt(absolutePath: String, line: Int, ruleId: String) {
-        fun match() = findings.firstOrNull { f ->
-            f.ruleId == ruleId && f.startLine == line && samePath(f.absolutePath, absolutePath)
+    fun fixFindings(targets: List<FixTarget>, run: Boolean = true) {
+        if (targets.isEmpty()) return
+        com.mondoo.intellij.findings.XgrepFindingsToolWindowFactory.showFixTab(project)
+
+        fun matches() = targets.mapNotNull { t ->
+            findings.firstOrNull { f ->
+                f.ruleId == t.ruleId && f.startLine == t.line && samePath(f.absolutePath, t.absolutePath)
+            }
         }
-        background("Finding the finding to fix") { client ->
+        background("Finding the findings to fix") { client ->
             if (!loaded) reload(client)
-            var target = match()?.takeIf { it.fixable }
-            if (target == null) {
+            var found = matches()
+            if (found.size < targets.size) {
                 setStatus("Scanning so the fix starts from current code...")
                 client.rescan()
                 previews.clear()
                 reload(client)
                 setStatus("")
-                target = match()
+                found = matches()
             }
             ApplicationManager.getApplication().invokeLater({
                 com.mondoo.intellij.findings.XgrepFindingsToolWindowFactory.showFixTab(project) { panel ->
-                    target?.let { panel.select(it.fingerprint) }
+                    found.firstOrNull()?.let { panel.select(it.fingerprint) }
+                    if (!run) panel.check(found.filter { it.fixable }.map { it.fingerprint })
                 }
+                if (!run) return@invokeLater
+                val fixable = found.filter { it.fixable }
                 when {
-                    target == null -> notify(
-                        "xgrep fix: the scan no longer reports $ruleId on line $line.",
+                    found.isEmpty() -> notify(
+                        "xgrep fix: the current scan no longer reports ${if (targets.size == 1) "this finding" else "these findings"}.",
                         NotificationType.INFORMATION,
                     )
-                    !target.fixable -> notify("xgrep fix: ${FixDetails.badge(target)}.", NotificationType.INFORMATION)
-                    else -> run(listOf(target.fingerprint))
+                    fixable.isEmpty() -> notify(
+                        "xgrep fix: nothing to fix here (${found.joinToString { FixDetails.badge(it) }}).",
+                        NotificationType.INFORMATION,
+                    )
+                    else -> run(fixable.map { it.fingerprint })
                 }
             }, project.disposed)
         }
@@ -394,3 +411,6 @@ class FixSession(private val project: Project) : Disposable {
         fun getInstance(project: Project): FixSession = project.service()
     }
 }
+
+/** A finding as the editor knows it: file, 1-based line and rule. */
+data class FixTarget(val absolutePath: String, val line: Int, val ruleId: String)

@@ -103,6 +103,11 @@
               class="com.mondoo.intellij.actions.ScanChangesSinceAction"
               text="Scan Changes Since..."
               description="Check only what changed since a git ref you pick"/>
+      <action id="Mondoo.Xgrep.FixFindings"
+              class="com.mondoo.intellij.fix.OpenFixTabAction"
+              text="Fix Findings..."
+              description="Review findings and fix them: deterministic fixes by xgrep, the rest by your coding agent"
+              icon="/icons/fix.svg"/>
       <action id="Mondoo.Xgrep.ClearFindings"
               class="com.mondoo.intellij.actions.ClearFindingsAction"
               text="Clear Findings"

@@ -16,4 +16,8 @@ import com.intellij.openapi.util.IconLoader
 object MondooIcons {
     @JvmField
     val Mondoo = IconLoader.getIcon("/icons/mondoo.svg", MondooIcons::class.java)
+
+    /** Fixing a finding: a wrench with a spark, so it reads as "apply a fix", not "run". */
+    @JvmField
+    val Fix = IconLoader.getIcon("/icons/fix.svg", MondooIcons::class.java)
 }
