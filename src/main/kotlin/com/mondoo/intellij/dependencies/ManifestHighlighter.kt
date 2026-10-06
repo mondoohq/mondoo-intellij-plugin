@@ -85,6 +85,10 @@ class ManifestHighlighter(private val project: Project) : Disposable {
             synchronized(reported) {
                 (reported - withVulns).forEach { wolf.clearProblemsFromExternalSource(it, this) }
                 withVulns.forEach { wolf.reportProblemsFromExternalSource(it, this) }
+                log.debug(
+                    "Mondoo: ${withVulns.count { wolf.isProblemFile(it) }} of ${withVulns.size} " +
+                        "manifest(s) shown with problems: ${withVulns.joinToString { it.name }}",
+                )
                 reported.clear()
                 reported += withVulns
             }
