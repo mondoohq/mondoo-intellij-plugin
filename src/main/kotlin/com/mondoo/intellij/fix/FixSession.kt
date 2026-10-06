@@ -217,11 +217,7 @@ class FixSession(private val project: Project) : Disposable {
         if (targets.isEmpty()) return
         com.mondoo.intellij.findings.XgrepFindingsToolWindowFactory.showFixTab(project)
 
-        fun matches() = targets.mapNotNull { t ->
-            findings.firstOrNull { f ->
-                f.ruleId == t.ruleId && f.startLine == t.line && samePath(f.absolutePath, t.absolutePath)
-            }
-        }
+        fun matches() = FixMatching.match(targets, findings, ::samePath)
         background("Finding the findings to fix") { client ->
             if (!loaded) reload(client)
             var found = matches()
@@ -233,15 +229,9 @@ class FixSession(private val project: Project) : Disposable {
                 setStatus("")
                 found = matches()
             }
+            val requested = if (found.size < targets.size) " (requested: $targets)" else ""
             log.info(
-                "fix request for ${targets.size} finding(s): matched ${found.size} in the findings cache" +
-                    if (found.size <
-                        targets.size
-                    ) {
-                        " (unmatched: ${targets - found.map { it.toTarget() }.toSet()})"
-                    } else {
-                        ""
-                    },
+                "fix request for ${targets.size} finding(s): matched ${found.size} in the findings cache$requested",
             )
             // Checked either way, so the Fix tab shows exactly what was sent to it; a
             // run unchecks each finding as its outcome lands. Held here rather than
@@ -279,8 +269,6 @@ class FixSession(private val project: Project) : Disposable {
 
     /** Hands the pending focus to the caller once, if there is one. */
     fun takePendingFocus(): PendingFocus? = pendingFocus.also { pendingFocus = null }
-
-    private fun FixFinding.toTarget() = FixTarget(absolutePath, startLine, ruleId)
 
     private fun samePath(a: String, b: String): Boolean =
         runCatching { Path.of(a).toRealPath() == Path.of(b).toRealPath() }.getOrDefault(a == b)
