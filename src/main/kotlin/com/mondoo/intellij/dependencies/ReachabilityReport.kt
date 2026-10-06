@@ -4,6 +4,7 @@
 package com.mondoo.intellij.dependencies
 
 import com.google.gson.JsonParser
+import com.mondoo.intellij.util.arrayOrEmpty
 
 /**
  * How a dependency relates to first-party code.
@@ -118,14 +119,5 @@ data class ReachabilityReport(val packages: List<DependencyPackage>, val summary
 
             ReachabilityReport(packages, summary)
         }.getOrNull()
-
-        /**
-         * The array under [name], or nothing. A project with no dependencies comes back
-         * as `"packages": null` (a Go nil slice), not `[]`, and Gson's getAsJsonArray
-         * throws on a JSON null — which once turned "no dependencies" into "the report
-         * could not be read".
-         */
-        private fun com.google.gson.JsonObject.arrayOrEmpty(name: String): List<com.google.gson.JsonElement> =
-            get(name)?.takeIf { it.isJsonArray }?.asJsonArray?.toList().orEmpty()
     }
 }
