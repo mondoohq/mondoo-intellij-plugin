@@ -56,7 +56,7 @@ Then open a file. If the scanner is not already on your machine the plugin offer
 download it, verifying its published checksum before use — nothing is fetched until
 you say so.
 
-To see it working straight away: **Tools** → **Mondoo Code Security** → **Open Demo
+To see it working straight away: **Tools** → **Mondoo Code Security** → **More** → **Open Demo
 File**.
 
 ## Documentation

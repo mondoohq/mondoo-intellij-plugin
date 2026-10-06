@@ -119,7 +119,7 @@ private fun showUsages(
     }
 
     val presentation = UsageViewPresentation().apply {
-        tabText = "xgrep: $pattern"
+        tabText = "Mondoo search: $pattern"
         toolwindowTitle = "xgrep Search"
         isOpenInNewTab = true
         codeUsagesString = "Structural matches"

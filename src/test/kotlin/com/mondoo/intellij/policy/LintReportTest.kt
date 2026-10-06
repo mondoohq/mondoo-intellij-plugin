@@ -96,6 +96,9 @@ class LintReportTest {
     fun `a clean bundle parses to no findings`() {
         assertEquals(emptyList<LintFinding>(), LintReport.parse("""{"runs":[{"results":[]}]}"""))
         assertEquals(emptyList<LintFinding>(), LintReport.parse("""{"runs":[]}"""))
+        // Go writes an empty slice as null; that is still a clean bundle, not an unreadable one.
+        assertEquals(emptyList<LintFinding>(), LintReport.parse("""{"runs":[{"results":null}]}"""))
+        assertEquals(emptyList<LintFinding>(), LintReport.parse("""{"runs":null}"""))
     }
 
     @Test

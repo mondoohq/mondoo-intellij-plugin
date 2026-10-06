@@ -44,6 +44,11 @@ data class Finding(
     val ruleId: String,
     val message: String,
     val severity: FindingSeverity,
+    /**
+     * How xgrep can fix it — `deterministic`, `assisted` or `advisory` — or null
+     * when the rule offers no fix. From the diagnostic's `data.fixKind`.
+     */
+    val fixKind: String? = null,
 )
 
 sealed interface FindingsNode {

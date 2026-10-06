@@ -55,6 +55,29 @@ Only worth checking when the description, icons or change notes have changed.
       findings reappear afterwards without reopening the file.
 - [ ] It is harmless when none of them are running.
 
+## Fixing (needs xgrep 0.58.0+ with `fix serve`)
+
+- [ ] Opening the **Fix** tab starts one `xgrep fix serve` (check with `ps`); opening
+      the tool window without selecting the tab starts none.
+- [ ] With no `.xgrep/findings.json`, the tab says so and **Scan** fills it. Running `xgrep scan` in a terminal updates the tab by itself.
+- [ ] Selecting a deterministic finding shows a diff of the file with the fix; the file
+      is unchanged on disk.
+- [ ] **Mark False Positive…** asks for a reason, the finding becomes not fixable, and
+      `.xgrep/findings.json` records `reviewed_by: ide`.
+- [ ] Checking a deterministic and an assisted finding and pressing **Fix Checked**
+      applies both. The Fix tab switches to **Run log**, which shows the agent's steps (files read, commands, edits) as they happen,
+      the editor shows the new file content, and the notification offers **Create Pull
+      Request**.
+- [ ] Cancelling the progress during the agent run stops it: no `claude`/`codex`
+      process is left (`ps`), and the outcome is reported, not lost.
+- [ ] Local History shows "Before xgrep fix", and reverting to it restores the files.
+- [ ] Alt+Enter on an assisted finding offers **Fix with coding agent (xgrep)** and runs it.
+- [ ] With an xgrep older than 0.58.0, the tab says to update xgrep and nothing runs
+      `fix` on a path named `serve`.
+- [ ] Changing the coding agent in settings takes effect on the next run (the server
+      restarts).
+- [ ] Closing the project leaves no `xgrep fix serve` process behind.
+
 ## Scans
 
 - [ ] **Scan Workspace** runs, shows progress, and reports a result notification.
@@ -132,7 +155,7 @@ Open `example.mql.yaml` from the smoke-test scratch project (or any `*.mql.yaml`
       deleting one.
 - [ ] **Run** is disabled with nothing selected, and offers Query / Policy / Bundle
       according to what is.
-- [ ] Running a query streams cnspec output into a console tab.
+- [ ] Running a query streams cnspec output into the run log on the **Policies** tab.
 - [ ] Right-clicking a node offers **Jump to Source** and **Run**.
 - [ ] Expanding a policy, then saving the bundle, leaves it expanded.
 - [ ] In an untrusted project the tree still lists bundles, but **Run** is disabled.
@@ -164,7 +187,7 @@ Needs a Mondoo space; the upload is real and visible to everyone with access to 
 Needs `cnspec` on the PATH; the actions explain themselves when it is absent.
 
 - [ ] **Scan Target…** offers "This machine" with no configuration, and runs.
-- [ ] Output appears in a console tab in the **Mondoo** tool window.
+- [ ] Output appears in the run log on the **Policies** tab, which comes forward; a second run clears it and stops the first.
 - [ ] **Run MQL Query…** is seeded with the editor selection when one line is selected.
 - [ ] `asset.platform` against this machine returns a result.
 - [ ] **Manage Targets…** adds an SSH target; the password prompt is masked.

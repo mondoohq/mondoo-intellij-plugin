@@ -50,7 +50,8 @@ internal class XgrepScanNotifier(private val project: Project) {
         }
         val notification = NotificationGroupManager.getInstance()
             .getNotificationGroup("Mondoo")
-            .createNotification(message, type)
+            // The server words it "xgrep: …"; to the user it is a Mondoo scan.
+            .createNotification(message.replaceFirst(Regex("^xgrep:\\s*"), "Mondoo: "), type)
         notification.addAction(
             NotificationAction.createSimpleExpiring("Show findings") {
                 ToolWindowManager.getInstance(project).getToolWindow("Mondoo")?.activate(null)

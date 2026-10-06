@@ -60,11 +60,23 @@ import javax.swing.tree.TreeSelectionModel
  */
 internal class PolicyTreePanel(private val project: Project) :
     JPanel(BorderLayout()),
-    Disposable {
+    Disposable,
+    com.intellij.openapi.actionSystem.UiDataProvider {
+
+    /**
+     * The bundle of the selected node, as the file the Bundle actions (lint, format,
+     * upload) act on — the same key they read from an open editor.
+     */
+    override fun uiDataSnapshot(sink: com.intellij.openapi.actionSystem.DataSink) {
+        val file = selectedNode()?.target?.path?.let(::virtualFile) ?: return
+        sink[com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE] = file
+    }
 
     private val root = DefaultMutableTreeNode()
     private val model = DefaultTreeModel(root)
     private val tree = SimpleTree(model)
+    private val splitter = com.intellij.ui.OnePixelSplitter(false, 0.4f)
+    private val runLogTitle = com.intellij.ui.components.JBLabel()
 
     init {
         tree.isRootVisible = false
@@ -94,7 +106,9 @@ internal class PolicyTreePanel(private val project: Project) :
         )
 
         add(toolbar().component, BorderLayout.NORTH)
-        add(JBScrollPane(tree), BorderLayout.CENTER)
+        splitter.firstComponent = JBScrollPane(tree)
+        add(splitter, BorderLayout.CENTER)
+        CnspecRunService.getInstance(project).onRunStarted(this) { title -> showRunLog(title) }
         border = JBUI.Borders.empty()
 
         val bus = project.messageBus.connect(this)
@@ -121,6 +135,38 @@ internal class PolicyTreePanel(private val project: Project) :
         PolicyIndexService.getInstance(project).refresh()
     }
 
+    /**
+     * The output of the scans and queries started from this tab, next to the tree.
+     * Hidden until a run starts, and closable, so the tree can have the whole tab
+     * back; the next run opens it again.
+     */
+    private val runLogPanel: JPanel by lazy {
+        val close = com.intellij.ui.InplaceButton(
+            com.intellij.openapi.ui.popup.IconButton(
+                "Close the run log",
+                AllIcons.Actions.Close,
+                AllIcons.Actions.CloseHovered,
+            ),
+        ) { splitter.secondComponent = null }
+        val header = JPanel(BorderLayout()).apply {
+            border = JBUI.Borders.compound(
+                JBUI.Borders.customLineBottom(com.intellij.ui.JBColor.border()),
+                JBUI.Borders.empty(4, 8),
+            )
+            add(runLogTitle, BorderLayout.CENTER)
+            add(close, BorderLayout.EAST)
+        }
+        JPanel(BorderLayout()).apply {
+            add(header, BorderLayout.NORTH)
+            add(CnspecRunService.getInstance(project).runLogComponent(), BorderLayout.CENTER)
+        }
+    }
+
+    private fun showRunLog(title: String) {
+        runLogTitle.text = "Run log · $title"
+        if (splitter.secondComponent == null) splitter.secondComponent = runLogPanel
+    }
+
     private fun toolbar(): ActionToolbar {
         val group = DefaultActionGroup()
         group.add(
@@ -132,7 +178,9 @@ internal class PolicyTreePanel(private val project: Project) :
         )
         group.add(RunSelectionAction())
         group.addSeparator()
-        ActionManager.getInstance().getAction("Mondoo.CodeSecurity")?.let { group.add(it) }
+        listOf("Mondoo.Policy.New", "Mondoo.Policy.Bundle", "Mondoo.Targets")
+            .mapNotNull(com.mondoo.intellij.ui.MondooToolbars::labeled)
+            .forEach(group::add)
 
         val toolbar = ActionManager.getInstance()
             .createActionToolbar(ActionPlaces.TOOLWINDOW_CONTENT, group, true)

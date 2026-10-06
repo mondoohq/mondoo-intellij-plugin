@@ -12,7 +12,7 @@
             class="com.mondoo.intellij.terminal.OpenCnspecShellAction"
             text="Open cnspec Shell..."
             description="Explore a target interactively with MQL">
-      <add-to-group group-id="Mondoo.CodeSecurity" anchor="after"
+      <add-to-group group-id="Mondoo.Targets" anchor="after"
                     relative-to-action="Mondoo.Target.RunQuery"/>
     </action>
   </actions>

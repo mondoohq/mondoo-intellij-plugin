@@ -112,6 +112,21 @@ class ReachabilityReportTest {
         assertTrue(report.grouped().isEmpty())
     }
 
+    /** Captured from `xgrep deps reachability --json` on a project with no manifests, 2026-10-06. */
+    @Test
+    fun `a project without dependencies reports null lists, which parse as empty`() {
+        val report = ReachabilityReport.parse(
+            """
+            {"schema_version":2,"packages":null,"edges":null,
+             "summary":{"imported":0,"imported_reachable":0,"imported_dead":0,"direct_unused":0,
+               "dev_dependency":0,"transitive":0,"transitive_reachable":0,"transitive_conditional":0,
+               "transitive_orphaned":0,"unknown":0}}
+            """.trimIndent(),
+        )!!
+        assertEquals(0, report.total)
+        assertTrue(report.summary.isEmpty())
+    }
+
     @Test
     fun `a package with no version still labels cleanly`() {
         val json = captured.replace(""""version": "v2.2.2"""", """"version": """"")

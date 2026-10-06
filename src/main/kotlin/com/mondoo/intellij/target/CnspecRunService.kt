@@ -4,7 +4,6 @@
 package com.mondoo.intellij.target
 
 import com.intellij.execution.ExecutionException
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.OSProcessHandler
@@ -22,7 +21,6 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.ui.content.ContentFactory
 import com.mondoo.intellij.binary.CnspecBinaryService
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -92,7 +90,7 @@ class CnspecRunService(private val project: Project) : Disposable {
         }
 
         return try {
-            val command = GeneralCommandLine(binary.toString())
+            val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                 .withParameters("run", "--inventory-file", inventory.toString(), "-c", ConnectionProbe.QUERY, "-j")
                 .withWorkDirectory(project.basePath)
                 .withCharset(StandardCharsets.UTF_8)
@@ -130,7 +128,7 @@ class CnspecRunService(private val project: Project) : Disposable {
             return
         }
 
-        val command = GeneralCommandLine(binary.toString())
+        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
             .withParameters(verb + listOf("--inventory-file", inventory.toString()))
             .withWorkDirectory(project.basePath)
 
@@ -150,13 +148,24 @@ class CnspecRunService(private val project: Project) : Disposable {
             return
         }
 
-        val console = showConsole(title)
+        val console = startRunLog(title, handler)
         ProcessTerminatedListener.attach(handler, project)
         console.attachToProcess(handler)
 
+        val output = StringBuffer()
         handler.addProcessListener(object : ProcessListener {
+            override fun onTextAvailable(event: ProcessEvent, outputType: com.intellij.openapi.util.Key<*>) {
+                if (output.length < OUTPUT_KEEP_CHARS) output.append(event.text)
+            }
+
             override fun processTerminated(event: ProcessEvent) {
                 deleteInventory(inventory)
+                // cnspec's own error says what failed but not what to do about it.
+                CnspecErrors.hint(output.toString())?.let { hint ->
+                    ApplicationManager.getApplication().invokeLater({
+                        console.print("\n$hint\n", com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+                    }, project.disposed)
+                }
             }
         })
         handler.startNotify()
@@ -232,39 +241,50 @@ class CnspecRunService(private val project: Project) : Disposable {
         }
     }
 
+    private var runLog: ConsoleView? = null
+    private var current: OSProcessHandler? = null
+    private val runListeners = java.util.concurrent.CopyOnWriteArrayList<(String) -> Unit>()
+
+    /** The run log the Policies tab shows, created on first use. EDT only. */
+    fun runLogComponent(): javax.swing.JComponent = runLog().component
+
+    /** [listener] runs on the EDT with the run's title whenever a run starts, until [parent] is disposed. */
+    fun onRunStarted(parent: Disposable, listener: (String) -> Unit) {
+        runListeners += listener
+        Disposer.register(parent) { runListeners -= listener }
+    }
+
     /**
-     * Opens a console tab for one run, retiring the oldest when they pile up.
+     * Clears the run log for a new run and brings the Policies tab forward.
      *
-     * Runs are frequent while writing a policy and each one used to add a tab that
-     * nothing ever removed, so the tool window filled with dead output. The two
-     * permanent tabs are not closeable, which is what distinguishes them from these.
+     * One log, reused: runs are frequent while writing a policy, and a tab per run
+     * filled the tool window with dead output. A run still going is stopped first,
+     * so its last lines cannot land in the new run's log.
      */
-    private fun showConsole(title: String): ConsoleView {
-        val console = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
-        val window = ToolWindowManager.getInstance(project).getToolWindow("Mondoo")
-
-        if (window == null) {
-            // No tool window to hang it on, so this service owns the console instead;
-            // otherwise nothing would ever dispose it.
-            Disposer.register(this, console)
-            return console
+    private fun startRunLog(title: String, handler: OSProcessHandler): ConsoleView {
+        current?.takeUnless { it.isProcessTerminated }?.let { previous ->
+            previous.destroyProcess()
+            previous.waitFor(STOP_WAIT_MS)
         }
-
-        val manager = window.contentManager
-        manager.contents.filter { it.isCloseable }
-            .dropLast((MAX_CONSOLE_TABS - 1).coerceAtLeast(0))
-            .forEach { manager.removeContent(it, true) }
-
-        val content = ContentFactory.getInstance().createContent(console.component, title, false)
-        // The single owner: closing the tab, or the project, disposes the console.
-        // Registering it with the service as well would give it two parents and a
-        // second dispose.
-        content.setDisposer(console)
-        manager.addContent(content)
-        manager.setSelectedContent(content)
-        window.activate(null)
+        current = handler
+        val console = runLog()
+        console.clear()
+        console.print("▶ $title\n", com.intellij.execution.ui.ConsoleViewContentType.SYSTEM_OUTPUT)
+        runListeners.forEach { it(title) }
+        ToolWindowManager.getInstance(project).getToolWindow("Mondoo")?.let { window ->
+            window.activate {
+                window.contentManager.findContent(POLICIES_TAB)?.let { window.contentManager.setSelectedContent(it) }
+            }
+        }
         return console
     }
+
+    private fun runLog(): ConsoleView = runLog ?: TextConsoleBuilderFactory.getInstance()
+        .createBuilder(project).console
+        .also {
+            runLog = it
+            Disposer.register(this, it)
+        }
 
     override fun dispose() = Unit
 
@@ -272,8 +292,9 @@ class CnspecRunService(private val project: Project) : Disposable {
         private const val INVENTORY_DIR_PREFIX = "mondoo-intellij-inv-"
         private const val STALE_AFTER_MINUTES = 30L
 
-        /** Enough to compare a couple of runs; beyond that they are just clutter. */
-        private const val MAX_CONSOLE_TABS = 5
+        private const val POLICIES_TAB = "Policies"
+        private const val STOP_WAIT_MS = 2_000L
+        private const val OUTPUT_KEEP_CHARS = 64 * 1024
 
         /**
          * Long enough for a cold provider install and an SSH handshake, short enough

@@ -9,7 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- A **Fix** tab in the Mondoo tool window brings `xgrep fix` into the IDE. It lists
+  the findings with how each can be fixed, lets you record a verdict (true positive,
+  false positive with a reason, needs review), and previews deterministic fixes as an
+  IntelliJ diff. Fix Checked applies them, and hands agent-assisted findings to your
+  coding agent (Claude Code, Codex, or your own command, chosen in Settings | Tools |
+  Mondoo). The run shows step by step in the Fix tab's Run log (the files the agent
+  reads, the commands it runs, the files it changes), and cancelling the progress
+  stops it. Afterwards you can open a pull request. The fixing itself is done
+  by xgrep, the same way as in the terminal; every fix is re-scanned before it counts,
+  and a Local History label lets you undo a whole run. Needs xgrep 0.58.0 or later.
+- Alt+Enter on an agent-assisted finding offers **Fix with coding agent (xgrep)**.
+- **Connect to Mondoo Platform…** (More menu, and Settings | Tools | Mondoo): register a
+  service account with a registration token, or pick a service account file on disk.
+  The file is checked before it is used (a missing key or certificate is reported up
+  front), and every xgrep and cnspec the plugin starts then uses it. An organization
+  service account asks for a space. Settings and the menu show which space you are
+  connected to. A Fix tab scan that could not check dependencies says so, and why. Needs xgrep 0.58.0 or later for token registration.
+- **Include files not committed yet** (Settings | Tools | Mondoo, on by default): in a
+  git repository, Scan Workspace and the Fix tab also scan new and untracked files.
+  Before, a workspace scan only covered committed files, so a file you had just
+  created showed findings in the editor but not in the scan results.
+
 ### Changed
+
+- The Dependencies tab has a **Scan** button that analyzes dependencies and checks them
+  for known vulnerabilities in one go. Vulnerable packages come first in each group with
+  their counts by severity and the version that fixes them all; expanding one lists its
+  CVEs. Double-click a CVE to open its advisory; right-click a package to copy the upgrade
+  command. The vulnerabilities come from the same scan as the Fix tab's, so a scan from
+  either tab, or `xgrep scan` in a terminal, updates both.
+- The Fix tab fixes vulnerable dependencies: check one and Fix Checked runs the package
+  manager (e.g. `npm install pg@7.1.2`) through xgrep, which re-checks the vulnerability
+  and rolls back if the upgrade did not clear it. A package with several advisories is
+  upgraded once, to the version that fixes all of them. Selecting one shows the command
+  that will run.
+- Vulnerable dependencies show where they are declared: `requirements.txt` and
+  `package.json` turn red in the Project view, and each vulnerable line gets an
+  underline, a scrollbar mark and a gutter icon listing its vulnerabilities. Alt+Enter on
+  the line offers **Upgrade <package> to <version>**, the first version that fixes them.
+- **Generate SBOM…** is one dialog instead of three prompts: what to include (software,
+  cryptography and AI can be combined), the format, the software options and where to
+  save it.
+- The Dependencies tab shows each package's ecosystem with the IDE's icon for its
+  language (JavaScript for npm, Python for PyPI, …), or a coloured badge where the IDE
+  does not know the language.
+
+- The status bar reads **Mondoo** (for example **Mondoo: 12**) instead of **xgrep**, as
+  do scan notifications: the plugin covers code and infrastructure, and which scanner
+  found what is in the tooltip. **Connect to Mondoo Platform…** is in the status bar
+  menu too.
+
+- Policy, query and target scans write to a run log on the **Policies** tab, next to
+  the bundle tree (it opens with a run and can be closed), instead of opening a new console tab for every run. When cnspec
+  fails because its Mondoo service account cannot be used, the log says how to fix it.
+
+- Actions now sit with the tab they belong to. **Code Security** has Scan and fix,
+  **Dependencies** has Generate SBOM…, and **Policies** has New Policy, Bundle (lint,
+  format, upload the selected bundle) and Target (scan, query, shell, manage).
+  **Tools | Mondoo Code Security** and the status bar menu keep scanning, fixing and
+  search, with setup and help under More, which is also the tool window's gear menu.
 
 ### Fixed
 

@@ -102,7 +102,7 @@ internal class XgrepLspServerDescriptor(project: Project, private val binaryPath
 
     override fun createCommandLine(): GeneralCommandLine {
         val rulesPath = MondooSettings.getInstance().state.xgrepRulesPath.orEmpty()
-        val command = GeneralCommandLine(binaryPath)
+        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binaryPath)
         // `-f` precedes the subcommand: `xgrep -f <rules> lsp`.
         if (rulesPath.isNotBlank()) {
             command.addParameters("-f", rulesPath)
@@ -137,11 +137,18 @@ internal class XgrepLspServerDescriptor(project: Project, private val binaryPath
             ),
         )
 
-    override fun createInitializationOptions(): Any? {
-        val scanJobs = MondooSettings.getInstance().state.xgrepScanJobs
-        return if (scanJobs >= 1) XgrepInitializationOptions(scanJobs) else null
+    override fun createInitializationOptions(): Any {
+        val state = MondooSettings.getInstance().state
+        return XgrepInitializationOptions(
+            scanJobs = state.xgrepScanJobs.takeIf { it >= 1 },
+            allFiles = state.xgrepScanUncommitted,
+        )
     }
 }
 
-/** Serialized by lsp4j's Gson into `InitializeParams.initializationOptions`. */
-internal data class XgrepInitializationOptions(val scanJobs: Int)
+/**
+ * Serialized by lsp4j's Gson into `InitializeParams.initializationOptions`; Gson
+ * leaves a null [scanJobs] out, which xgrep reads as its own default. An xgrep that
+ * predates [allFiles] ignores it.
+ */
+internal data class XgrepInitializationOptions(val scanJobs: Int?, val allFiles: Boolean)

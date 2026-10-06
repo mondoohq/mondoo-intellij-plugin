@@ -54,6 +54,12 @@ class McpConfigTest {
     }
 
     @Test
+    fun `a null mcpServers is treated as none, and anything else is left alone`() {
+        assertTrue(serversOf(McpConfig.merge("""{"mcpServers": null}""", binary)!!).has("mondoo-xgrep"))
+        assertNull(McpConfig.merge("""{"mcpServers": []}""", binary))
+    }
+
+    @Test
     fun `re-registering replaces rather than duplicates`() {
         val once = McpConfig.merge(null, binary)!!
         val twice = McpConfig.merge(once, "/opt/homebrew/bin/xgrep")!!

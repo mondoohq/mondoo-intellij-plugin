@@ -89,6 +89,8 @@ class PluginDescriptorTest {
             "com.mondoo.intellij.actions.ScanChangedFilesAction",
             "com.mondoo.intellij.actions.ScanChangesSinceAction",
             "com.mondoo.intellij.actions.ClearFindingsAction",
+            "com.mondoo.intellij.fix.OpenFixTabAction",
+            "com.mondoo.intellij.platform.ConnectMondooAction",
             "com.mondoo.intellij.actions.AnalyzeDependenciesAction",
             "com.mondoo.intellij.actions.GenerateBomAction",
             "com.mondoo.intellij.actions.SearchCodeAction",

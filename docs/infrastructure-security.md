@@ -63,7 +63,7 @@ and this is where you would notice it.
 
 ## Linting a bundle
 
-**Tools** → **Mondoo Code Security** → **Lint Policy Bundle**, on an open bundle.
+**Bundle** → **Lint Policy Bundle** in the **Policies** tab, with a bundle selected.
 
 The linter checks things the language server does not: required tags, missing asset
 filters, queries that no policy references. On a bundle with a compile error and
@@ -97,13 +97,34 @@ bash -c "$(curl -sSL https://install.mondoo.com/sh)"
 
 Set a custom location in **Settings** → **Tools** → **Mondoo** → **cnspec path**.
 
+cnspec and xgrep connect to Mondoo Platform with a service account: by default the one
+in `~/.config/mondoo/mondoo.yml`, or the file `MONDOO_CONFIG_PATH` names. To connect
+from the IDE, use **More** → **Connect to Mondoo Platform…** (also a button in
+**Settings** → **Tools** → **Mondoo**):
+
+- **Register with a registration token.** Create one in the Mondoo Console under
+  **Space → Settings → Registration Token** and paste it. The plugin registers a
+  service account with `xgrep login` and saves it where you choose. The token is
+  passed in the environment, never on a command line.
+- **Use a service account file** you already have, such as one `cnspec login` wrote.
+
+A service account that belongs to an organization rather than a space needs a space
+chosen too, since dependency checks and reports go to a space: enter its ID or paste its
+URL from the console in **Space**. When a scan could not check dependencies, the Fix tab
+says so after scanning, with a **Choose Space…** button where that is the reason.
+
+Either way the file is checked first: one with no private key or certificate is
+reported in the dialog instead of failing every scan later. The plugin then passes it to
+every cnspec and xgrep it starts, including the cnspec shell.
+
 ## Running policies against a target
 
 **Scan Target…** runs a policy scan. **Run MQL Query…** runs a single query, which is
 the fastest way to answer "what does this resource actually return here?" — select an
 expression in the editor first and it is offered as the default.
 
-Output streams into a console tab in the Mondoo tool window.
+Output streams into the run log on the **Policies** tab, next to the bundle tree. Each
+run replaces the last; starting one while another is still going stops the first.
 
 **This machine** is always available and needs no configuration. **Manage Targets…**
 adds others:
@@ -142,7 +163,7 @@ terminal. It is the fastest way to answer "what does this resource actually retu
 here?", which is most of policy authoring — you type MQL, read the answer, and type
 more.
 
-This is the one cnspec feature that uses the terminal rather than a console tab. The
+This is the one cnspec feature that uses the terminal rather than the run log. The
 others stream output and a console renders that fine; a shell needs an input line,
 which a console does not have.
 

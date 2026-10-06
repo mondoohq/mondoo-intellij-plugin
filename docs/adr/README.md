@@ -7,6 +7,7 @@ one file per decision, numbered, never rewritten once accepted — supersede ins
 | ADR | Title |
 | --- | ----- |
 | [0001](0001-lsp-client-and-ide-compatibility.md) | Use the platform LSP API, registered under `serverSupportProvider`, behind an optional content module |
+| [0002](0002-xgrep-fix-ui.md) | Fixing in the IDE drives `xgrep fix serve`; the plugin only draws it |
 
 ## Related decisions in vscode-mondoo
 

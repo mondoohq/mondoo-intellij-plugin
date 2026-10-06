@@ -59,17 +59,17 @@ object LintReport {
      */
     fun parse(sarif: String): List<LintFinding>? = runCatching {
         val root = JsonParser.parseString(sarif).asJsonObject
-        val runs = root.getAsJsonArray("runs") ?: return emptyList()
-
-        runs.flatMap { run ->
-            run.asJsonObject.getAsJsonArray("results").orEmpty().mapNotNull { element ->
+        // cnspec is Go: an empty list can arrive as `null`, which getAsJsonArray
+        // throws on, so a clean bundle would read as an unreadable report.
+        root.arrayOrEmpty("runs").flatMap { run ->
+            run.asJsonObject.arrayOrEmpty("results").mapNotNull { element ->
                 runCatching {
                     val result = element.asJsonObject
 
                     // A result with no location cannot be attached to a document, so
                     // it is dropped rather than shown at the top of an arbitrary file.
-                    val location = result.getAsJsonArray("locations")
-                        ?.firstOrNull()?.takeIf { it.isJsonObject }?.asJsonObject
+                    val location = result.arrayOrEmpty("locations")
+                        .firstOrNull()?.takeIf { it.isJsonObject }?.asJsonObject
                         ?.get("physicalLocation")?.takeIf { it.isJsonObject }?.asJsonObject
                         ?: return@mapNotNull null
 
@@ -84,7 +84,8 @@ object LintReport {
                         line = ((region?.get("startLine")?.asInt ?: 1) - 1).coerceAtLeast(0),
                         column = ((region?.get("startColumn")?.asInt ?: 1) - 1).coerceAtLeast(0),
                         ruleId = result["ruleId"]?.asString.orEmpty(),
-                        message = result.getAsJsonObject("message")?.get("text")?.asString.orEmpty(),
+                        message = result.get("message")?.takeIf { it.isJsonObject }?.asJsonObject
+                            ?.get("text")?.asString.orEmpty(),
                         severity = LintSeverity.of(result["level"]?.asString),
                     )
                 }.getOrNull()
@@ -92,6 +93,6 @@ object LintReport {
         }
     }.getOrNull()
 
-    private fun com.google.gson.JsonArray?.orEmpty(): List<com.google.gson.JsonElement> =
-        this?.toList() ?: emptyList()
+    private fun com.google.gson.JsonObject.arrayOrEmpty(name: String): List<com.google.gson.JsonElement> =
+        get(name)?.takeIf { it.isJsonArray }?.asJsonArray?.toList().orEmpty()
 }

@@ -3,7 +3,6 @@
 
 package com.mondoo.intellij.policy
 
-import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
@@ -30,7 +29,7 @@ import com.mondoo.intellij.util.ProjectTrust
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
-/** Base for actions that operate on the policy bundle in the editor. */
+/** Base for actions on a policy bundle: the one selected on the Policies tab, or open in the editor. */
 abstract class PolicyBundleAction : AnAction() {
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -38,7 +37,10 @@ abstract class PolicyBundleAction : AnAction() {
     override fun update(e: AnActionEvent) {
         val project = e.project
         val file = e.getData(CommonDataKeys.VIRTUAL_FILE)
-        e.presentation.isEnabledAndVisible = project != null &&
+        // Listed under Bundle on the Policies tab whether or not a bundle is selected,
+        // so the menu shows what it can do; enabled once one is.
+        e.presentation.isVisible = project != null
+        e.presentation.isEnabled = project != null &&
             file != null &&
             MqlFiles.isPolicyBundle(file.name) &&
             ProjectTrust.isTrusted(project) &&
@@ -137,7 +139,7 @@ open class FormatPolicyAction(private val sort: Boolean = false) : PolicyBundleA
                     if (sort) add("--sort")
                     add(file.name)
                 }
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     .withParameters(args)
                     .withWorkDirectory(file.parent?.path)
 
@@ -229,7 +231,7 @@ class NewPolicyFromTemplateAction : AnAction() {
         object : Task.Backgroundable(project, "Creating $name", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     // The name is one argv token and never reaches a shell, and it has
                     // already been refused if it contains a separator.
                     .withParameters("policy", "init", name)
@@ -323,7 +325,7 @@ class UploadPolicyAction : PolicyBundleAction() {
         object : Task.Backgroundable(project, "Uploading ${file.name}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
-                val command = GeneralCommandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
                     .withParameters("policy", "upload", file.name)
                     .withWorkDirectory(file.parent?.path)
                     .withCharset(StandardCharsets.UTF_8)

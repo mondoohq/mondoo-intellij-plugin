@@ -68,6 +68,7 @@ internal class XgrepNotificationsHandler(
                     ruleId = data?.ruleId ?: diagnostic.code?.get()?.toString() ?: "xgrep",
                     message = messageOf(diagnostic),
                     severity = FindingSeverity.fromLsp(diagnostic.severity?.value),
+                    fixKind = data?.fixKind?.takeIf { it.isNotBlank() },
                 )
             },
         )

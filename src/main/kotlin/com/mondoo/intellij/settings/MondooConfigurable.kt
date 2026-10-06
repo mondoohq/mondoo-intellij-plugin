@@ -8,6 +8,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindIntText
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -23,6 +24,8 @@ import com.intellij.ui.dsl.builder.toNonNullableProperty
 private data class ServerAffectingSettings(
     val rulesPath: String,
     val scanJobs: Int,
+    val scanUncommitted: Boolean,
+    val mondooConfigPath: String,
     val excludePatterns: List<String>,
     val includePatterns: List<String>,
 )
@@ -52,6 +55,8 @@ class MondooConfigurable :
         val reason = when {
             before.rulesPath != after.rulesPath -> "The rules path changed."
             before.scanJobs != after.scanJobs -> "Scan parallelism changed."
+            before.scanUncommitted != after.scanUncommitted -> "Which files a workspace scan covers changed."
+            before.mondooConfigPath != after.mondooConfigPath -> "The Mondoo configuration changed."
             broadened -> "The scan scope was broadened."
             else -> "Scan settings changed."
         }
@@ -80,6 +85,8 @@ class MondooConfigurable :
         return ServerAffectingSettings(
             rulesPath = state.xgrepRulesPath.orEmpty(),
             scanJobs = state.xgrepScanJobs,
+            scanUncommitted = state.xgrepScanUncommitted,
+            mondooConfigPath = state.mondooConfigPath.orEmpty(),
             excludePatterns = state.xgrepExcludePatterns.toList(),
             includePatterns = state.xgrepIncludePatterns.toList(),
         )
@@ -135,12 +142,59 @@ class MondooConfigurable :
                         .bindText(state::xgrepRulesPath.toNonNullableProperty(""))
                         .align(AlignX.FILL)
                 }.rowComment("Passed as <code>-f</code>. Empty uses the embedded security and secrets rules.")
+                row {
+                    checkBox("Include files not committed yet")
+                        .bindSelected(state::xgrepScanUncommitted)
+                }.rowComment(
+                    "In a git repository, Scan Workspace and the Fix tab also scan new and " +
+                        "untracked files. Off scans committed files only, like " +
+                        "<code>xgrep scan</code>. Files in <code>.gitignore</code> are never scanned.",
+                )
                 row("Scan parallelism:") {
                     intTextField(range = 0..32).bindIntText(state::xgrepScanJobs)
                 }.rowComment(
                     "How many files on-demand scans process at once. 0 uses the " +
                         "scanner's default of at most four workers, and never more than " +
                         "half your cores. Lower it to stay quieter on a shared machine.",
+                )
+            }
+            group("Fixing") {
+                row("Coding agent:") {
+                    comboBox(listOf("", "claude", "codex"))
+                        .applyToComponent { isEditable = true }
+                        .bindItem(
+                            { state.xgrepFixAgent.orEmpty() },
+                            { state.xgrepFixAgent = it.orEmpty().trim() },
+                        )
+                        .align(AlignX.FILL)
+                }.rowComment(
+                    "Writes the agent-assisted fixes and pull request descriptions. " +
+                        "<code>claude</code>, <code>codex</code>, or your own command with a " +
+                        "<code>{prompt}</code> placeholder. Empty uses xgrep's default " +
+                        "(<code>XGREP_AGENT</code>, its config, then claude), the same agent " +
+                        "<code>xgrep fix</code> uses in a terminal.",
+                )
+            }
+            group("Mondoo Platform") {
+                // Chosen in the Connect dialog rather than typed here: it checks the
+                // file, or registers a new service account from a token.
+                lateinit var statusLabel: com.intellij.ui.dsl.builder.Cell<javax.swing.JLabel>
+                fun statusText() = com.mondoo.intellij.platform.MondooPlatform.status().let {
+                    "${com.mondoo.intellij.platform.MondooPlatform.describe(it)} · ${it.path}"
+                }
+                row("Service account:") {
+                    statusLabel = label(statusText())
+                }
+                row {
+                    button("Connect...") {
+                        com.mondoo.intellij.platform.ConnectMondooDialog(null).show()
+                        statusLabel.component.text = statusText()
+                    }
+                }.rowComment(
+                    "Used by xgrep and cnspec for Mondoo Platform: dependency vulnerabilities, " +
+                        "uploads and policy upload. Register with a registration token, or pick a " +
+                        "service account file. Without one, <code>MONDOO_CONFIG_PATH</code> or " +
+                        "<code>~/.config/mondoo/mondoo.yml</code> is used.",
                 )
             }
             group("Infrastructure Security (cnspec)") {

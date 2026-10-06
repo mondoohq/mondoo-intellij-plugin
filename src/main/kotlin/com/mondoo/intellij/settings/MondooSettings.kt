@@ -61,11 +61,42 @@ class MondooState : BaseState() {
      */
     var xgrepScanJobs: Int by property(0)
 
+    /**
+     * mondoo.xgrepFixAgent — the coding agent `xgrep fix serve` hands assisted fixes
+     * to: `claude`, `codex`, or a command line with a `{prompt}` placeholder. Empty
+     * leaves the choice to xgrep (XGREP_AGENT, its config, then claude), so the IDE
+     * and the terminal agree unless the user says otherwise.
+     */
+    var xgrepFixAgent: String? by string("")
+
+    /**
+     * mondoo.xgrepScanUncommitted — in a git repository, whether workspace scans and
+     * the Fix tab's scan include files not committed yet. `xgrep scan` covers
+     * committed files only by default; in an IDE the file you just created is
+     * usually the one you are working on, so this is on. `.gitignore`d files are
+     * never scanned either way.
+     */
+    var xgrepScanUncommitted: Boolean by property(true)
+
     /** mondoo.xgrepExcludePatterns — globs never scanned. */
     val xgrepExcludePatterns: MutableList<String> by list()
 
     /** mondoo.xgrepIncludePatterns — when non-empty, only these are scanned. */
     val xgrepIncludePatterns: MutableList<String> by list()
+
+    /**
+     * mondoo.configPath — the Mondoo configuration (service account) xgrep and cnspec
+     * use, passed as MONDOO_CONFIG_PATH. Empty uses their default: MONDOO_CONFIG_PATH
+     * from the environment, else ~/.config/mondoo/mondoo.yml.
+     */
+    var mondooConfigPath: String? by string("")
+
+    /**
+     * mondoo.spaceMrn — the space to report to and check dependencies in, as an MRN.
+     * Needed for a service account that belongs to an organization; empty uses the
+     * service account's own space.
+     */
+    var mondooSpaceMrn: String? by string("")
 
     // --- Infrastructure security (cnspec) ---
 

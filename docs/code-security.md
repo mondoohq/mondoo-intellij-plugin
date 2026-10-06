@@ -35,16 +35,22 @@ to enforce your team's own rules, so the editor matches your pipeline.
 
 ## Check the whole project before you commit
 
-Three actions cover code you do not have open, under **Tools | Mondoo Code Security**:
+Three actions cover code you do not have open, under **Tools | Mondoo Code Security**,
+the status bar menu, and **Scan** in the **Code Security** tab:
 
 | Action | What it checks |
 | --- | --- |
-| Scan Workspace | Every file in the project |
+| Scan Workspace | Every file in the project (see below for uncommitted files) |
 | Scan Changed Files (Fast) | Only what is new or modified according to git |
 | Scan Changes Since... | Only what changed since a git ref you pick |
 
 The last is for reviewing a feature branch against `main` without scanning the whole
 tree.
+
+In a git repository, Scan Workspace and the **Fix** tab also scan files you have not
+committed yet. Turn off **Include files not committed yet** in **Settings | Tools |
+Mondoo** to scan committed files only, as `xgrep scan` does on the command line. Files
+in `.gitignore` are never scanned.
 
 ## Dismiss a finding that does not apply
 
@@ -169,7 +175,7 @@ agreement to every later one. Turn the offer off in advance by clearing **Offer 
 update the scanner**, or disable the scanner entirely with **Enable the xgrep
 security scanner**.
 
-If the status bar shows **xgrep: set up**, the scanner could not be located. Click it,
+If the status bar shows **Mondoo: set up**, the scanner could not be located. Click it,
 or run **Set Up Scanner**. A bar also appears at the top of any file the scanner would
 have checked, offering the same thing; dismiss it for good with **Don't show again**.
 **Show xgrep Path** reports which binary is in use.
