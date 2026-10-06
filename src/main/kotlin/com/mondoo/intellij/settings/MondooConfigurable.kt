@@ -8,6 +8,7 @@ import com.intellij.openapi.options.BoundSearchableConfigurable
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindIntText
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
@@ -141,6 +142,23 @@ class MondooConfigurable :
                     "How many files on-demand scans process at once. 0 uses the " +
                         "scanner's default of at most four workers, and never more than " +
                         "half your cores. Lower it to stay quieter on a shared machine.",
+                )
+            }
+            group("Fixing") {
+                row("Coding agent:") {
+                    comboBox(listOf("", "claude", "codex"))
+                        .applyToComponent { isEditable = true }
+                        .bindItem(
+                            { state.xgrepFixAgent.orEmpty() },
+                            { state.xgrepFixAgent = it.orEmpty().trim() },
+                        )
+                        .align(AlignX.FILL)
+                }.rowComment(
+                    "Writes the agent-assisted fixes and pull request descriptions. " +
+                        "<code>claude</code>, <code>codex</code>, or your own command with a " +
+                        "<code>{prompt}</code> placeholder. Empty uses xgrep's default " +
+                        "(<code>XGREP_AGENT</code>, its config, then claude), the same agent " +
+                        "<code>xgrep fix</code> uses in a terminal.",
                 )
             }
             group("Infrastructure Security (cnspec)") {

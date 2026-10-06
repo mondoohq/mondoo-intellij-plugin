@@ -59,6 +59,10 @@
     <projectService serviceImplementation="com.mondoo.intellij.target.TargetStore"/>
     <projectService serviceImplementation="com.mondoo.intellij.target.CnspecRunService"/>
     <projectService serviceImplementation="com.mondoo.intellij.dependencies.DependencyReachabilityService"/>
+    <!-- The fix session: `xgrep fix serve` and the state the Fix tab shows. -->
+    <projectService serviceImplementation="com.mondoo.intellij.fix.FixServer"/>
+    <projectService serviceImplementation="com.mondoo.intellij.fix.FixSession"/>
+    <projectService serviceImplementation="com.mondoo.intellij.fix.FixConsole"/>
 
     <toolWindow id="Mondoo"
                 anchor="bottom"

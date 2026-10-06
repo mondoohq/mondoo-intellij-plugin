@@ -61,6 +61,14 @@ class MondooState : BaseState() {
      */
     var xgrepScanJobs: Int by property(0)
 
+    /**
+     * mondoo.xgrepFixAgent — the coding agent `xgrep fix serve` hands assisted fixes
+     * to: `claude`, `codex`, or a command line with a `{prompt}` placeholder. Empty
+     * leaves the choice to xgrep (XGREP_AGENT, its config, then claude), so the IDE
+     * and the terminal agree unless the user says otherwise.
+     */
+    var xgrepFixAgent: String? by string("")
+
     /** mondoo.xgrepExcludePatterns — globs never scanned. */
     val xgrepExcludePatterns: MutableList<String> by list()
 

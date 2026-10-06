@@ -75,6 +75,42 @@ internal class XgrepFindingsToolWindowFactory :
         toolWindow.contentManager.addContent(
             factory.createContent(policies, "Policies", false).also { it.isCloseable = false },
         )
+
+        // The fix session starts `xgrep fix serve`, so it waits until the tab is
+        // actually looked at rather than starting with the tool window.
+        val fix = com.mondoo.intellij.fix.XgrepFixPanel(project)
+        Disposer.register(toolWindow.disposable, fix)
+        val fixContent = factory.createContent(fix, FIX_TAB, false).also { it.isCloseable = false }
+        toolWindow.contentManager.addContent(fixContent)
+        toolWindow.contentManager.addContentManagerListener(
+            object : com.intellij.ui.content.ContentManagerListener {
+                override fun selectionChanged(event: com.intellij.ui.content.ContentManagerEvent) {
+                    if (event.content === fixContent &&
+                        event.operation == com.intellij.ui.content.ContentManagerEvent.ContentOperation.add
+                    ) {
+                        fix.onShown()
+                    }
+                }
+            },
+        )
+    }
+
+    companion object {
+        const val FIX_TAB = "Fix"
+
+        /**
+         * Shows the Fix tab and hands its panel to [then], creating the tool window
+         * content first if it has not been opened yet.
+         */
+        fun showFixTab(project: Project, then: (com.mondoo.intellij.fix.XgrepFixPanel) -> Unit = {}) {
+            val window =
+                com.intellij.openapi.wm.ToolWindowManager.getInstance(project).getToolWindow("Mondoo") ?: return
+            window.activate {
+                val content = window.contentManager.findContent(FIX_TAB) ?: return@activate
+                window.contentManager.setSelectedContent(content)
+                (content.component as? com.mondoo.intellij.fix.XgrepFixPanel)?.let(then)
+            }
+        }
     }
 }
 

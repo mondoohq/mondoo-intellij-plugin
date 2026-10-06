@@ -55,6 +55,29 @@ Only worth checking when the description, icons or change notes have changed.
       findings reappear afterwards without reopening the file.
 - [ ] It is harmless when none of them are running.
 
+## Fixing (needs xgrep 0.58.0+ with `fix serve`)
+
+- [ ] Opening the **Fix** tab starts one `xgrep fix serve` (check with `ps`); opening
+      the tool window without selecting the tab starts none.
+- [ ] With no `.xgrep/findings.json`, the tab says so and **Scan Project** fills it.
+- [ ] Selecting a deterministic finding shows a diff of the file with the fix; the file
+      is unchanged on disk.
+- [ ] **Mark False Positive…** asks for a reason, the finding becomes not fixable, and
+      `.xgrep/findings.json` records `reviewed_by: ide`.
+- [ ] Checking a deterministic and an assisted finding and pressing **Fix Checked**
+      applies both. The **xgrep fix** console shows the agent's command and its output,
+      the editor shows the new file content, and the notification offers **Create Pull
+      Request**.
+- [ ] Cancelling the progress during the agent run stops it: no `claude`/`codex`
+      process is left (`ps`), and the outcome is reported, not lost.
+- [ ] Local History shows "Before xgrep fix", and reverting to it restores the files.
+- [ ] Alt+Enter on an assisted finding offers **Fix with coding agent (xgrep)** and runs it.
+- [ ] With an xgrep older than 0.58.0, the tab says to update xgrep and nothing runs
+      `fix` on a path named `serve`.
+- [ ] Changing the coding agent in settings takes effect on the next run (the server
+      restarts).
+- [ ] Closing the project leaves no `xgrep fix serve` process behind.
+
 ## Scans
 
 - [ ] **Scan Workspace** runs, shows progress, and reports a result notification.

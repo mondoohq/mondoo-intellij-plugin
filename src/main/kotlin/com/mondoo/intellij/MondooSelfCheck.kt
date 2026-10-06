@@ -101,6 +101,10 @@ internal class MondooSelfCheck : ProjectActivity {
         check(failures, "PolicyIndexService") { com.mondoo.intellij.policy.PolicyIndexService.getInstance(project) }
         check(failures, "TargetStore") { com.mondoo.intellij.target.TargetStore.getInstance(project) }
         check(failures, "CnspecRunService") { com.mondoo.intellij.target.CnspecRunService.getInstance(project) }
+        // Instantiating these starts nothing: the fix server starts on first use.
+        check(failures, "FixServer") { com.mondoo.intellij.fix.FixServer.getInstance(project) }
+        check(failures, "FixSession") { com.mondoo.intellij.fix.FixSession.getInstance(project) }
+        check(failures, "FixConsole") { com.mondoo.intellij.fix.FixConsole.getInstance(project) }
     }
 
     private fun check(failures: MutableList<String>, name: String, supplier: () -> Any?) {

@@ -37,6 +37,14 @@
       <category>Mondoo Code Security</category>
     </intentionAction>
 
+    <!-- Hands an agent-assisted finding to `xgrep fix serve`. Here rather than in
+         the core descriptor because it reads the language server's findings. -->
+    <intentionAction>
+      <language/>
+      <className>com.mondoo.intellij.fix.FixWithAgentIntention</className>
+      <category>Mondoo Code Security</category>
+    </intentionAction>
+
     <platform.lsp.serverSupportProvider
         implementation="com.mondoo.intellij.lsp.XgrepLspServerSupportProvider"/>
 
