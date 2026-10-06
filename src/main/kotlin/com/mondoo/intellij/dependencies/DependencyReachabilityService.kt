@@ -6,6 +6,7 @@ package com.mondoo.intellij.dependencies
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
@@ -39,6 +40,46 @@ class DependencyReachabilityService(private val project: Project) {
 
     /** The most recent report, or null if none has been produced. */
     fun report(): ReachabilityReport? = latest.get()
+
+    private val vulns = AtomicReference<Map<String, PackageVulnerabilities>>(emptyMap())
+
+    /** Known vulnerabilities per package, from the last scan's findings cache. */
+    fun vulnerabilities(): Map<String, PackageVulnerabilities> = vulns.get()
+
+    init {
+        // The vulnerabilities come from the findings cache, whoever scanned: this
+        // tab's Scan, the Fix tab, or `xgrep scan` in a terminal.
+        project.messageBus.connect().subscribe(
+            com.intellij.openapi.vfs.VirtualFileManager.VFS_CHANGES,
+            object : com.intellij.openapi.vfs.newvfs.BulkFileListener {
+                override fun after(events: List<com.intellij.openapi.vfs.newvfs.events.VFileEvent>) {
+                    if (events.any { it.path == cachePath()?.toString() }) loadVulnerabilities()
+                }
+            },
+        )
+    }
+
+    private fun cachePath(): java.nio.file.Path? =
+        project.basePath?.let { java.nio.file.Path.of(it, ".xgrep", "findings.json") }
+
+    /** Reads the vulnerabilities from the findings cache, off the EDT. */
+    fun loadVulnerabilities() {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val text = cachePath()?.let { runCatching { java.nio.file.Files.readString(it) }.getOrNull() }
+            vulns.set(text?.let(DependencyVulnerabilities::parse).orEmpty())
+            if (!project.isDisposed) project.messageBus.syncPublisher(VULNERABILITIES_TOPIC).vulnerabilitiesChanged()
+        }
+    }
+
+    /**
+     * Scan: rebuild the reachability graph, and scan the project (the same scan the
+     * Fix tab runs) so the vulnerability lookup runs; its result arrives through
+     * the findings cache.
+     */
+    fun scan() {
+        refresh()
+        com.mondoo.intellij.fix.FixSession.getInstance(project).refresh(rescan = true)
+    }
 
     fun isRunning(): Boolean = running.get()
 
@@ -108,11 +149,19 @@ class DependencyReachabilityService(private val project: Project) {
         fun reachabilityChanged(report: ReachabilityReport)
     }
 
+    fun interface VulnerabilitiesListener {
+        fun vulnerabilitiesChanged()
+    }
+
     companion object {
         private const val TIMEOUT_MS = 10 * 60 * 1000
 
         @JvmField
         val TOPIC: Topic<Listener> = Topic.create("Mondoo dependency reachability", Listener::class.java)
+
+        @JvmField
+        val VULNERABILITIES_TOPIC: Topic<VulnerabilitiesListener> =
+            Topic.create("Mondoo dependency vulnerabilities", VulnerabilitiesListener::class.java)
 
         @JvmStatic
         fun getInstance(project: Project): DependencyReachabilityService = project.service()

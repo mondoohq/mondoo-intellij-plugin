@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Dependencies tab has a **Scan** button that analyzes dependencies and checks them
+  for known vulnerabilities in one go. Vulnerable packages come first in each group with
+  their counts by severity and the version that fixes them all; expanding one lists its
+  CVEs. Double-click a CVE to open its advisory; right-click a package to copy the upgrade
+  command. The vulnerabilities come from the same scan as the Fix tab's, so a scan from
+  either tab, or `xgrep scan` in a terminal, updates both.
 - The Dependencies tab shows each package's ecosystem with the IDE's icon for its
   language (JavaScript for npm, Python for PyPI, …), or a coloured badge where the IDE
   does not know the language.
