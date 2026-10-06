@@ -40,6 +40,32 @@ class ConnectMondooAction :
     DumbAware {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
+    /**
+     * The entry shows the connection, so the menu answers "am I connected?" without
+     * opening anything. Reading the file is cheap (a few hundred bytes), and this
+     * runs off the EDT.
+     */
+    override fun update(e: AnActionEvent) {
+        val p = e.presentation
+        when (val status = MondooPlatform.status()) {
+            is MondooPlatform.Status.Connected -> {
+                p.text = "Connected to ${status.space ?: "Mondoo Platform"}"
+                p.description = "Change the Mondoo Platform service account (${MondooPlatform.display(status.path)})"
+                p.icon = AllIcons.General.InspectionsOK
+            }
+            is MondooPlatform.Status.Unusable -> {
+                p.text = "Fix Mondoo Platform Connection..."
+                p.description = "Your service account can't be used: ${MondooPlatform.joinWords(status.problems)}"
+                p.icon = AllIcons.General.Warning
+            }
+            is MondooPlatform.Status.Missing -> {
+                p.text = "Connect to Mondoo Platform..."
+                p.description = templatePresentation.description
+                p.icon = null
+            }
+        }
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
         ConnectMondooDialog(e.project).show()
     }
