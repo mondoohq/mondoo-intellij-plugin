@@ -40,8 +40,13 @@ object McpConfig {
         if (existing.isNullOrBlank()) return serverEntryJson(binaryPath)
         val root = runCatching { JsonParser.parseString(existing).asJsonObject }.getOrNull() ?: return null
 
-        val servers = root.getAsJsonObject("mcpServers")
-            ?: JsonObject().also { root.add("mcpServers", it) }
+        val current = root.get("mcpServers")
+        val servers = when {
+            current == null || current.isJsonNull -> JsonObject().also { root.add("mcpServers", it) }
+            current.isJsonObject -> current.asJsonObject
+            // Something we do not understand; leave the user's file alone.
+            else -> return null
+        }
         servers.add(SERVER_NAME, entry(binaryPath))
         return GsonBuilder().setPrettyPrinting().create().toJson(root)
     }

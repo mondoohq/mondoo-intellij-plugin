@@ -85,7 +85,7 @@ data class ReachabilityReport(val packages: List<DependencyPackage>, val summary
 
             // file -> package edges, folded into each package.
             val importers = mutableMapOf<String, MutableList<String>>()
-            root.getAsJsonArray("edges")?.forEach { element ->
+            root.arrayOrEmpty("edges").forEach { element ->
                 runCatching {
                     val edge = element.asJsonObject
                     val pkg = edge["package"].asString
@@ -94,7 +94,7 @@ data class ReachabilityReport(val packages: List<DependencyPackage>, val summary
                 }
             }
 
-            val packages = root.getAsJsonArray("packages").orEmpty().mapNotNull { element ->
+            val packages = root.arrayOrEmpty("packages").mapNotNull { element ->
                 runCatching {
                     val o = element.asJsonObject
                     val id = o["id"].asString
@@ -110,7 +110,7 @@ data class ReachabilityReport(val packages: List<DependencyPackage>, val summary
                 }.getOrNull()
             }
 
-            val summary = root.getAsJsonObject("summary")?.let { s ->
+            val summary = root.get("summary")?.takeIf { it.isJsonObject }?.asJsonObject?.let { s ->
                 Reachability.entries.mapNotNull { klass ->
                     s[klass.id]?.asInt?.takeIf { it > 0 }?.let { klass to it }
                 }.toMap()
@@ -119,7 +119,13 @@ data class ReachabilityReport(val packages: List<DependencyPackage>, val summary
             ReachabilityReport(packages, summary)
         }.getOrNull()
 
-        private fun com.google.gson.JsonArray?.orEmpty(): List<com.google.gson.JsonElement> =
-            this?.toList() ?: emptyList()
+        /**
+         * The array under [name], or nothing. A project with no dependencies comes back
+         * as `"packages": null` (a Go nil slice), not `[]`, and Gson's getAsJsonArray
+         * throws on a JSON null — which once turned "no dependencies" into "the report
+         * could not be read".
+         */
+        private fun com.google.gson.JsonObject.arrayOrEmpty(name: String): List<com.google.gson.JsonElement> =
+            get(name)?.takeIf { it.isJsonArray }?.asJsonArray?.toList().orEmpty()
     }
 }

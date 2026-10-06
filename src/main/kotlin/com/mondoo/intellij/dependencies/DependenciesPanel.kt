@@ -113,6 +113,16 @@ internal class DependenciesPanel(private val project: Project) :
                 root.add(groupNode)
             }
             model.reload()
+            if (report.total == 0) {
+                // Analyzed and found nothing is an answer, not "not analyzed yet".
+                tree.emptyText.clear()
+                    .appendLine("No dependencies found")
+                    .appendLine("This project has no package manifest or lockfile xgrep recognizes,")
+                    .appendLine("such as package.json, go.mod, requirements.txt or pom.xml.")
+                    .appendLine("Analyze Again", com.intellij.ui.SimpleTextAttributes.LINK_PLAIN_ATTRIBUTES) {
+                        DependencyReachabilityService.getInstance(project).refresh()
+                    }
+            }
             for (i in 0 until root.childCount) {
                 tree.expandPath(TreePath(arrayOf(root, root.getChildAt(i))))
             }
