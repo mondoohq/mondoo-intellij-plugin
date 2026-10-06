@@ -236,7 +236,9 @@ class FixSession(private val project: Project) : Disposable {
             ApplicationManager.getApplication().invokeLater({
                 com.mondoo.intellij.findings.XgrepFindingsToolWindowFactory.showFixTab(project) { panel ->
                     found.firstOrNull()?.let { panel.select(it.fingerprint) }
-                    if (!run) panel.check(found.filter { it.fixable }.map { it.fingerprint })
+                    // Checked either way, so the Fix tab shows exactly what was sent to
+                    // it; a run unchecks each finding as its outcome lands.
+                    panel.check(found.filter { it.fixable }.map { it.fingerprint })
                 }
                 if (!run) return@invokeLater
                 val fixable = found.filter { it.fixable }
