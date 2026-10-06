@@ -195,6 +195,10 @@
 
     <!-- Setup and help: the gear menu of the tool window, and More in the menu. -->
     <group id="Mondoo.More" popup="true" text="More" description="Setup, AI agents and help">
+      <action id="Mondoo.Platform.Connect"
+              class="com.mondoo.intellij.platform.ConnectMondooAction"
+              text="Connect to Mondoo Platform..."
+              description="Choose the service account xgrep and cnspec use: register one with a token, or pick a file"/>
       <action id="Mondoo.Xgrep.Setup"
               class="com.mondoo.intellij.actions.SetupScannerAction"
               text="Set Up Scanner"

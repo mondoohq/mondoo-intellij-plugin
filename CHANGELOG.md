@@ -20,9 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by xgrep, the same way as in the terminal; every fix is re-scanned before it counts,
   and a Local History label lets you undo a whole run. Needs xgrep 0.58.0 or later.
 - Alt+Enter on an agent-assisted finding offers **Fix with coding agent (xgrep)**.
-- **Mondoo config** (Settings | Tools | Mondoo): an optional path to the Mondoo
-  service-account configuration xgrep and cnspec use for Mondoo Platform. Empty keeps
-  their default, `MONDOO_CONFIG_PATH` or `~/.config/mondoo/mondoo.yml`.
+- **Connect to Mondoo Platform…** (More menu, and Settings | Tools | Mondoo): register a
+  service account with a registration token, or pick a service account file on disk.
+  The file is checked before it is used (a missing key or certificate is reported up
+  front), and every xgrep and cnspec the plugin starts then uses it. Settings shows
+  which space you are connected to. Needs xgrep 0.58.0 or later for token registration.
 - **Include files not committed yet** (Settings | Tools | Mondoo, on by default): in a
   git repository, Scan Workspace and the Fix tab also scan new and untracked files.
   Before, a workspace scan only covered committed files, so a file you had just

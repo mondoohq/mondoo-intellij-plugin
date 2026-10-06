@@ -97,11 +97,20 @@ bash -c "$(curl -sSL https://install.mondoo.com/sh)"
 
 Set a custom location in **Settings** → **Tools** → **Mondoo** → **cnspec path**.
 
-cnspec and xgrep connect to Mondoo Platform with the service account in
-`~/.config/mondoo/mondoo.yml`, or the file `MONDOO_CONFIG_PATH` names. To use a
-different one from the IDE, set **Settings** → **Tools** → **Mondoo** → **Mondoo
-config**; the plugin passes it to every cnspec and xgrep it starts, including the
-cnspec shell.
+cnspec and xgrep connect to Mondoo Platform with a service account: by default the one
+in `~/.config/mondoo/mondoo.yml`, or the file `MONDOO_CONFIG_PATH` names. To connect
+from the IDE, use **More** → **Connect to Mondoo Platform…** (also a button in
+**Settings** → **Tools** → **Mondoo**):
+
+- **Register with a registration token.** Create one in the Mondoo Console under
+  **Space → Settings → Registration Token** and paste it. The plugin registers a
+  service account with `xgrep login` and saves it where you choose. The token is
+  passed in the environment, never on a command line.
+- **Use a service account file** you already have, such as one `cnspec login` wrote.
+
+Either way the file is checked first: one with no private key or certificate is
+reported in the dialog instead of failing every scan later. The plugin then passes it to
+every cnspec and xgrep it starts, including the cnspec shell.
 
 ## Running policies against a target
 

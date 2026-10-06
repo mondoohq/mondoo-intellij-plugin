@@ -34,6 +34,7 @@ object DeclaredActions {
         "Mondoo.Target.Scan",
         "Mondoo.Target.RunQuery",
         "Mondoo.Target.Manage",
+        "Mondoo.Platform.Connect",
         "Mondoo.Xgrep.Setup",
         "Mondoo.Xgrep.InstallSkills",
         "Mondoo.Xgrep.ConfigureMcp",

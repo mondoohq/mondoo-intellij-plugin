@@ -176,16 +176,25 @@ class MondooConfigurable :
                 )
             }
             group("Mondoo Platform") {
-                row("Mondoo config:") {
-                    textFieldWithBrowseButton(
-                        FileChooserDescriptorFactory.singleFile(),
-                    )
-                        .bindText(state::mondooConfigPath.toNonNullableProperty(""))
-                        .align(AlignX.FILL)
+                // Chosen in the Connect dialog rather than typed here: it checks the
+                // file, or registers a new service account from a token.
+                lateinit var statusLabel: com.intellij.ui.dsl.builder.Cell<javax.swing.JLabel>
+                fun statusText() = com.mondoo.intellij.platform.MondooPlatform.status().let {
+                    "${com.mondoo.intellij.platform.MondooPlatform.describe(it)} · ${it.path}"
+                }
+                row("Service account:") {
+                    statusLabel = label(statusText())
+                }
+                row {
+                    button("Connect...") {
+                        com.mondoo.intellij.platform.ConnectMondooDialog(null).show()
+                        statusLabel.component.text = statusText()
+                    }
                 }.rowComment(
-                    "The service account xgrep and cnspec use for Mondoo Platform: dependency " +
-                        "vulnerabilities, uploads and policy upload. Leave empty to use " +
-                        "<code>MONDOO_CONFIG_PATH</code> or <code>~/.config/mondoo/mondoo.yml</code>.",
+                    "Used by xgrep and cnspec for Mondoo Platform: dependency vulnerabilities, " +
+                        "uploads and policy upload. Register with a registration token, or pick a " +
+                        "service account file. Without one, <code>MONDOO_CONFIG_PATH</code> or " +
+                        "<code>~/.config/mondoo/mondoo.yml</code> is used.",
                 )
             }
             group("Infrastructure Security (cnspec)") {
