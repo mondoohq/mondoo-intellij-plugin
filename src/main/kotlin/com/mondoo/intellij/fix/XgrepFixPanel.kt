@@ -146,6 +146,19 @@ internal class XgrepFixPanel(private val project: Project) :
         tree.scrollPathToVisible(path)
     }
 
+    /**
+     * Selects and checks what another view sent here (Alt+Enter, the Code Security
+     * tree). A no-op until the findings are listed; render() calls it again then.
+     */
+    fun applyPendingFocus() {
+        val focus = session.pendingFocus ?: return
+        if (leaves().none { (it.userObject as FixFinding).fingerprint == focus.select }) return
+        session.takePendingFocus()
+        check(focus.check)
+        select(focus.select)
+        tree.requestFocusInWindow()
+    }
+
     /** Checks the findings with these fingerprints (when fixable), leaving the rest as they are. */
     fun check(fingerprints: Collection<String>) {
         if (fingerprints.isEmpty()) return
@@ -198,6 +211,7 @@ internal class XgrepFixPanel(private val project: Project) :
         }
         renderStatus()
         showSelection()
+        applyPendingFocus()
     }
 
     private fun renderStatus() {

@@ -233,12 +233,27 @@ class FixSession(private val project: Project) : Disposable {
                 setStatus("")
                 found = matches()
             }
+            log.info(
+                "fix request for ${targets.size} finding(s): matched ${found.size} in the findings cache" +
+                    if (found.size <
+                        targets.size
+                    ) {
+                        " (unmatched: ${targets - found.map { it.toTarget() }.toSet()})"
+                    } else {
+                        ""
+                    },
+            )
+            // Checked either way, so the Fix tab shows exactly what was sent to it; a
+            // run unchecks each finding as its outcome lands. Held here rather than
+            // applied to the panel directly, so it lands whenever the tab next draws,
+            // however that is ordered against the reloads above.
+            if (found.isNotEmpty()) {
+                pendingFocus =
+                    PendingFocus(found.first().fingerprint, found.filter { it.fixable }.map { it.fingerprint })
+            }
             ApplicationManager.getApplication().invokeLater({
                 com.mondoo.intellij.findings.XgrepFindingsToolWindowFactory.showFixTab(project) { panel ->
-                    found.firstOrNull()?.let { panel.select(it.fingerprint) }
-                    // Checked either way, so the Fix tab shows exactly what was sent to
-                    // it; a run unchecks each finding as its outcome lands.
-                    panel.check(found.filter { it.fixable }.map { it.fingerprint })
+                    panel.applyPendingFocus()
                 }
                 if (!run) return@invokeLater
                 val fixable = found.filter { it.fixable }
@@ -256,6 +271,16 @@ class FixSession(private val project: Project) : Disposable {
             }, project.disposed)
         }
     }
+
+    /** What the Fix tab should select and check the next time it draws. */
+    data class PendingFocus(val select: String, val check: List<String>)
+
+    @Volatile var pendingFocus: PendingFocus? = null
+
+    /** Hands the pending focus to the caller once, if there is one. */
+    fun takePendingFocus(): PendingFocus? = pendingFocus.also { pendingFocus = null }
+
+    private fun FixFinding.toTarget() = FixTarget(absolutePath, startLine, ruleId)
 
     private fun samePath(a: String, b: String): Boolean =
         runCatching { Path.of(a).toRealPath() == Path.of(b).toRealPath() }.getOrDefault(a == b)
