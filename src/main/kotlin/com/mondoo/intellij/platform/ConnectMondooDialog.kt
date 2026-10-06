@@ -182,13 +182,19 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                 }
             }
 
+            // Only an organization's service account needs a space, so the field shows
+            // up only for one, with the reason right above it.
+            val organizationAccount = OrganizationAccount()
+            row {
+                icon(AllIcons.General.Information).align(com.intellij.ui.dsl.builder.AlignY.TOP)
+                cell(organizationNote)
+            }.visibleIf(organizationAccount).topGap(com.intellij.ui.dsl.builder.TopGap.SMALL)
             row("Space:") {
                 cell(space).columns(com.intellij.ui.dsl.builder.COLUMNS_LARGE).align(AlignX.FILL)
             }.rowComment(
-                "Only for a service account that belongs to an organization: the space to report " +
-                    "to and check dependencies in. Paste its ID or its URL from the Mondoo Console.",
+                "Paste the space's ID or its URL from the Mondoo Console.",
                 maxLineLength = TEXT_WIDTH,
-            ).topGap(com.intellij.ui.dsl.builder.TopGap.SMALL)
+            ).visibleIf(organizationAccount)
 
             collapsibleGroup("Advanced") {
                 row("Save new service accounts to:") {
@@ -199,7 +205,7 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
     }
 
     override fun doValidate(): ValidationInfo? {
-        if (space.text.isNotBlank() && MondooSpace.toMrn(space.text) == null) {
+        if (chosenOrganization() != null && space.text.isNotBlank() && MondooSpace.toMrn(space.text) == null) {
             return ValidationInfo("This is not a space ID or a space URL", space)
         }
         if (useToken.component.isSelected) {
@@ -219,6 +225,41 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
                 organizationOf(Path.of(path))?.takeIf { space.text.isBlank() }?.let {
                     ValidationInfo("This service account belongs to the organization $it: enter a space", space)
                 }
+        }
+    }
+
+    private val organizationNote = com.intellij.ui.components.JBLabel()
+
+    /** The organization of the chosen service account file, or null for a space account. */
+    private fun chosenOrganization(): String? =
+        if (::useFile.isInitialized && useFile.component.isSelected) {
+            existing.text.trim().takeIf { it.isNotEmpty() }?.let { organizationOf(Path.of(it)) }
+        } else {
+            null
+        }
+
+    /** True while the chosen file is an organization's service account; follows the file field. */
+    private inner class OrganizationAccount : com.intellij.ui.layout.ComponentPredicate() {
+        override fun invoke(): Boolean {
+            val org = chosenOrganization() ?: return false
+            organizationNote.text =
+                "<html>This service account belongs to the organization <b>$org</b>, not to a space. " +
+                "Choose the space to report to and check dependencies in.</html>"
+            return true
+        }
+
+        override fun addListener(listener: (Boolean) -> Unit) {
+            val changed = {
+                listener(invoke())
+                // The dialog grows or shrinks with the space field.
+                com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater { pack() }
+            }
+            existing.textField.document.addDocumentListener(
+                object : com.intellij.ui.DocumentAdapter() {
+                    override fun textChanged(e: javax.swing.event.DocumentEvent) = changed()
+                },
+            )
+            useFile.component.addItemListener { changed() }
         }
     }
 
@@ -252,8 +293,10 @@ class ConnectMondooDialog(private val project: Project?) : DialogWrapper(project
         } else {
             path = Path.of(existing.text.trim())
         }
+        // A space account names its own space; a space left over from an
+        // organization account must not override it.
         com.mondoo.intellij.settings.MondooSettings.getInstance().state.mondooSpaceMrn =
-            MondooSpace.toMrn(space.text).orEmpty()
+            if (organizationOf(path) != null) MondooSpace.toMrn(space.text).orEmpty() else ""
         MondooPlatform.use(path)
         val status = MondooPlatform.status(path)
         NotificationGroupManager.getInstance().getNotificationGroup("Mondoo")
