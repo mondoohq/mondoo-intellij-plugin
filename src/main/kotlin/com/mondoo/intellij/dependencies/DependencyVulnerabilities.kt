@@ -6,6 +6,7 @@ package com.mondoo.intellij.dependencies
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mondoo.intellij.binary.ArtifactSelector
+import com.mondoo.intellij.util.arrayOrEmpty
 
 /** One known vulnerability in a package. */
 data class Vulnerability(
@@ -79,7 +80,7 @@ object DependencyVulnerabilities {
         val byPackage = linkedMapOf<String, MutableList<Pair<Vulnerability, JsonObject?>>>()
         val identity = mutableMapOf<String, Triple<String, String, String>>()
         val manifests = mutableMapOf<String, MutableSet<String>>()
-        report.get("results")?.takeIf { it.isJsonArray }?.asJsonArray?.forEach { element ->
+        report.arrayOrEmpty("results").forEach { element ->
             runCatching {
                 val r = element.asJsonObject
                 val extra = r.obj("extra") ?: return@runCatching
@@ -90,8 +91,9 @@ object DependencyVulnerabilities {
                 val key = key(meta.str("ecosystem"), name, meta.str("version"))
                 val vuln = Vulnerability(
                     id = r.str("check_id"),
-                    aliases = meta.get("aliases")?.takeIf { it.isJsonArray }?.asJsonArray
-                        ?.mapNotNull { a -> a.takeIf { it.isJsonPrimitive }?.asString }.orEmpty(),
+                    aliases = meta.arrayOrEmpty("aliases").mapNotNull { a ->
+                        a.takeIf { it.isJsonPrimitive }?.asString
+                    },
                     severity = VulnSeverity.of(extra.str("severity")),
                     summary = summaryOf(extra.str("message")),
                     fixedVersion = meta.str("fixed_version"),
@@ -115,8 +117,8 @@ object DependencyVulnerabilities {
                 manifests = manifests[key].orEmpty(),
                 vulnerabilities = vulns,
                 upgradeTo = target?.first?.fixedVersion.orEmpty(),
-                upgradeCommand = target?.second?.get("commands")?.takeIf { it.isJsonArray }?.asJsonArray
-                    ?.mapNotNull { c -> c.takeIf { it.isJsonPrimitive }?.asString }?.joinToString(" && ").orEmpty(),
+                upgradeCommand = target?.second?.arrayOrEmpty("commands").orEmpty()
+                    .mapNotNull { c -> c.takeIf { it.isJsonPrimitive }?.asString }.joinToString(" && "),
             )
         }
     }.getOrDefault(emptyMap())

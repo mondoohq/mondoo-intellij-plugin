@@ -4,6 +4,7 @@
 package com.mondoo.intellij.policy
 
 import com.google.gson.JsonParser
+import com.mondoo.intellij.util.arrayOrEmpty
 
 /**
  * A policy-lint finding, parsed from `cnspec policy lint -o sarif`.
@@ -92,7 +93,4 @@ object LintReport {
             }
         }
     }.getOrNull()
-
-    private fun com.google.gson.JsonObject.arrayOrEmpty(name: String): List<com.google.gson.JsonElement> =
-        get(name)?.takeIf { it.isJsonArray }?.asJsonArray?.toList().orEmpty()
 }
