@@ -35,6 +35,72 @@ class ReachabilityReportTest {
         }
     """.trimIndent()
 
+    /**
+     * From `xgrep deps reachability --json` (xgrep 0.65.0) on 2026-10-07, one package
+     * per class. Package classes are hyphenated; the summary keys are not.
+     */
+    private val hyphenated = """
+        {
+          "schema_version": 2,
+          "packages": [
+            {"id": "pkg::pkg:npm/%40azu/format-text@1.0.2", "name": "@azu/format-text",
+             "version": "1.0.2", "ecosystem": "npm", "reachability": "dev-dependency"},
+            {"id": "pkg::pkg:npm/%40types/js-yaml@4.0.9", "name": "@types/js-yaml",
+             "version": "4.0.9", "ecosystem": "npm", "reachability": "direct-unused"},
+            {"id": "pkg::pkg:npm/%40vscode/test-cli@0.0.15", "name": "@vscode/test-cli",
+             "version": "0.0.15", "ecosystem": "npm", "reachability": "imported"},
+            {"id": "pkg::pkg:npm/argparse@2.0.1", "name": "argparse",
+             "version": "2.0.1", "ecosystem": "npm", "reachability": "transitive-reachable"},
+            {"id": "pkg::pkg:github/HaaLeo/publish-vscode-extension@ca5561d",
+             "name": "HaaLeo/publish-vscode-extension",
+             "version": "ca5561d", "ecosystem": "github", "reachability": "unknown"}
+          ],
+          "edges": [
+            {"file": ".vscode-test.mjs", "package": "pkg::pkg:npm/%40vscode/test-cli@0.0.15"}
+          ],
+          "summary": {"imported": 3, "imported_reachable": 0, "imported_dead": 0, "direct_unused": 1,
+            "dev_dependency": 438, "transitive": 0, "transitive_reachable": 7,
+            "transitive_conditional": 0, "transitive_orphaned": 0, "unknown": 7}
+        }
+    """.trimIndent()
+
+    @Test
+    fun `hyphenated package classes are recognized, not read as undetermined`() {
+        val report = ReachabilityReport.parse(hyphenated)!!
+        assertEquals(
+            listOf(
+                Reachability.DEV_DEPENDENCY,
+                Reachability.DIRECT_UNUSED,
+                Reachability.IMPORTED,
+                Reachability.TRANSITIVE_REACHABLE,
+                Reachability.UNKNOWN,
+            ),
+            report.packages.map { it.reachability },
+        )
+        assertEquals(
+            mapOf(
+                Reachability.IMPORTED to 3,
+                Reachability.DIRECT_UNUSED to 1,
+                Reachability.DEV_DEPENDENCY to 438,
+                Reachability.TRANSITIVE_REACHABLE to 7,
+                Reachability.UNKNOWN to 7,
+            ),
+            report.summary,
+        )
+    }
+
+    @Test
+    fun `both spellings of every class map to the same class`() {
+        Reachability.entries.forEach { klass ->
+            assertEquals(klass, Reachability.of(klass.id))
+            assertEquals(klass, Reachability.of(klass.id.replace('_', '-')))
+            assertEquals(klass, Reachability.of(klass.id.uppercase()))
+        }
+        assertEquals(Reachability.TRANSITIVE_CONDITIONAL, Reachability.of("transitive-conditional"))
+        assertEquals(Reachability.UNKNOWN, Reachability.of("something-new"))
+        assertEquals(Reachability.UNKNOWN, Reachability.of(null))
+    }
+
     @Test
     fun `parses the document the scanner actually emits`() {
         val report = ReachabilityReport.parse(captured)!!
