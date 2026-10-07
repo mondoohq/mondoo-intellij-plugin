@@ -55,7 +55,7 @@ Only worth checking when the description, icons or change notes have changed.
       findings reappear afterwards without reopening the file.
 - [ ] It is harmless when none of them are running.
 
-## Fixing (needs xgrep 0.78.0+ with `fix serve`)
+## Fixing (needs xgrep 0.79.0+ with `fix serve`)
 
 - [ ] Opening the **Fix** tab starts one `xgrep fix serve` (check with `ps`); opening
       the tool window without selecting the tab starts none.
@@ -72,7 +72,7 @@ Only worth checking when the description, icons or change notes have changed.
       process is left (`ps`), and the outcome is reported, not lost.
 - [ ] Local History shows "Before xgrep fix", and reverting to it restores the files.
 - [ ] Alt+Enter on an assisted finding offers **Fix with coding agent (xgrep)** and runs it.
-- [ ] With an xgrep older than 0.78.0, the tab says to update xgrep and nothing runs
+- [ ] With an xgrep older than 0.79.0, the tab says to update xgrep and nothing runs
       `fix` on a path named `serve`.
 - [ ] Changing the coding agent in settings takes effect on the next run (the server
       restarts).

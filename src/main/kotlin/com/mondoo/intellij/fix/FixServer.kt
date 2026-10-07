@@ -203,7 +203,7 @@ class FixServer(private val project: Project) : Disposable {
         const val TOKEN_ENV = "XGREP_FIX_TOKEN"
 
         /** The first xgrep with `fix serve`. */
-        const val MIN_XGREP_VERSION = "0.78.0"
+        const val MIN_XGREP_VERSION = "0.79.0"
 
         /** A phrase only `xgrep fix serve --help` prints. */
         private const val FIX_SERVE_HELP_MARKER = "xgrep.fix.v1"
