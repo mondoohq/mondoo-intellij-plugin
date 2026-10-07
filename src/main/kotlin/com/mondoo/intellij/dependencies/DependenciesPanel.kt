@@ -173,7 +173,11 @@ internal class DependenciesPanel(private val project: Project) :
     )
 
     private fun popupActions() = DefaultActionGroup(
-        object : AnAction("Open in Mondoo Vulnerability Intelligence", "Open the vulnerability on mondoo.com", AllIcons.General.Web) {
+        object : AnAction(
+            "Open in Mondoo Vulnerability Intelligence",
+            "Open the vulnerability on mondoo.com",
+            AllIcons.General.Web,
+        ) {
             override fun getActionUpdateThread() = ActionUpdateThread.EDT
             override fun update(e: AnActionEvent) {
                 e.presentation.isEnabled = selectedVuln() != null
