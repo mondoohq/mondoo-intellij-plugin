@@ -165,12 +165,15 @@ internal class DependenciesPanel(private val project: Project) :
         return null
     }
 
+    // Mondoo's own Vulnerability Intelligence page: the plugin's vulnerability data
+    // comes from Mondoo Platform, so the link goes there and not to a third party.
     private fun openAdvisory(v: Vulnerability) = com.intellij.ide.BrowserUtil.browse(
-        "https://osv.dev/vulnerability/${v.id}",
+        "https://mondoo.com/vulnerability-intelligence/vulnerability/" +
+            java.net.URLEncoder.encode(v.id, Charsets.UTF_8).replace("+", "%20"),
     )
 
     private fun popupActions() = DefaultActionGroup(
-        object : AnAction("Open Advisory", "Open the vulnerability's advisory in the browser", AllIcons.General.Web) {
+        object : AnAction("Open in Mondoo Vulnerability Intelligence", "Open the vulnerability on mondoo.com", AllIcons.General.Web) {
             override fun getActionUpdateThread() = ActionUpdateThread.EDT
             override fun update(e: AnActionEvent) {
                 e.presentation.isEnabled = selectedVuln() != null
