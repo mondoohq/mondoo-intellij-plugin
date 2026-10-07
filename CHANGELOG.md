@@ -72,6 +72,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Dependencies tab showed nearly every package as **Undetermined**. xgrep writes
+  a package's reachability with hyphens (`dev-dependency`, `transitive-reachable`),
+  and the plugin only recognized the underscore spelling of its summary. Both are
+  read now, and packages reached only through build-constrained dependencies show
+  as **Transitive, conditional**.
+
 ### Removed
 
 ## [0.3.3] - 2026-10-03

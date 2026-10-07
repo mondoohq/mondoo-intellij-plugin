@@ -27,6 +27,11 @@ enum class Reachability(val id: String, val title: String, val explanation: Stri
         "Transitive, reachable",
         "Pulled in by another dependency, and reachable through it",
     ),
+    TRANSITIVE_CONDITIONAL(
+        "transitive_conditional",
+        "Transitive, conditional",
+        "Reached only through dependencies a build constraint gates",
+    ),
     TRANSITIVE("transitive", "Transitive", "Pulled in by another dependency"),
     TRANSITIVE_ORPHANED(
         "transitive_orphaned",
@@ -44,8 +49,16 @@ enum class Reachability(val id: String, val title: String, val explanation: Stri
     ;
 
     companion object {
-        fun of(id: String?): Reachability =
-            entries.firstOrNull { it.id == id } ?: UNKNOWN
+        /**
+         * The class for a scanner id. xgrep writes a package's class with hyphens
+         * (`dev-dependency`) and the summary keys with underscores (`dev_dependency`),
+         * so both spellings are accepted; matching only one once showed nearly every
+         * package as Undetermined.
+         */
+        fun of(id: String?): Reachability {
+            val normalized = id?.trim()?.lowercase()?.replace('-', '_')
+            return entries.firstOrNull { it.id == normalized } ?: UNKNOWN
+        }
     }
 }
 
