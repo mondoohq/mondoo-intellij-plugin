@@ -7,11 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
 ### Changed
 
-- The managed xgrep is now at least 0.79.0, the first published release with
-  `xgrep fix serve`. It drives the Fix tab, dependency fixes and token registration;
-  the plugin used to say 0.58.0, which never had it.
+### Fixed
+
+### Removed
+
+## [0.4.0] - 2026-10-07
+
+### Changed
+
+- The Dependencies tab has a **Scan** button that analyzes dependencies and checks them
+  for known vulnerabilities in one go. Vulnerable packages come first in each group with
+  their counts by severity and the version that fixes them all; expanding one lists its
+  CVEs. Double-click a CVE to open its advisory; right-click a package to copy the upgrade
+  command. The vulnerabilities come from the same scan as the Fix tab's, so a scan from
+  either tab, or `xgrep scan` in a terminal, updates both.
+- The Fix tab fixes vulnerable dependencies: check one and Fix Checked runs the package
+  manager (e.g. `npm install pg@7.1.2`) through xgrep, which re-checks the vulnerability
+  and rolls back if the upgrade did not clear it. A package with several advisories is
+  upgraded once, to the version that fixes all of them. Selecting one shows the command
+  that will run.
+- Vulnerable dependencies show where they are declared: `requirements.txt` and
+  `package.json` turn red in the Project view, and each vulnerable line gets an
+  underline, a scrollbar mark and a gutter icon listing its vulnerabilities. Alt+Enter on
+  the line offers **Upgrade <package> to <version>**, the first version that fixes them.
+- **Generate SBOM…** is one dialog instead of three prompts: what to include (software,
+  cryptography and AI can be combined), the format, the software options and where to
+  save it.
+- The Dependencies tab shows each package's ecosystem with the IDE's icon for its
+  language (JavaScript for npm, Python for PyPI, …), or a coloured badge where the IDE
+  does not know the language.
+- The status bar reads **Mondoo** (for example **Mondoo: 12**) instead of **xgrep**, as
+  do scan notifications: the plugin covers code and infrastructure, and which scanner
+  found what is in the tooltip. **Connect to Mondoo Platform…** is in the status bar
+  menu too.
+- Policy, query and target scans write to a run log on the **Policies** tab, next to
+  the bundle tree (it opens with a run and can be closed), instead of opening a new console tab for every run. When cnspec
+  fails because its Mondoo service account cannot be used, the log says how to fix it.
+- Actions now sit with the tab they belong to. **Code Security** has Scan and fix,
+  **Dependencies** has Generate SBOM…, and **Policies** has New Policy, Bundle (lint,
+  format, upload the selected bundle) and Target (scan, query, shell, manage).
+  **Tools | Mondoo Code Security** and the status bar menu keep scanning, fixing and
+  search, with setup and help under More, which is also the tool window's gear menu.
 
 ### Added
 
@@ -37,45 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Before, a workspace scan only covered committed files, so a file you had just
   created showed findings in the editor but not in the scan results.
 
-### Changed
-
-- The Dependencies tab has a **Scan** button that analyzes dependencies and checks them
-  for known vulnerabilities in one go. Vulnerable packages come first in each group with
-  their counts by severity and the version that fixes them all; expanding one lists its
-  CVEs. Double-click a CVE to open its advisory; right-click a package to copy the upgrade
-  command. The vulnerabilities come from the same scan as the Fix tab's, so a scan from
-  either tab, or `xgrep scan` in a terminal, updates both.
-- The Fix tab fixes vulnerable dependencies: check one and Fix Checked runs the package
-  manager (e.g. `npm install pg@7.1.2`) through xgrep, which re-checks the vulnerability
-  and rolls back if the upgrade did not clear it. A package with several advisories is
-  upgraded once, to the version that fixes all of them. Selecting one shows the command
-  that will run.
-- Vulnerable dependencies show where they are declared: `requirements.txt` and
-  `package.json` turn red in the Project view, and each vulnerable line gets an
-  underline, a scrollbar mark and a gutter icon listing its vulnerabilities. Alt+Enter on
-  the line offers **Upgrade <package> to <version>**, the first version that fixes them.
-- **Generate SBOM…** is one dialog instead of three prompts: what to include (software,
-  cryptography and AI can be combined), the format, the software options and where to
-  save it.
-- The Dependencies tab shows each package's ecosystem with the IDE's icon for its
-  language (JavaScript for npm, Python for PyPI, …), or a coloured badge where the IDE
-  does not know the language.
-
-- The status bar reads **Mondoo** (for example **Mondoo: 12**) instead of **xgrep**, as
-  do scan notifications: the plugin covers code and infrastructure, and which scanner
-  found what is in the tooltip. **Connect to Mondoo Platform…** is in the status bar
-  menu too.
-
-- Policy, query and target scans write to a run log on the **Policies** tab, next to
-  the bundle tree (it opens with a run and can be closed), instead of opening a new console tab for every run. When cnspec
-  fails because its Mondoo service account cannot be used, the log says how to fix it.
-
-- Actions now sit with the tab they belong to. **Code Security** has Scan and fix,
-  **Dependencies** has Generate SBOM…, and **Policies** has New Policy, Bundle (lint,
-  format, upload the selected bundle) and Target (scan, query, shell, manage).
-  **Tools | Mondoo Code Security** and the status bar menu keep scanning, fixing and
-  search, with setup and help under More, which is also the tool window's gear menu.
-
 ### Fixed
 
 - The Dependencies tab showed nearly every package as **Undetermined**. xgrep writes
@@ -83,8 +84,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the plugin only recognized the underscore spelling of its summary. Both are
   read now, and packages reached only through build-constrained dependencies show
   as **Transitive, conditional**.
-
-### Removed
 
 ## [0.3.3] - 2026-10-03
 
@@ -246,7 +245,8 @@ went out in 0.3.0 instead, which is why the versions jump.
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.0...v0.3.1
