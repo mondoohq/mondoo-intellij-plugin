@@ -22,7 +22,7 @@ object XgrepVersionPolicy {
      * that is unreachable, malformed, or unexpectedly old can never talk us into
      * installing something older than what we know works.
      */
-    const val MINIMUM_VERSION: String = "0.57.0"
+    const val MINIMUM_VERSION: String = "0.79.0"
 
     fun shouldRefresh(lastCheckedAtMillis: Long, nowMillis: Long): Boolean =
         lastCheckedAtMillis <= 0L ||

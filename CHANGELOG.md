@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The managed xgrep is now at least 0.79.0, the first published release with
+  `xgrep fix serve`. It drives the Fix tab, dependency fixes and token registration;
+  the plugin used to say 0.58.0, which never had it.
+
 ### Added
 
 - A **Fix** tab in the Mondoo tool window brings `xgrep fix` into the IDE. It lists
@@ -18,14 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reads, the commands it runs, the files it changes), and cancelling the progress
   stops it. Afterwards you can open a pull request. The fixing itself is done
   by xgrep, the same way as in the terminal; every fix is re-scanned before it counts,
-  and a Local History label lets you undo a whole run. Needs xgrep 0.58.0 or later.
+  and a Local History label lets you undo a whole run. Needs xgrep 0.79.0 or later.
 - Alt+Enter on an agent-assisted finding offers **Fix with coding agent (xgrep)**.
 - **Connect to Mondoo Platform…** (More menu, and Settings | Tools | Mondoo): register a
   service account with a registration token, or pick a service account file on disk.
   The file is checked before it is used (a missing key or certificate is reported up
   front), and every xgrep and cnspec the plugin starts then uses it. An organization
   service account asks for a space. Settings and the menu show which space you are
-  connected to. A Fix tab scan that could not check dependencies says so, and why. Needs xgrep 0.58.0 or later for token registration.
+  connected to. A Fix tab scan that could not check dependencies says so, and why. Needs xgrep 0.79.0 or later for token registration.
 - **Include files not committed yet** (Settings | Tools | Mondoo, on by default): in a
   git repository, Scan Workspace and the Fix tab also scan new and untracked files.
   Before, a workspace scan only covered committed files, so a file you had just
