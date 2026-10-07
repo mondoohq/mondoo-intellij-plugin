@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The managed xgrep is now at least 0.79.0, the first published release with
+  `xgrep fix serve`. It drives the Fix tab, dependency fixes and token registration;
+  the plugin used to say 0.58.0, which never had it.
 - The Dependencies tab has a **Scan** button that analyzes dependencies and checks them
   for known vulnerabilities in one go. Vulnerable packages come first in each group with
   their counts by severity and the version that fixes them all; expanding one lists its
