@@ -13,9 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Vulnerabilities on the Dependencies tab open in Mondoo Vulnerability Intelligence instead of osv.dev.
-
 ### Removed
+
+## [0.5.0] - 2026-10-08
+
+### Fixed
+
+- Vulnerabilities on the Dependencies tab open in Mondoo Vulnerability Intelligence instead of osv.dev.
 
 ## [0.4.0] - 2026-10-07
 
@@ -250,7 +254,8 @@ went out in 0.3.0 instead, which is why the versions jump.
 - Scans are cancellable. The scanner exposes no cancel command, so cancelling stops
   the wait rather than the scan, and says so.
 
-[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/mondoohq/mondoo-intellij-plugin/compare/v0.3.1...v0.3.2
