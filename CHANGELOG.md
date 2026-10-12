@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every xgrep the plugin starts sets `XGREP_CALLER=intellij`, so xgrep's anonymous usage
+  telemetry counts the plugin's runs as IntelliJ usage (xgrep ADR-0882). Nothing else
+  changes; xgrep releases before the change ignore the variable.
+
 ### Fixed
 
 ### Removed

@@ -98,6 +98,7 @@ object MondooPlatform {
         runCatching { Files.createDirectories(target.parent) }
         val command = GeneralCommandLine(xgrep.toString(), "login", "--mondoo-config", target.toString())
             .withEnvironment("MONDOO_REGISTRATION_TOKEN", token.trim())
+            .withEnvironment(MondooEnvironment.XGREP_CALLER_ENV, MondooEnvironment.XGREP_CALLER)
             .withCharset(Charsets.UTF_8)
         val out = runCatching { ExecUtil.execAndGetOutput(command, LOGIN_TIMEOUT_MS) }.getOrElse {
             return "Could not run xgrep login: ${it.message}"

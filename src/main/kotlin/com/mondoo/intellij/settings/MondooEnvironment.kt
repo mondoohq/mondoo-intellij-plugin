@@ -30,4 +30,20 @@ object MondooEnvironment {
         configPath()?.let { command.withEnvironment(CONFIG_ENV, it) }
         return command
     }
+
+    /**
+     * Names the plugin as the caller in xgrep's anonymous usage telemetry (xgrep
+     * ADR-0882): xgrep reports `XGREP_CALLER` as the usage event's caller, so the
+     * plugin's runs are counted as IntelliJ usage instead of anonymous direct
+     * invocations. Only xgrep reads it; cnspec command lines do not get it.
+     */
+    const val XGREP_CALLER_ENV = "XGREP_CALLER"
+    const val XGREP_CALLER = "intellij"
+
+    /** [commandLine] for an xgrep process: the Mondoo config plus the telemetry caller. */
+    fun xgrepCommandLine(exe: String): GeneralCommandLine = withXgrepCaller(commandLine(exe))
+
+    /** Adds the telemetry caller to an xgrep [command] built elsewhere. */
+    fun withXgrepCaller(command: GeneralCommandLine): GeneralCommandLine =
+        command.withEnvironment(XGREP_CALLER_ENV, XGREP_CALLER)
 }

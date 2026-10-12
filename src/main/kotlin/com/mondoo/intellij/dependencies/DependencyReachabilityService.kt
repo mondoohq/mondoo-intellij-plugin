@@ -107,7 +107,7 @@ class DependencyReachabilityService(private val project: Project) {
                 // IDE's default charset, which on Windows is the ANSI code page. The
                 // scanner emits UTF-8 JSON, and a mis-decode there is either mojibake
                 // in a package name or an outright parse failure.
-                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.xgrepCommandLine(binary.toString())
                     .withParameters("deps", "reachability", projectPath, "--json")
                     .withWorkDirectory(projectPath)
                     .withCharset(StandardCharsets.UTF_8)
