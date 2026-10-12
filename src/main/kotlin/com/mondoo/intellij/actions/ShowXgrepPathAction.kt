@@ -23,6 +23,7 @@ import com.mondoo.intellij.binary.CnspecBinaryService
 import com.mondoo.intellij.binary.MqlrBinaryService
 import com.mondoo.intellij.binary.XgrepBinaryService
 import com.mondoo.intellij.lsp.LspAvailability
+import com.mondoo.intellij.settings.MondooEnvironment
 import java.awt.datatransfer.StringSelection
 import java.nio.file.Path
 import javax.swing.Action
@@ -134,10 +135,12 @@ private class ToolPathsDialog(private val project: Project?, private val tools: 
             versionLabels.getValue(tool).text = "…"
             ApplicationManager.getApplication().executeOnPooledThread {
                 val version = runCatching {
-                    val out = ExecUtil.execAndGetOutput(
-                        GeneralCommandLine(tool.path.toString(), tool.versionArg!!).withCharset(Charsets.UTF_8),
-                        VERSION_TIMEOUT_MS,
-                    )
+                    val command =
+                        GeneralCommandLine(tool.path.toString(), tool.versionArg!!)
+                            .withCharset(Charsets.UTF_8)
+                    // xgrep's telemetry caller; the other tools ignore it, so only xgrep gets it.
+                    if (tool.name == "xgrep") MondooEnvironment.withXgrepCaller(command)
+                    val out = ExecUtil.execAndGetOutput(command, VERSION_TIMEOUT_MS)
                     ToolPaths.version(out.stdout + "\n" + out.stderr)
                 }.getOrNull()
                 ApplicationManager.getApplication().invokeLater({

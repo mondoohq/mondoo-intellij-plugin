@@ -51,7 +51,7 @@ class BomService(private val project: Project) {
         object : Task.Backgroundable(project, "Generating ${request.describeContent()}", true) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = true
-                val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(binary.toString())
+                val command = com.mondoo.intellij.settings.MondooEnvironment.xgrepCommandLine(binary.toString())
                     .withParameters(request.arguments(projectPath, output.toString()))
                     .withWorkDirectory(projectPath)
 

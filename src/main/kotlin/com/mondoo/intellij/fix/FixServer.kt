@@ -96,7 +96,7 @@ class FixServer(private val project: Project) : Disposable {
         requireFixServe(config.binary)
         val token = HexFormat.of().formatHex(ByteArray(TOKEN_BYTES).also { SecureRandom().nextBytes(it) })
 
-        val command = com.mondoo.intellij.settings.MondooEnvironment.commandLine(config.binary)
+        val command = com.mondoo.intellij.settings.MondooEnvironment.xgrepCommandLine(config.binary)
             .withWorkDirectory(base)
             .withCharset(Charsets.UTF_8)
             // The token goes in the environment: a command line is visible to every
@@ -163,7 +163,9 @@ class FixServer(private val project: Project) : Disposable {
     private fun requireFixServe(binary: String) {
         val probe = runCatching {
             com.intellij.execution.util.ExecUtil.execAndGetOutput(
-                GeneralCommandLine(binary, "fix", "serve", "--help").withCharset(Charsets.UTF_8),
+                com.mondoo.intellij.settings.MondooEnvironment.withXgrepCaller(
+                    GeneralCommandLine(binary, "fix", "serve", "--help").withCharset(Charsets.UTF_8),
+                ),
                 PROBE_TIMEOUT_MS,
             )
         }.getOrNull()
