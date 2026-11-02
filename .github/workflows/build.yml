@@ -106,11 +106,11 @@ jobs:
       - uses: ./.github/actions/free-disk-space
         if: runner.os == 'Linux'
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       # Style before substance: a formatting failure should be the first thing you
       # see, not something you find after a six-minute build. Once is enough — the
@@ -138,13 +138,13 @@ jobs:
 
       # One artifact, from one platform. The plugin ZIP is pure JVM bytecode and
       # resources, so three would be three copies of the same file.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: runner.os == 'Linux'
         with:
           name: plugin-artifact
           path: build/distributions/*.zip
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: tests-report-${{ runner.os }}
@@ -178,11 +178,11 @@ jobs:
       - uses: ./.github/actions/free-disk-space
         if: runner.os == 'Linux'
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       # The IDE is a Swing application and needs a display. macOS and Windows runners
       # have one; a Linux runner does not, hence the virtual framebuffer.
@@ -200,7 +200,7 @@ jobs:
 
       # The log is the entire evidence for this job, and a failure is unreadable
       # without it.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: idea-log-${{ runner.os }}
@@ -223,7 +223,7 @@ jobs:
           fetch-depth: 0 # required for diff-aware scanning on pull requests
 
       - name: Scan with xgrep
-        uses: mondoohq/actions/xgrep@c38cfdf99da709760f58ff35aa5608688657f2f7 # v13.3.0
+        uses: mondoohq/actions/xgrep@09a474d3d0da5e11449067957244f156a36bed62 # v14.0.0
         with:
           path: .
           output-file: results.sarif
@@ -284,7 +284,7 @@ jobs:
       - name: Upload SARIF to code scanning
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v3
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v3
         with:
           sarif_file: results.sarif
           category: xgrep
@@ -314,7 +314,7 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: security-scan-sarif
@@ -359,11 +359,11 @@ jobs:
 
       - uses: ./.github/actions/free-disk-space
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -377,7 +377,7 @@ jobs:
             ${{ matrix.version && format('-PverifyVersion={0}', matrix.version) || '' }} \
             --stacktrace
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: verifier-report-${{ matrix.ide }}-${{ matrix.version || 'default' }}
