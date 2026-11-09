@@ -66,11 +66,11 @@ jobs:
       # deliberately uncached, so it pays for the platform distribution too.
       - uses: ./.github/actions/free-disk-space
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           # Deliberately uncached. The Actions cache is shared across refs, so
           # restoring one in the job that signs and publishes would let anyone able
@@ -179,7 +179,7 @@ jobs:
       # non-default channel.
       - name: Create the GitHub Release
         if: steps.decide.outputs.release == 'true'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: v${{ steps.decide.outputs.version }}
           name: v${{ steps.decide.outputs.version }}
@@ -188,7 +188,7 @@ jobs:
           prerelease: ${{ contains(steps.decide.outputs.version, '-') }}
           make_latest: ${{ !contains(steps.decide.outputs.version, '-') }}
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: plugin-distribution
@@ -253,11 +253,11 @@ jobs:
         with:
           ref: v${{ needs.build.outputs.version }}
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: zulu
           java-version: 21
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           cache-disabled: true # same reasoning as the build job
 
@@ -265,7 +265,7 @@ jobs:
       # not a rebuild of it. Two builds of one version could differ; this way what
       # someone downloads from GitHub and what the Marketplace serves are the same
       # bytes.
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: plugin-distribution
           path: dist
